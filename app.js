@@ -310,10 +310,10 @@ function defaultState() {
     wandMitglied: 'm1',
     jahr: Math.min(Math.max(new Date().getFullYear(), JAHR_MIN), JAHR_MAX),
     mitglieder: [
-      { id: 'm1', name: 'Elternteil 1', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30 },
-      { id: 'm2', name: 'Elternteil 2', rolle: 'elternteil', farbe: '#db2777', urlaubstage: 30 },
-      { id: 'm3', name: 'Kind 1', rolle: 'kind', farbe: '#16a34a' },
-      { id: 'm4', name: 'Kind 2', rolle: 'kind', farbe: '#d97706' }
+      { id: 'm1', name: 'Betty', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30 },
+      { id: 'm2', name: 'Sebastian', rolle: 'elternteil', farbe: '#db2777', urlaubstage: 30 },
+      { id: 'm3', name: 'Ida', rolle: 'kind', farbe: '#16a34a' },
+      { id: 'm4', name: 'Irma', rolle: 'kind', farbe: '#d97706' }
     ],
     eintraege: [],
     eigeneFerien: [],
@@ -343,22 +343,8 @@ function leseSpeicher() {
   try { return localStorage.getItem(STORAGE_KEY); } catch (err) { return null; }
 }
 
-async function load() {
+function load() {
   const stored = leseSpeicher();
-  try {
-    const res = await fetch('data.json', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (!stored) {
-        state = Object.assign(defaultState(), data);
-        normalizeState();
-        save();
-        return;
-      }
-    }
-  } catch (err) {
-    // fetch/JSON fehlgeschlagen (z. B. file://) – gespeicherten Stand oder Default verwenden
-  }
   if (stored) {
     try {
       state = JSON.parse(stored);
@@ -1161,7 +1147,8 @@ function init() {
   s.async = true;
   s.defer = true;
   document.head.appendChild(s);
-  load().catch(() => { state = defaultState(); normalizeState(); }).then(render);
+  try { load(); } catch (err) { state = defaultState(); normalizeState(); }
+  render();
 }
 
 if (typeof document !== 'undefined') {

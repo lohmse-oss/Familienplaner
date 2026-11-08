@@ -6,24 +6,16 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 
 ## Dateien
 - `index.html` – Frontend
-- `app.js` – Logik (Ferien-/Feiertagsdaten, Urlaubszählung, Speicher, Google-Sync)
-- `data.json` – Startdaten (Namen, Urlaubstage, Einträge); wird beim ersten Laden über HTTP importiert
+- `app.js` – Logik und unveränderliche Basisdaten (Schulferien/Feiertage Sachsen, Personen: Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
 
 ## Lokal starten
-Variante A (empfohlen, damit `data.json` geladen wird):
-```
-cd jahresplaner
-python3 -m http.server 8000
-```
-Dann im Browser `http://localhost:8000` öffnen.
-
-Variante B: `index.html` direkt per Doppelklick öffnen (file://). Dann werden die Daten im
-Browser-Speicher (localStorage) gehalten; JSON-Export/Import bleibt verfügbar.
+`index.html` direkt per Doppelklick öffnen (file://) – die Basisdaten sind in `app.js` integriert,
+keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 8000` und
+`http://localhost:8000` öffnen (gleiches Verhalten).
 
 ## Speicherung
-- Automatisch im Browser (localStorage) nach jeder Änderung.
+- Automatisch im Browser (localStorage) nach jeder Änderung; ohne localStorage (z. B. blockierte Cookies) arbeitet die App mit den integrierten Basisdaten weiter.
 - **JSON exportieren** lädt den kompletten Stand als Datei; **JSON importieren** spielt ihn zurück.
-- Beim Laden über HTTP wird `data.json` nur als Erst-Seed verwendet, danach gilt der Browser-Stand.
 
 ## Funktionen
 - Jahresansicht 2027–2031 mit Schulferien Sachsen (orange) und Feiertagen Sachsen (rot, pro Jahr
