@@ -122,6 +122,10 @@ function feiertagMap(jahr, mitFronleichnam) {
   return map;
 }
 
+function istHalbtag(key, jahr) {
+  return key === `${jahr}-12-24` || key === `${jahr}-12-31`;
+}
+
 function urlaubstageImJahr(e, jahr, fmap) {
   const jahrStart = `${jahr}-01-01`;
   const jahrEnde = `${jahr}-12-31`;
@@ -129,9 +133,20 @@ function urlaubstageImJahr(e, jahr, fmap) {
   const bis = e.bis > jahrEnde ? jahrEnde : e.bis;
   let count = 0;
   for (let k = von; k <= bis; k = addDaysKey(k, 1)) {
-    if (isWerktag(k) && !fmap[k]) count++;
+    if (isWerktag(k) && !fmap[k]) count += istHalbtag(k, jahr) ? 0.5 : 1;
   }
   return count;
+}
+
+function isoKW(key) {
+  const d = fromKey(key);
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const fd = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - fd + 3);
+  return 1 + Math.round((date - firstThursday) / (7 * 86400000));
 }
 
 function alleFerien() {
@@ -193,6 +208,8 @@ function mitgliedById(id) {
 function defaultState() {
   return {
     version: 1,
+    ansicht: 'monate',
+    wandMitglied: 'm1',
     jahr: Math.min(Math.max(new Date().getFullYear(), JAHR_MIN), JAHR_MAX),
     mitglieder: [
       { id: 'm1', name: 'Elternteil 1', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30 },
@@ -214,6 +231,13 @@ function save() {
   }
 }
 
+function normalizeState() {
+  state.ansicht = state.ansicht || 'monate';
+  state.wandMitglied = state.wandMitglied || (state.mitglieder[0] && state.mitglieder[0].id);
+  state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '' };
+  state.eigeneFerien = state.eigeneFerien || [];
+}
+
 async function load() {
   try {
     const res = await fetch('data.json', { cache: 'no-store' });
@@ -222,20 +246,24 @@ async function load() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         state = Object.assign(defaultState(), data);
+        normalizeState();
         save();
         return;
       }
       state = JSON.parse(stored);
+      normalizeState();
       return;
     }
   } catch (err) {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       state = JSON.parse(stored);
+      normalizeState();
       return;
     }
   }
   state = defaultState();
+  normalizeState();
   save();
 }
 
@@ -308,9 +336,11 @@ function renderKalender() {
       if (ferien.length) cls += ' ferien';
       if (feiertag) cls += ' feiertag';
       if (schulfrei) cls += ' schulfrei';
+      if (istHalbtag(key, jahr)) cls += ' halbtag';
       let titel = [];
       if (ferien.length) titel.push('Ferien: ' + ferien.join(', '));
       if (feiertag) titel.push('Feiertag: ' + feiertag);
+      if (istHalbtag(key, jahr)) titel.push('Halber Tag (½ Urlaubstag)');
       for (const e of eintraege) {
         const m = mitgliedById(e.mitgliedId);
         titel.push(`${m ? m.name : '?'}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`);
@@ -332,10 +362,156 @@ function renderKalender() {
   });
 }
 
+let auswahl = new Set();
+let auswahlAnker = null;
+
+function toggleAuswahl(key, ev) {
+  if (ev.shiftKey && auswahlAnker) {
+    const [s, e] = auswahlAnker <= key ? [auswahlAnker, key] : [key, auswahlAnker];
+    for (let k = s; k <= e; k = addDaysKey(k, 1)) auswahl.add(k);
+  } else {
+    if (auswahl.has(key)) auswahl.delete(key); else auswahl.add(key);
+    auswahlAnker = key;
+  }
+  renderWandkalender();
+}
+
+function updateAuswahlBar() {
+  const info = document.getElementById('auswahlInfo');
+  if (info) info.textContent = `${auswahl.size} Tag${auswahl.size === 1 ? '' : 'e'} ausgewählt`;
+  const m = mitgliedById(state.wandMitglied);
+  const bU = document.getElementById('markUrlaub');
+  const bS = document.getElementById('markSchulfrei');
+  if (bU) bU.style.display = m && m.rolle === 'elternteil' ? '' : 'none';
+  if (bS) bS.style.display = m && m.rolle === 'kind' ? '' : 'none';
+}
+
+function markiereAuswahl(typ) {
+  const keys = [...auswahl].sort();
+  if (!keys.length) { alert('Bitte zuerst Tage auswählen (Klick = einzelner Tag, Shift+Klick = Bereich).'); return; }
+  const m = mitgliedById(state.wandMitglied);
+  if (!m) return;
+  if (typ === 'urlaub' && m.rolle !== 'elternteil') { alert('Urlaub kann nur für Elternteile eingetragen werden.'); return; }
+  if (typ === 'schulfrei' && m.rolle !== 'kind') { alert('Schulfreie Tage werden für Kinder eingetragen.'); return; }
+  const nurArbeitstage = document.getElementById('nurArbeitstage') && document.getElementById('nurArbeitstage').checked;
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const segmente = [];
+  if (typ === 'urlaub' && nurArbeitstage) {
+    let segStart = null, prev = null;
+    const flush = () => { if (segStart) segmente.push({ von: segStart, bis: prev }); segStart = null; };
+    for (const k of keys) {
+      if (isWerktag(k) && !fmap[k]) { if (!segStart) segStart = k; prev = k; } else flush();
+    }
+    flush();
+  } else {
+    segmente.push({ von: keys[0], bis: keys[keys.length - 1] });
+  }
+  for (const seg of segmente) {
+    const e = { id: uid(), mitgliedId: m.id, typ, von: seg.von, bis: seg.bis, titel: '', notiz: '' };
+    state.eintraege.push(e);
+    if (gcalToken && gcalCalendarId) gcalUpsert(e);
+  }
+  auswahl.clear();
+  auswahlAnker = null;
+  save();
+  render();
+}
+
+function renderWandkalender() {
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const m = mitgliedById(state.wandMitglied) || state.mitglieder[0];
+  if (state.wandMitglied !== m.id) state.wandMitglied = m.id;
+  const sel = document.getElementById('selectWandMitglied');
+  if (sel) {
+    sel.innerHTML = state.mitglieder.map(x => `<option value="${x.id}" ${x.id === m.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  }
+  const wrap = document.getElementById('wandliste');
+  let html = '';
+  for (let monat = 0; monat < 12; monat++) {
+    html += `<h3 class="wand-monat" id="monat-${monat + 1}">${MONATSNAMEN[monat]} ${jahr}</h3>`;
+    const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
+    for (let tag = 1; tag <= tageImMonat; tag++) {
+      const key = `${jahr}-${pad(monat + 1)}-${pad(tag)}`;
+      const d = fromKey(key);
+      const dow = (d.getDay() + 6) % 7;
+      const feiertag = fmap[key];
+      const ferien = ferienAm(key);
+      const wochenende = dow >= 5;
+      const halb = istHalbtag(key, jahr);
+      const entries = eintraegeAm(key).filter(e => e.mitgliedId === m.id);
+      let cls = 'tag-zeile';
+      if (wochenende) cls += ' wochenende';
+      if (feiertag) cls += ' feiertag';
+      if (ferien.length) cls += ' ferien';
+      if (halb) cls += ' halbtag';
+      if (auswahl.has(key)) cls += ' ausgewaehlt';
+      let badges = '';
+      if (feiertag) badges += `<span class="badge feiertag-b">${esc(feiertag)}</span>`;
+      for (const f of ferien) badges += `<span class="badge ferien-b">${esc(f)}</span>`;
+      if (halb) badges += `<span class="badge halb-b" title="Halber Arbeitstag (zählt als 0,5 Urlaubstag)">½</span>`;
+      let chips = '';
+      for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : ''))}">${esc(TYP_LABEL[e.typ])}${e.titel ? ': ' + esc(e.titel) : ''}</span>`;
+      html += `<div class="${cls}" id="tag-${key}" data-key="${key}" title="Klick: auswählen · Shift+Klick: Bereich · Doppelklick: Details">
+        <span class="datum">${WOCHENTAG_KURZ[dow]} ${pad(tag)}.${pad(monat + 1)}.</span>
+        <span class="kw">KW ${isoKW(key)}</span>
+        <span class="badges">${badges}</span>
+        <span class="echips">${chips}</span>
+      </div>`;
+    }
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.tag-zeile').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      if (ev.target.closest('.chip-e')) { openTagModal(el.dataset.key); return; }
+      toggleAuswahl(el.dataset.key, ev);
+    });
+    el.addEventListener('dblclick', () => openTagModal(el.dataset.key));
+  });
+  updateAuswahlBar();
+}
+
+function jumpMonat(monat) {
+  const el = document.getElementById('monat-' + monat);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpKW(kw) {
+  const jahr = state.jahr;
+  const ziel = Number(kw);
+  if (!ziel) return;
+  for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
+    if (isoKW(k) === ziel) {
+      const el = document.getElementById('tag-' + k);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+  alert(`KW ${ziel} nicht in ${jahr} gefunden.`);
+}
+
+function jumpDatum(d) {
+  if (!d) return;
+  const el = document.getElementById('tag-' + d);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else alert('Datum liegt nicht im gewählten Jahr.');
+}
+
 function render() {
   renderJahrSelect();
   renderUebersicht();
-  renderKalender();
+  const monate = document.getElementById('monate');
+  const wand = document.getElementById('wandkalender');
+  if (state.ansicht === 'wand') {
+    monate.style.display = 'none';
+    wand.style.display = 'block';
+    renderWandkalender();
+  } else {
+    monate.style.display = 'grid';
+    wand.style.display = 'none';
+    renderKalender();
+  }
 }
 
 function openModal(id) {
@@ -621,6 +797,28 @@ function init() {
   document.getElementById('jahrSelect').addEventListener('change', (ev) => {
     state.jahr = Number(ev.target.value); save(); render();
   });
+  document.getElementById('btnAnsichtMonate').addEventListener('click', () => {
+    state.ansicht = 'monate'; save(); render();
+  });
+  document.getElementById('btnAnsichtWand').addEventListener('click', () => {
+    state.ansicht = 'wand'; save(); render();
+  });
+  document.getElementById('selectWandMitglied').addEventListener('change', (ev) => {
+    state.wandMitglied = ev.target.value; auswahl.clear(); auswahlAnker = null; save(); render();
+  });
+  document.getElementById('markUrlaub').addEventListener('click', () => markiereAuswahl('urlaub'));
+  document.getElementById('markTermin').addEventListener('click', () => markiereAuswahl('termin'));
+  document.getElementById('markSchulfrei').addEventListener('click', () => markiereAuswahl('schulfrei'));
+  document.getElementById('btnAuswahlClear').addEventListener('click', () => {
+    auswahl.clear(); auswahlAnker = null; renderWandkalender();
+  });
+  const jm = document.getElementById('jumpMonat');
+  if (jm) {
+    jm.innerHTML = MONATSNAMEN.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('');
+    jm.addEventListener('change', (ev) => jumpMonat(ev.target.value));
+  }
+  document.getElementById('btnJumpKW').addEventListener('click', () => jumpKW(document.getElementById('jumpKW').value));
+  document.getElementById('btnJumpDatum').addEventListener('click', () => jumpDatum(document.getElementById('jumpDatum').value));
   document.getElementById('btnNeu').addEventListener('click', () => openEintragModal());
   document.getElementById('btnEinstellungen').addEventListener('click', () => { renderEinstellungen(); openModal('einstellModal'); });
   document.getElementById('btnExport').addEventListener('click', exportJson);
@@ -651,5 +849,5 @@ if (typeof document !== 'undefined') {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { ostern, bussUndBettag, feiertageSachsen, toKey, fromKey, addDaysKey, isWerktag, FERIEN_SACHSEN };
+  module.exports = { ostern, bussUndBettag, feiertageSachsen, toKey, fromKey, addDaysKey, isWerktag, isoKW, istHalbtag, urlaubstageImJahr, FERIEN_SACHSEN };
 }

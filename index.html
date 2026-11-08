@@ -67,6 +67,38 @@
   .tag.schulfrei { box-shadow: inset 0 0 0 2px #60a5fa; }
   .tag .ft { display: block; font-size: .62rem; color: #b91c1c; line-height: 1.1; }
   .chip { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin: 1px; }
+  .tag.halbtag .nr::after { content: " ½"; color: #7c3aed; font-size: .65rem; }
+  .wand-bar, .auswahl-bar {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+    background: #fff; border: 1px solid var(--border); border-radius: .6rem;
+    padding: .5rem .8rem; margin-bottom: .6rem; font-size: .9rem;
+  }
+  .auswahl-bar { position: sticky; top: 0; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+  .auswahl-bar #auswahlInfo { font-weight: 700; min-width: 9rem; }
+  .hint { font-size: .8rem; color: #6b7280; margin: .2rem 0 .6rem; }
+  .wand-monat {
+    margin: 1rem 0 .3rem; font-size: 1.05rem; color: #374151;
+    border-bottom: 2px solid #cbd5e1; padding-bottom: .2rem;
+    scroll-margin-top: 7rem;
+  }
+  .tag-zeile {
+    display: grid; grid-template-columns: 6.5rem 4rem 1fr auto; gap: .5rem;
+    align-items: center; padding: .15rem .5rem; font-size: .85rem;
+    border-radius: .25rem; cursor: pointer; scroll-margin-top: 7rem;
+  }
+  .tag-zeile:hover { outline: 1px solid #93c5fd; }
+  .tag-zeile.wochenende { background: #f1f5f9; color: #475569; }
+  .tag-zeile.feiertag { background: var(--feiertag); }
+  .tag-zeile.feiertag .datum { color: #b91c1c; font-weight: 700; }
+  .tag-zeile.ferien { background: var(--ferien); }
+  .tag-zeile.halbtag .datum::after { content: " ½"; color: #7c3aed; font-weight: 700; }
+  .tag-zeile.ausgewaehlt { outline: 2px solid #2563eb; background: #dbeafe; }
+  .tag-zeile .kw { color: #6b7280; font-size: .75rem; }
+  .badge { display: inline-block; font-size: .72rem; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; }
+  .badge.feiertag-b { background: #fecaca; color: #991b1b; }
+  .badge.ferien-b { background: #fed7aa; color: #9a3412; }
+  .badge.halb-b { background: #ede9fe; color: #6d28d9; font-weight: 700; }
+  .chip-e { color: #fff; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; font-size: .75rem; }
   .modal {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
     align-items: center; justify-content: center; z-index: 10; padding: 1rem;
@@ -101,6 +133,8 @@
   <h1> 🗓️ Familien-Jahresplaner</h1>
   <label>Jahr: <select id="jahrSelect"></select></label>
   <button class="prim" id="btnNeu">+ Eintrag</button>
+  <button id="btnAnsichtMonate">Monatsansicht</button>
+  <button id="btnAnsichtWand">Wandkalender</button>
   <button id="btnEinstellungen">Einstellungen</button>
   <button id="btnExport">JSON exportieren</button>
   <button id="btnImport">JSON importieren</button>
@@ -120,6 +154,25 @@
 </div>
 
 <div id="monate"></div>
+
+<div id="wandkalender" style="display:none">
+  <div class="wand-bar">
+    <label>Person: <select id="selectWandMitglied"></select></label>
+    <label>Monat: <select id="jumpMonat"></select></label>
+    <label>KW: <input type="number" id="jumpKW" min="1" max="53" style="width:4.5rem"> <button id="btnJumpKW">Springen</button></label>
+    <label>Datum: <input type="date" id="jumpDatum"> <button id="btnJumpDatum">Springen</button></label>
+  </div>
+  <div class="auswahl-bar" id="auswahlBar">
+    <span id="auswahlInfo">0 Tage ausgewählt</span>
+    <button class="prim" id="markUrlaub">Als Urlaub markieren</button>
+    <button id="markTermin">Als Termin/Abwesenheit</button>
+    <button id="markSchulfrei">Als schulfrei (Kind)</button>
+    <label title="Bereich wird in reine Arbeitstage (Werktage ohne Feiertag) aufgeteilt – Wochenenden und Feiertage bleiben unmarkiert. 24.12./31.12. zählen als halbe Tage."><input type="checkbox" id="nurArbeitstage"> nur Arbeitstage</label>
+    <button id="btnAuswahlClear">Auswahl aufheben</button>
+  </div>
+  <p class="hint">Tage ansteigend von oben nach unten · Klick = Tag auswählen, Shift+Klick = Bereich auswählen, Doppelklick = Details/Löschen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
+  <div id="wandliste"></div>
+</div>
 
 <footer>
   Schulferien Sachsen 2027–2030 (offizielle Termine, SMK/KMK). Für 2030 (Herbst/Weihnachten) und 2031 noch nicht

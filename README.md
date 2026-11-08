@@ -34,6 +34,14 @@ Browser-Speicher (localStorage) gehalten; JSON-Export/Import bleibt verfügbar.
   (Ferien + Feiertage + eigene Einträge) je Kind in der Übersicht.
 - Alle Personen: „Besonderer Tag / Termin“ und „Abwesenheit“ (Festivals, Geburtstage, Abwesenheiten).
 - Klick auf einen Tag zeigt alle Einträge und erlaubt Löschen/Neu-anlegen.
+- **Wandkalender-Ansicht** („Wandkalender“-Button): pro Person alle Tage des Jahres ansteigend
+  von oben nach unten; Wochenenden, Feiertage und Schulferien farblich hervorgehoben.
+  Klick wählt einen Tag, Shift+Klick einen Bereich; dann „Als Urlaub markieren“ /
+  „Als Termin/Abwesenheit“ / „Als schulfrei (Kind)“. Mit „nur Arbeitstage“ wird ein Bereich
+  in reine Arbeitstage aufgeteilt (Wochenenden/Feiertage bleiben frei). Sprung zu Monat,
+  Kalenderwoche (KW) oder Datum. Doppelklick auf einen Tag öffnet die Detailansicht.
+- **Halbe Tage**: 24.12. und 31.12. gelten als halbe Arbeitstage (½ Urlaubstag) und sind
+  markiert (½).
 - Einstellungen: Namen/Farben/Rollen ändern, Urlaubstage je Elternteil, eigene Ferien ergänzen
   (z. B. 2030 Herbst/Weihnachten und 2031, sobald offiziell veröffentlicht), Fronleichnam (regional).
 - **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API).
