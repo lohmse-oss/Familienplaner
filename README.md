@@ -5,8 +5,8 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 (inkl. flexibler/beweglicher Tage) und individuelle Termine/Abwesenheiten jedes Familienmitglieds.
 
 ## Dateien
-- `index.html` – Frontend
-- `app.js` – Logik und unveränderliche Basisdaten (Schulferien/Feiertage Sachsen, Personen: Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
+- `index.html` – komplette App als eine Datei (Markup, CSS, JS und unveränderliche Basisdaten:
+  Schulferien/Feiertage Sachsen, Personen Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
 
 ## Lokal starten
 `index.html` direkt per Doppelklick öffnen (file://) – die Basisdaten sind in `app.js` integriert,
@@ -15,7 +15,7 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 
 ## Speicherung
 - Automatisch im Browser (localStorage) nach jeder Änderung; ohne localStorage (z. B. blockierte Cookies) arbeitet die App mit den integrierten Basisdaten weiter.
-- **JSON exportieren** lädt den kompletten Stand als Datei; **JSON importieren** spielt ihn zurück.
+- **JSON exportieren** speichert nur die eigene Planung als Datei (Einträge inkl. Titel/Kommentare, eigene Ferien, Einstellungen, Jahr); **JSON importieren** spielt sie zurück. Die Basisdaten (Personen, Sachsen-Ferien/Feiertage) bleiben fest in der HTML-Datei integriert.
 
 ## Funktionen
 - Jahresansicht 2027–2031 mit Schulferien Sachsen (orange) und Feiertagen Sachsen (rot, pro Jahr
@@ -26,14 +26,15 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
   (Ferien + Feiertage + eigene Einträge) je Kind in der Übersicht.
 - Alle Personen: „Besonderer Tag / Termin“ und „Abwesenheit“ (Festivals, Geburtstage, Abwesenheiten).
 - Klick auf einen Tag zeigt alle Einträge und erlaubt Löschen/Neu-anlegen.
-- **Wandkalender-Ansicht** (Standardansicht, Menü „Ansicht ▾“ im Header): pro Person alle Tage des Jahres
-  ansteigend von oben nach unten; Wochenenden, Feiertage und Schulferien farblich hervorgehoben.
+- **Wandkalender-Ansicht** (Standardansicht, Menü „Ansicht ▾“ im Header): alle Personen nebeneinander
+  (eine Spalte pro Person), alle Tage des Jahres ansteigend von oben nach unten; Wochenenden, Feiertage
+  und Schulferien farblich hervorgehoben. Pro Person gibt es oben einen Schalter **Urlaub/Abwesenheit**.
+  Klick auf eine Personen-Zelle wählt den Tag, Shift+Klick einen Bereich; „Ausgewählte markieren“ legt
+  die Einträge mit dem je Person eingestellten Modus an, das **Kommentarfeld** landet als Notiz am Eintrag.
+  Mit „nur Arbeitstage“ wird ein Bereich in reine Arbeitstage aufgeteilt (Wochenenden/Feiertage bleiben
+  frei). Sprung zu Monat, Kalenderwoche (KW) oder Datum. Doppelklick auf eine Zelle öffnet die Detailansicht.
   Die übrigen Funktionen (Ansichten, Datei-Ex/Import, Drucken, Einstellungen, Google-Sync) liegen
   in den Header-Submenüs „Ansicht ▾“, „Datei ▾“ und „Extras ▾“.
-  Klick wählt einen Tag, Shift+Klick einen Bereich; dann „Als Urlaub markieren“ /
-  „Als Termin/Abwesenheit“ / „Als schulfrei (Kind)“. Mit „nur Arbeitstage“ wird ein Bereich
-  in reine Arbeitstage aufgeteilt (Wochenenden/Feiertage bleiben frei). Sprung zu Monat,
-  Kalenderwoche (KW) oder Datum. Doppelklick auf einen Tag öffnet die Detailansicht.
 - **Halbe Tage**: 24.12. und 31.12. gelten als halbe Arbeitstage (½ Urlaubstag) und sind
   markiert (½).
 - **Urlaubslisten-Ansicht** („Urlaubsliste“-Button): zusammenhängende Urlaubsblöcke je Elternteil.
