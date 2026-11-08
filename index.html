@@ -98,7 +98,9 @@
   .wand-kopf {
     display: flex; gap: .5rem; align-items: center; padding: .3rem .5rem;
     font-size: .8rem; border-bottom: 2px solid #cbd5e1; margin-bottom: .2rem;
+    position: sticky; top: 3.1rem; z-index: 4; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06);
   }
+  .modus-select { font-size: .72rem; margin-left: auto; padding: .1rem .2rem; }
   .wand-kopf .datum { width: 6.5rem; min-width: 6.5rem; }
   .wand-kopf .kw { width: 4rem; min-width: 4rem; color: #6b7280; font-size: .75rem; }
   .wand-kopf .badges { flex: 1; min-width: 0; }
@@ -107,10 +109,12 @@
   .modus-switch input { accent-color: #2563eb; margin: 0; }
   .tag-zeile:hover { outline: 1px solid #93c5fd; }
   .tag-zeile.wochenende { background: #f1f5f9; color: #475569; }
+  .tag-zeile.ferien { background: var(--ferien); }
   .tag-zeile.feiertag { background: var(--feiertag); }
   .tag-zeile.feiertag .datum { color: #b91c1c; font-weight: 700; }
-  .tag-zeile.ferien { background: var(--ferien); }
   .tag-zeile.halbtag .datum::after { content: " ½"; color: #7c3aed; font-weight: 700; }
+  .tag-zeile.heute { box-shadow: inset 4px 0 0 #2563eb; }
+  .tag-zeile .datum { cursor: pointer; }
   .tag-zeile .kw { color: #6b7280; font-size: .75rem; width: 4rem; min-width: 4rem; }
   .badge { display: inline-block; font-size: .72rem; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; }
   .badge.feiertag-b { background: #fecaca; color: #991b1b; }
@@ -132,6 +136,11 @@
   .balken-zelle.b-urlaub { background: #16a34a; }
   .balken-zelle.b-schulfrei { background: #3b82f6; }
   .balken-zelle.b-termin { background: #a855f7; }
+  #balkenInhalt { overflow-x: auto; padding-bottom: .5rem; }
+  @media (max-width: 768px) {
+    #wandliste { overflow-x: auto; }
+    .wand-kopf, .tag-zeile { min-width: 46rem; }
+  }
   @media print {
     header button, header select, header label, .dd-menu, .auswahl-bar, .wand-bar, .hint { display: none !important; }
     body { background: #fff; }
@@ -231,10 +240,11 @@
     <label>Monat: <select id="jumpMonat"></select></label>
     <label>KW: <input type="number" id="jumpKW" min="1" max="53" style="width:4.5rem"> <button id="btnJumpKW">Springen</button></label>
     <label>Datum: <input type="date" id="jumpDatum"> <button id="btnJumpDatum">Springen</button></label>
+    <button id="btnJumpHeute">Heute</button>
   </div>
   <div class="auswahl-bar" id="auswahlBar">
-    <span id="auswahlInfo">0 Tage ausgewählt</span>
-    <input type="text" id="auswahlKommentar" placeholder="Kommentar (optional)" style="min-width:12rem">
+    <span id="auswahlInfo">0 Zellen ausgewählt</span>
+    <input type="text" id="auswahlKommentar" placeholder="Titel / Kurznotiz (z. B. Ostsee, Oma)" style="min-width:12rem">
     <button class="prim" id="btnMarkieren">Ausgewählte markieren</button>
     <label title="Bereich wird in reine Arbeitstage (Werktage ohne Feiertag) aufgeteilt – Wochenenden und Feiertage bleiben unmarkiert. 24.12./31.12. zählen als halbe Tage."><input type="checkbox" id="nurArbeitstage"> nur Arbeitstage</label>
     <button id="btnAuswahlClear">Auswahl aufheben</button>
@@ -275,7 +285,7 @@
 <div class="modal" id="eintragModal">
   <div>
     <button class="schliessen">✕</button>
-    <h3>Neuer Eintrag</h3>
+    <h3 id="eintragModalTitel">Neuer Eintrag</h3>
     <div class="form-row">
       <label for="eMitglied">Person</label>
       <select id="eMitglied"></select>
@@ -351,8 +361,16 @@ const JAHR_MAX = 2031;
 const TYP_LABEL = {
   urlaub: 'Urlaub',
   schulfrei: 'Schulfrei (flexibel)',
+  betreuung: 'Betreuung / Ferienlager (Kind)',
   termin: 'Besonderer Tag / Termin',
   abwesenheit: 'Abwesenheit'
+};
+
+const TYP_ICON = { urlaub: '🏖️', schulfrei: '🎒', betreuung: '🏡', termin: '📌', abwesenheit: '🚗' };
+
+const MODUS_OPTIONEN = {
+  elternteil: ['urlaub', 'abwesenheit', 'termin'],
+  kind: ['schulfrei', 'betreuung', 'abwesenheit', 'termin']
 };
 
 const MONATSNAMEN = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -492,9 +510,10 @@ function renderUrlaubsliste() {
     if (m.rolle === 'elternteil') {
       const bloecke = bloeckeFor(m.id, 'urlaub', jahr);
       const gesamt = bloecke.reduce((s, b) => s + b.urlaubstage, 0);
+      const verfuegbar = (Number(m.urlaubstage) || 0) + (Number(m.resturlaubVorjahr) || 0);
       html += `<div class="liste-karte" style="border-top:4px solid ${m.farbe}">
         <h3>${esc(m.name)} – Urlaub ${jahr}</h3>
-        <div class="liste-summe">${gesamt} von ${Number(m.urlaubstage) || 0} Urlaubstagen verbraucht (${(Number(m.urlaubstage) || 0) - gesamt} übrig)</div>`;
+        <div class="liste-summe">${gesamt} von ${verfuegbar} Urlaubstagen verbraucht (${verfuegbar - gesamt} übrig)</div>`;
       if (!bloecke.length) html += '<p>Noch kein Urlaub eingetragen.</p>';
       for (const b of bloecke) {
         html += `<div class="liste-zeile">
@@ -579,16 +598,16 @@ function schulfreieTageKind(mitgliedId, jahr) {
   for (const f of alleFerien()) {
     const von = f.von < jahrStart ? jahrStart : f.von;
     const bis = f.bis > jahrEnde ? jahrEnde : f.bis;
-    for (let k = von; k <= bis; k = addDaysKey(k, 1)) tage.add(k);
+    for (let k = von; k <= bis; k = addDaysKey(k, 1)) if (isWerktag(k)) tage.add(k);
   }
   for (const k in fmap) {
-    if (k >= jahrStart && k <= jahrEnde) tage.add(k);
+    if (k >= jahrStart && k <= jahrEnde && isWerktag(k)) tage.add(k);
   }
   for (const e of eintraegeImJahr(jahr)) {
     if (e.mitgliedId === mitgliedId && e.typ === 'schulfrei') {
       const von = e.von < jahrStart ? jahrStart : e.von;
       const bis = e.bis > jahrEnde ? jahrEnde : e.bis;
-      for (let k = von; k <= bis; k = addDaysKey(k, 1)) tage.add(k);
+      for (let k = von; k <= bis; k = addDaysKey(k, 1)) if (isWerktag(k)) tage.add(k);
     }
   }
   return tage.size;
@@ -633,8 +652,8 @@ function defaultState() {
     wandModus: {},
     jahr: Math.min(Math.max(new Date().getFullYear(), JAHR_MIN), JAHR_MAX),
     mitglieder: [
-      { id: 'm1', name: 'Betty', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30 },
-      { id: 'm2', name: 'Sebastian', rolle: 'elternteil', farbe: '#db2777', urlaubstage: 30 },
+      { id: 'm1', name: 'Betty', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30, resturlaubVorjahr: 0 },
+      { id: 'm2', name: 'Sebastian', rolle: 'elternteil', farbe: '#db2777', urlaubstage: 30, resturlaubVorjahr: 0 },
       { id: 'm3', name: 'Ida', rolle: 'kind', farbe: '#16a34a' },
       { id: 'm4', name: 'Irma', rolle: 'kind', farbe: '#d97706' }
     ],
@@ -659,7 +678,9 @@ function normalizeState() {
   state.filterMitglied = state.filterMitglied || 'alle';
   state.wandModus = state.wandModus || {};
   for (const m of state.mitglieder || []) {
-    if (state.wandModus[m.id] !== 'abwesenheit') state.wandModus[m.id] = m.rolle === 'kind' ? 'abwesenheit' : 'urlaub';
+    const erlaubt = MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil;
+    if (!erlaubt.includes(state.wandModus[m.id])) state.wandModus[m.id] = m.rolle === 'kind' ? 'schulfrei' : 'urlaub';
+    if (m.rolle === 'elternteil') m.resturlaubVorjahr = Number(m.resturlaubVorjahr) || 0;
   }
   state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '' };
   state.eigeneFerien = state.eigeneFerien || [];
@@ -705,13 +726,26 @@ function renderUebersicht() {
   for (const m of state.mitglieder) {
     if (m.rolle === 'elternteil') {
       const verbraucht = urlaubVerbraucht(m.id, jahr);
-      const verfuegbar = Number(m.urlaubstage) || 0;
+      const verfuegbar = (Number(m.urlaubstage) || 0) + (Number(m.resturlaubVorjahr) || 0);
       const rest = verfuegbar - verbraucht;
       const klasse = rest < 0 ? 'warn' : '';
+      const restVorjahr = Number(m.resturlaubVorjahr) || 0;
+      let warn = '';
+      if (restVorjahr > 0) {
+        const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+        let q1 = 0;
+        for (const b of bloeckeFor(m.id, 'urlaub', jahr)) {
+          const von = b.von < `${jahr}-01-01` ? `${jahr}-01-01` : b.von;
+          const bis = b.bis > `${jahr}-03-31` ? `${jahr}-03-31` : b.bis;
+          if (von <= bis) q1 += urlaubstageImJahr({ von, bis }, jahr, fmap);
+        }
+        const offen = restVorjahr - q1;
+        if (offen > 0) warn = `<br><small>⚠️ ${offen} Resturlaubstage bis 31.03. offen</small>`;
+      }
       html += `<div class="karte ${klasse}" style="border-top:4px solid ${m.farbe}">
-        <strong>${esc(m.name)}</strong> (Urlaub)<br>
+        <strong>${esc(m.name)}</strong> (Urlaub)${restVorjahr ? ` <small>+${restVorjahr} Rest-VJ</small>` : ''}<br>
         <span class="zahl">${verbraucht}</span> von ${verfuegbar} Tagen verbraucht –
-        <strong>${rest >= 0 ? rest + ' übrig' : Math.abs(rest) + ' zu viel'}</strong>
+        <strong>${rest >= 0 ? rest + ' übrig' : Math.abs(rest) + ' zu viel'}</strong>${warn}
       </div>`;
     } else {
       const frei = schulfreieTageKind(m.id, jahr);
@@ -803,7 +837,30 @@ function toggleAuswahl(mitgliedId, key, ev) {
 
 function updateAuswahlBar() {
   const info = document.getElementById('auswahlInfo');
-  if (info) info.textContent = `${auswahl.size} Tag${auswahl.size === 1 ? '' : 'e'} ausgewählt`;
+  if (!info) return;
+  let txt = `${auswahl.size} Zell${auswahl.size === 1 ? 'e' : 'en'} ausgewählt`;
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const nurArbeitstage = document.getElementById('nurArbeitstage') && document.getElementById('nurArbeitstage').checked;
+  const proMitglied = {};
+  for (const z of auswahl) {
+    const [mid, key] = z.split('|');
+    (proMitglied[mid] = proMitglied[mid] || new Set()).add(key);
+  }
+  const teile = [];
+  for (const [mid, set] of Object.entries(proMitglied)) {
+    const m = mitgliedById(mid);
+    if (!m || m.rolle !== 'elternteil') continue;
+    if ((state.wandModus?.[mid] || 'urlaub') !== 'urlaub') continue;
+    let netto = 0;
+    for (const k of set) {
+      if (nurArbeitstage && (!isWerktag(k) || fmap[k])) continue;
+      if (isWerktag(k) && !fmap[k]) netto += istHalbtag(k, jahr) ? 0.5 : 1;
+    }
+    teile.push(`${m.name} ${netto} UT`);
+  }
+  if (teile.length) txt += ' · Netto: ' + teile.join(', ');
+  info.textContent = txt;
 }
 
 function markiereAuswahl() {
@@ -819,7 +876,7 @@ function markiereAuswahl() {
   }
   for (const [mid, keys] of Object.entries(proMitglied)) {
     if (!mitgliedById(mid)) continue;
-    const typ = state.wandModus?.[mid] === 'abwesenheit' ? 'abwesenheit' : 'urlaub';
+    const typ = state.wandModus?.[mid] || (mitgliedById(mid).rolle === 'kind' ? 'schulfrei' : 'urlaub');
     keys.sort();
     const segmente = [];
     let segStart = null, prev = null;
@@ -831,7 +888,7 @@ function markiereAuswahl() {
     }
     flush();
     for (const seg of segmente) {
-      const e = { id: uid(), mitgliedId: mid, typ, von: seg.von, bis: seg.bis, titel: '', notiz: kommentar };
+      const e = { id: uid(), mitgliedId: mid, typ, von: seg.von, bis: seg.bis, titel: kommentar, notiz: '' };
       state.eintraege.push(e);
       if (gcalToken && gcalCalendarId) gcalUpsert(e);
     }
@@ -851,9 +908,11 @@ function renderWandkalender() {
   const wrap = document.getElementById('wandliste');
   let html = `<div class="wand-kopf"><span class="datum">Datum</span><span class="kw">KW</span><span class="badges"></span>`;
   for (const m of mitglieder) {
-    const abwesend = state.wandModus?.[m.id] === 'abwesenheit';
+    const akt = state.wandModus?.[m.id] || (m.rolle === 'kind' ? 'schulfrei' : 'urlaub');
+    const optionen = (MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil)
+      .map(v => `<option value="${v}" ${v === akt ? 'selected' : ''}>${esc(TYP_LABEL[v])}</option>`).join('');
     html += `<span class="zellkopf" style="border-left-color:${m.farbe}"><strong>${esc(m.name)}</strong>
-      <label class="modus-switch" title="Markier-Modus für ${esc(m.name)}"><input type="checkbox" data-modus="${m.id}" ${abwesend ? 'checked' : ''}><span>${abwesend ? 'Abwesenheit' : 'Urlaub'}</span></label>
+      <select class="modus-select" data-modus="${m.id}" title="Markier-Modus für ${esc(m.name)}">${optionen}</select>
     </span>`;
   }
   html += '</div>';
@@ -873,6 +932,7 @@ function renderWandkalender() {
       if (feiertag) cls += ' feiertag';
       if (ferien.length) cls += ' ferien';
       if (halb) cls += ' halbtag';
+      if (key === toKey(new Date()) && jahr === new Date().getFullYear()) cls += ' heute';
       let badges = '';
       if (feiertag) badges += `<span class="badge feiertag-b">${esc(feiertag)}</span>`;
       for (const f of ferien) badges += `<span class="badge ferien-b">${esc(f)}</span>`;
@@ -881,7 +941,7 @@ function renderWandkalender() {
       for (const m of mitglieder) {
         const entries = eintraegeAm(key).filter(e => e.mitgliedId === m.id);
         let chips = '';
-        for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" draggable="true" data-id="${e.id}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : '') + (e.notiz ? ' – ' + e.notiz : '') + ' – zum Verschieben auf einen anderen Tag ziehen')}">${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ': ' + esc(e.titel) : ''}</span>`;
+        for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" draggable="true" data-id="${e.id}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : '') + (e.notiz ? ' – ' + e.notiz : '') + ' – zum Verschieben auf einen anderen Tag ziehen')}">${TYP_ICON[e.typ] || ''} ${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ': ' + esc(e.titel) : ''}</span>`;
         const sel = auswahl.has(m.id + '|' + key) ? ' ausgewaehlt' : '';
         zellen += `<span class="tag-zelle${sel}" data-mitglied="${m.id}" data-key="${key}" style="border-left-color:${m.farbe}" title="${esc(m.name)} – Klick: auswählen · Shift+Klick: Bereich · Doppelklick: Details">${chips}</span>`;
       }
@@ -894,6 +954,19 @@ function renderWandkalender() {
     }
   }
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.tag-zeile').forEach(row => {
+    const datum = row.querySelector('.datum');
+    if (datum) datum.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const key = row.dataset.key;
+      if (ev.shiftKey && auswahlAnker) {
+        const [s, e] = auswahlAnker.key <= key ? [auswahlAnker.key, key] : [key, auswahlAnker.key];
+        for (const m of mitglieder) for (let k = s; k <= e; k = addDaysKey(k, 1)) toggleAuswahl(m.id, k, { shiftKey: true });
+      } else {
+        for (const m of mitglieder) toggleAuswahl(m.id, key, { shiftKey: false });
+      }
+    });
+  });
   wrap.querySelectorAll('.tag-zelle').forEach(el => {
     el.addEventListener('click', (ev) => {
       if (ev.target.closest('.chip-e')) { openTagModal(el.dataset.key); return; }
@@ -925,12 +998,11 @@ function renderWandkalender() {
       ev.dataTransfer.effectAllowed = 'move';
     });
   });
-  wrap.querySelectorAll('input[data-modus]').forEach(inp => {
-    inp.addEventListener('change', () => {
-      state.wandModus[inp.dataset.modus] = inp.checked ? 'abwesenheit' : 'urlaub';
-      const label = inp.closest('.modus-switch')?.querySelector('span');
-      if (label) label.textContent = inp.checked ? 'Abwesenheit' : 'Urlaub';
+  wrap.querySelectorAll('select[data-modus]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      state.wandModus[sel.dataset.modus] = sel.value;
       save();
+      updateAuswahlBar();
     });
   });
   updateAuswahlBar();
@@ -1073,7 +1145,8 @@ function betreuungsluecken(jahr) {
     if (!isWerktag(k) || fmap[k]) continue;
     const betroffene = kids.filter(kd => istSchulfreiFuer(kd.id, k));
     if (!betroffene.length) continue;
-    const abgedeckt = eltern.some(p => eintraegeAm(k).some(e => e.mitgliedId === p.id && e.typ === 'urlaub'));
+    const abgedeckt = eltern.some(p => eintraegeAm(k).some(e => e.mitgliedId === p.id && e.typ === 'urlaub'))
+      || betroffene.some(kd => eintraegeAm(k).some(e => e.mitgliedId === kd.id && (e.typ === 'betreuung' || e.typ === 'abwesenheit')));
     if (!abgedeckt) luecken.push({ key: k, kinder: betroffene.map(x => x.name) });
   }
   return luecken;
@@ -1082,14 +1155,23 @@ function betreuungsluecken(jahr) {
 function renderTipps() {
   const jahr = state.jahr;
   const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const eltern = state.mitglieder.filter(m => m.rolle === 'elternteil');
   const luecken = betreuungsluecken(jahr);
   const bruecken = brueckenTipps(fmap, jahr);
+  const schnellBtns = (von, bis) => eltern.map(p =>
+    `<button type="button" class="btn-schnell" data-schnell-urlaub="${p.id}" data-von="${von}" data-bis="${bis}">+ Urlaub ${esc(p.name)}</button>`).join(' ');
   let html = '';
   html += `<div class="liste-karte"><h3>👨‍👩‍👧 Betreuungslücken ${jahr}</h3>
-    <p class="hint">Werktage, an denen mindestens ein Kind schulfrei ist (Ferien/schulfrei), aber kein Elternteil Urlaub hat.</p>`;
-  if (!luecken.length) html += '<p>Keine Lücken – an allen schulfreien Werktagen ist ein Elternteil im Urlaub. 🎉</p>';
-  for (const l of luecken) {
-    html += `<div class="liste-zeile"><strong>${fmtDeutsch(l.key)}</strong> <span>betrifft: ${esc(l.kinder.join(', '))}</span></div>`;
+    <p class="hint">Werktage, an denen mindestens ein Kind schulfrei ist (Ferien/schulfrei), aber weder ein Elternteil Urlaub hat noch das Kind Betreuung/Abwesenheit eingetragen ist. Aufeinanderfolgende Tage sind zu Zeiträumen zusammengefasst.</p>`;
+  if (!luecken.length) html += '<p>Keine Lücken – an allen schulfreien Werktagen ist abgedeckt. 🎉</p>';
+  const bloecke = mergeBloecke(luecken.map(l => ({ von: l.key, bis: l.key })), fmap);
+  for (const b of bloecke) {
+    let werke = 0;
+    for (let k = b.von; k <= b.bis; k = addDaysKey(k, 1)) if (isWerktag(k) && !fmap[k]) werke++;
+    const kinder = [...new Set(luecken.filter(l => l.key >= b.von && l.key <= b.bis).flatMap(l => l.kinder))];
+    html += `<div class="liste-zeile"><strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong>
+      <span>${werke} ungedeckte Werktage · betrifft: ${esc(kinder.join(', '))}</span>
+      <span>${schnellBtns(b.von, b.bis)}</span></div>`;
   }
   html += '</div>';
   html += `<div class="liste-karte"><h3>🌉 Brückentag-Tipps ${jahr}</h3>
@@ -1097,10 +1179,22 @@ function renderTipps() {
   if (!bruecken.length) html += '<p>Keine Brückentage mit 4+ freien Tagen in diesem Jahr.</p>';
   for (const t of bruecken) {
     html += `<div class="liste-zeile"><strong>${fmtDeutsch(t.bruecke)} als Urlaub</strong>
-      <span>${esc(t.name)} (${fmtDeutsch(t.feiertag)}) → frei: ${fmtDeutsch(t.von)} – ${fmtDeutsch(t.bis)} (${t.tage} Tage)</span></div>`;
+      <span>${esc(t.name)} (${fmtDeutsch(t.feiertag)}) → frei: ${fmtDeutsch(t.von)} – ${fmtDeutsch(t.bis)} (${t.tage} Tage)</span>
+      <span>${schnellBtns(t.bruecke, t.bruecke)}</span></div>`;
   }
   html += '</div>';
-  document.getElementById('tippsInhalt').innerHTML = html;
+  const box = document.getElementById('tippsInhalt');
+  box.innerHTML = html;
+  box.querySelectorAll('[data-schnell-urlaub]').forEach(b => b.addEventListener('click', () => {
+    const mid = b.dataset.schnellUrlaub;
+    const von = b.dataset.von, bis = b.dataset.bis;
+    const belegt = eintraegeImJahr(jahr).some(e => e.mitgliedId === mid && e.typ === 'urlaub' && e.von <= bis && e.bis >= von);
+    if (belegt) { alert('Für diesen Zeitraum ist bereits Urlaub eingetragen.'); return; }
+    const e = { id: uid(), mitgliedId: mid, typ: 'urlaub', von, bis, titel: '', notiz: '' };
+    state.eintraege.push(e);
+    if (gcalToken && gcalCalendarId) gcalUpsert(e);
+    save(); render();
+  }));
 }
 
 function render() {
@@ -1148,7 +1242,7 @@ function openTagModal(key) {
       <strong>${esc(e.titel || '–')}</strong><br>
       <small>${fmtDeutsch(e.von)} – ${fmtDeutsch(e.bis)}${e.typ === 'urlaub' ? ` (${urlaubstageImJahr(e, state.jahr, fmap)} Urlaubstage in ${state.jahr})` : ''}</small>
       ${e.notiz ? `<br><small>${esc(e.notiz)}</small>` : ''}</div>
-      <button class="loeschen" data-id="${e.id}">Löschen</button>
+      <span><button class="bearbeiten" data-id="${e.id}">Bearbeiten</button> <button class="loeschen" data-id="${e.id}">Löschen</button></span>
     </div>`;
   }
   html += `<button id="tagNeuBtn" data-key="${key}">+ Eintrag an diesem Tag</button>`;
@@ -1161,6 +1255,10 @@ function openTagModal(key) {
     if (e && e.gcalId && gcalToken && gcalCalendarId) gcalDelete(e.gcalId);
     save(); render(); closeModal('tagModal');
   }));
+  body.querySelectorAll('.bearbeiten').forEach(b => b.addEventListener('click', () => {
+    closeModal('tagModal');
+    openEintragModal(key, b.dataset.id);
+  }));
   const neuBtn = document.getElementById('tagNeuBtn');
   if (neuBtn) neuBtn.addEventListener('click', () => {
     closeModal('tagModal');
@@ -1169,6 +1267,8 @@ function openTagModal(key) {
   openModal('tagModal');
 }
 
+let editEintragId = null;
+
 function fillMitgliederSelect(sel, rolleFilter) {
   sel.innerHTML = state.mitglieder
     .filter(m => !rolleFilter || m.rolle === rolleFilter || rolleFilter === 'alle')
@@ -1176,14 +1276,20 @@ function fillMitgliederSelect(sel, rolleFilter) {
     .join('');
 }
 
-function openEintragModal(voreingestelltKey) {
+function openEintragModal(voreingestelltKey, editId) {
   const selTyp = document.getElementById('eTyp');
   selTyp.innerHTML = Object.entries(TYP_LABEL).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
   fillMitgliederSelect(document.getElementById('eMitglied'), 'alle');
-  document.getElementById('eVon').value = voreingestelltKey || toKey(new Date());
-  document.getElementById('eBis').value = voreingestelltKey || toKey(new Date());
-  document.getElementById('eTitel').value = '';
-  document.getElementById('eNotiz').value = '';
+  const edit = editId ? state.eintraege.find(x => x.id === editId) : null;
+  editEintragId = edit ? edit.id : null;
+  document.getElementById('eintragModalTitel').textContent = edit ? 'Eintrag bearbeiten' : 'Neuer Eintrag';
+  document.getElementById('eMitglied').value = edit ? edit.mitgliedId : state.mitglieder[0].id;
+  document.getElementById('eTyp').value = edit ? edit.typ : 'urlaub';
+  document.getElementById('eVon').value = edit ? edit.von : (voreingestelltKey || toKey(new Date()));
+  document.getElementById('eBis').value = edit ? edit.bis : (voreingestelltKey || toKey(new Date()));
+  document.getElementById('eTitel').value = edit ? (edit.titel || '') : '';
+  document.getElementById('eNotiz').value = edit ? (edit.notiz || '') : '';
+  document.getElementById('eJaehrlich').checked = !!(edit && edit.jaehrlich);
   openModal('eintragModal');
 }
 
@@ -1199,6 +1305,29 @@ function submitEintrag() {
   const m = mitgliedById(mitgliedId);
   if (typ === 'urlaub' && m.rolle !== 'elternteil') { alert('Urlaub kann nur für Elternteile eingetragen werden.'); return; }
   if (typ === 'schulfrei' && m.rolle !== 'kind') { alert('Schulfreie Tage werden für Kinder eingetragen.'); return; }
+  if (editEintragId) {
+    const e = state.eintraege.find(x => x.id === editEintragId);
+    if (e) {
+      e.mitgliedId = mitgliedId;
+      e.typ = typ;
+      e.von = von;
+      e.bis = document.getElementById('eJaehrlich').checked ? von : bis;
+      e.titel = titel;
+      e.notiz = notiz;
+      if (document.getElementById('eJaehrlich').checked) {
+        const teile = von.split('-');
+        e.jaehrlich = true;
+        e.monat = Number(teile[1]);
+        e.tag = Number(teile[2]);
+      } else {
+        delete e.jaehrlich;
+      }
+      save(); render(); closeModal('eintragModal');
+      if (gcalToken && gcalCalendarId) gcalUpsert(e);
+    }
+    editEintragId = null;
+    return;
+  }
   let e;
   if (document.getElementById('eJaehrlich').checked) {
     const teile = von.split('-');
@@ -1222,7 +1351,8 @@ function renderEinstellungen() {
         <option value="elternteil" ${m.rolle === 'elternteil' ? 'selected' : ''}>Elternteil</option>
         <option value="kind" ${m.rolle === 'kind' ? 'selected' : ''}>Kind</option>
       </select>
-      ${m.rolle === 'elternteil' ? `<input type="number" min="0" max="60" value="${m.urlaubstage ?? 30}" data-urlaub="${m.id}" title="Verfügbare Urlaubstage" style="width:70px"> Tage` : ''}
+      ${m.rolle === 'elternteil' ? `<input type="number" min="0" max="60" value="${m.urlaubstage ?? 30}" data-urlaub="${m.id}" title="Verfügbare Urlaubstage" style="width:70px"> Tage
+      <input type="number" min="0" max="60" value="${m.resturlaubVorjahr ?? 0}" data-resturlaub="${m.id}" title="Resturlaub aus dem Vorjahr (Verfall 31.03.)" style="width:70px"> Rest-VJ` : ''}
     </div>`;
   });
   const ef = state.eigeneFerien || [];
@@ -1253,6 +1383,9 @@ function renderEinstellungen() {
   box.querySelectorAll('[data-urlaub]').forEach(inp => inp.addEventListener('change', () => {
     mitgliedById(inp.dataset.urlaub).urlaubstage = Number(inp.value); save(); render();
   }));
+  box.querySelectorAll('[data-resturlaub]').forEach(inp => inp.addEventListener('change', () => {
+    mitgliedById(inp.dataset.resturlaub).resturlaubVorjahr = Number(inp.value); save(); render();
+  }));
   box.querySelectorAll('[data-ferie]').forEach(b => b.addEventListener('click', () => {
     const [von, name] = b.dataset.ferie.split('|');
     state.eigeneFerien = state.eigeneFerien.filter(f => !(f.von === von && f.name === name));
@@ -1275,7 +1408,7 @@ function renderEinstellungen() {
 }
 
 function exportJson() {
-  const plan = { version: 1, jahr: state.jahr, eintraege: state.eintraege, eigeneFerien: state.eigeneFerien || [], einstellungen: state.einstellungen };
+  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege, eigeneFerien: state.eigeneFerien || [], einstellungen: state.einstellungen };
   const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1450,6 +1583,25 @@ function init() {
   }
   document.getElementById('btnJumpKW').addEventListener('click', () => jumpKW(document.getElementById('jumpKW').value));
   document.getElementById('btnJumpDatum').addEventListener('click', () => jumpDatum(document.getElementById('jumpDatum').value));
+  document.getElementById('btnJumpHeute').addEventListener('click', () => {
+    const heute = new Date();
+    if (heute.getFullYear() !== state.jahr) { alert(`Heute liegt nicht im gewählten Jahr ${state.jahr}.`); return; }
+    jumpDatum(toKey(heute));
+  });
+  document.getElementById('auswahlKommentar').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); markiereAuswahl(); }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    const offen = document.querySelector('.modal.offen');
+    if (offen) { offen.classList.remove('offen'); return; }
+    if (state.ansicht === 'wand' && auswahl.size) {
+      auswahl.clear();
+      auswahlAnker = null;
+      document.querySelectorAll('.tag-zelle.ausgewaehlt').forEach(c => c.classList.remove('ausgewaehlt'));
+      updateAuswahlBar();
+    }
+  });
   document.getElementById('btnNeu').addEventListener('click', () => openEintragModal());
   document.getElementById('btnEinstellungen').addEventListener('click', () => { renderEinstellungen(); openModal('einstellModal'); });
   document.getElementById('btnExport').addEventListener('click', exportJson);
