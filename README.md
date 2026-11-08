@@ -56,6 +56,11 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 - Einstellungen: Namen/Farben/Rollen ändern, Urlaubstage je Elternteil, eigene Ferien ergänzen
   (z. B. 2030 Herbst/Weihnachten und 2031, sobald offiziell veröffentlicht), Fronleichnam (regional).
 - **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API).
+- **Resturlaub aus dem Vorjahr**: je Elternteil in den Einstellungen pflegbar (`Rest-VJ`); erhöht das Budget in Übersicht und Urlaubsliste, Verfallswarnung „⚠️ X Resturlaubstage bis 31.03. offen“ auf der Übersichtskarte.
+- **Eintragstyp „Betreuung / Ferienlager (Kind)“**: eigener Modus im Personen-Schalter (Eltern: Urlaub/Abwesenheit/Termin; Kinder: Schulfrei/Betreuung/Abwesenheit/Termin). Betreuungslücken in den Tipps gelten als abgedeckt, wenn ein Elternteil Urlaub hat ODER das Kind Betreuung/Abwesenheit eingetragen ist; Lücken werden zu Zeiträumen zusammengefasst und bieten 1-Klick-Schnellbuchung („+ Urlaub Betty/Sebastian“).
+- **Wandkalender-Ergonomie**: sticky Spaltenköpfe, Klick auf das Datum wählt die ganze Zeile (alle Personen), Live-Netto-Vorschau der Urlaubstage in der Auswahlleiste, „Heute“-Button mit Tageshervorhebung, Escape hebt die Auswahl auf / schließt Modals, Enter im Titel-Feld markiert direkt.
+- **Einträge bearbeiten**: im Tag-Detail (Doppelklick) neben „Löschen“ auch „Bearbeiten“ – vorbefülltes Formular, Speichern aktualisiert den Eintrag.
+- **Korrekturen**: Feiertag in den Ferien behält rote Markierung (CSS-Reihenfolge), schulfreie Tage der Kinder zählen nur Werktage, JSON-Export enthält wieder die Personenkonfiguration (Namen/Farben/Rollen/Kontingente).
 
 ## Google Kalender Live-Sync (push)
 1. In der [Google Cloud Console](https://console.cloud.google.com/) ein Projekt anlegen,
