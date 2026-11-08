@@ -34,8 +34,10 @@ Browser-Speicher (localStorage) gehalten; JSON-Export/Import bleibt verfügbar.
   (Ferien + Feiertage + eigene Einträge) je Kind in der Übersicht.
 - Alle Personen: „Besonderer Tag / Termin“ und „Abwesenheit“ (Festivals, Geburtstage, Abwesenheiten).
 - Klick auf einen Tag zeigt alle Einträge und erlaubt Löschen/Neu-anlegen.
-- **Wandkalender-Ansicht** („Wandkalender“-Button): pro Person alle Tage des Jahres ansteigend
-  von oben nach unten; Wochenenden, Feiertage und Schulferien farblich hervorgehoben.
+- **Wandkalender-Ansicht** (Standardansicht, Menü „Ansicht ▾“ im Header): pro Person alle Tage des Jahres
+  ansteigend von oben nach unten; Wochenenden, Feiertage und Schulferien farblich hervorgehoben.
+  Die übrigen Funktionen (Ansichten, Datei-Ex/Import, Drucken, Einstellungen, Google-Sync) liegen
+  in den Header-Submenüs „Ansicht ▾“, „Datei ▾“ und „Extras ▾“.
   Klick wählt einen Tag, Shift+Klick einen Bereich; dann „Als Urlaub markieren“ /
   „Als Termin/Abwesenheit“ / „Als schulfrei (Kind)“. Mit „nur Arbeitstage“ wird ein Bereich
   in reine Arbeitstage aufgeteilt (Wochenenden/Feiertage bleiben frei). Sprung zu Monat,

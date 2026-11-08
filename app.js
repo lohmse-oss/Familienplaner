@@ -306,7 +306,7 @@ function mitgliedById(id) {
 function defaultState() {
   return {
     version: 1,
-    ansicht: 'monate',
+    ansicht: 'wand',
     wandMitglied: 'm1',
     jahr: Math.min(Math.max(new Date().getFullYear(), JAHR_MIN), JAHR_MAX),
     mitglieder: [
@@ -329,8 +329,10 @@ function save() {
   }
 }
 
+const ANSICHTEN = ['wand', 'monate', 'liste', 'balken', 'alle', 'tipps'];
+
 function normalizeState() {
-  state.ansicht = state.ansicht || 'monate';
+  state.ansicht = ANSICHTEN.includes(state.ansicht) ? state.ansicht : 'wand';
   state.filterMitglied = state.filterMitglied || 'alle';
   state.wandMitglied = state.wandMitglied || (state.mitglieder[0] && state.mitglieder[0].id);
   state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '' };
@@ -776,6 +778,9 @@ function render() {
   else if (state.ansicht === 'alle') renderAlleEintraege();
   else if (state.ansicht === 'tipps') renderTipps();
   else renderKalender();
+  document.querySelectorAll('#menuAnsicht [role=menuitem]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.ansicht === state.ansicht));
+  });
 }
 
 function openModal(id) {
@@ -1116,6 +1121,35 @@ function init() {
   });
   document.getElementById('btnGcal').addEventListener('click', gcalConnect);
   document.getElementById('eintragSpeichern').addEventListener('click', submitEintrag);
+  document.querySelectorAll('.dd').forEach(dd => {
+    const trigger = dd.querySelector('button');
+    const close = () => { dd.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
+    trigger.addEventListener('click', () => {
+      const open = !dd.classList.contains('open');
+      document.querySelectorAll('.dd.open').forEach(o => {
+        if (o !== dd) { o.classList.remove('open'); o.querySelector('button').setAttribute('aria-expanded', 'false'); }
+      });
+      dd.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', String(open));
+    });
+    dd.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { close(); trigger.focus(); return; }
+      if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+      const items = [...dd.querySelectorAll('[role=menuitem]')];
+      const i = items.indexOf(document.activeElement);
+      ev.preventDefault();
+      items[(i + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+    });
+    dd.querySelectorAll('[role=menuitem]').forEach(it => it.addEventListener('click', () => close()));
+  });
+  document.addEventListener('click', (ev) => {
+    if (!ev.target.closest('.dd')) {
+      document.querySelectorAll('.dd.open').forEach(o => {
+        o.classList.remove('open');
+        o.querySelector('button').setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
   document.querySelectorAll('.modal .schliessen').forEach(b => b.addEventListener('click', () => {
     b.closest('.modal').classList.remove('offen');
   }));
