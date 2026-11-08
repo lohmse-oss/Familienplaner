@@ -45,6 +45,19 @@ Browser-Speicher (localStorage) gehalten; JSON-Export/Import bleibt verfügbar.
 - **Urlaubslisten-Ansicht** („Urlaubsliste“-Button): zusammenhängende Urlaubsblöcke je Elternteil.
   Zwei Zeiträume gelten als zusammenhängend, wenn zwischen ihnen kein Arbeitstag liegt (nur
   Wochenende/Feiertage dazwischen); Block zeigt Kalendertage, Urlaubstage und überlappende Ferien.
+- **Jahresbalken** („Jahresbalken“-Button): KW-Spalten pro Person, farbige Zellen für
+  Ferien/Urlaub/schulfrei/Termine; Klick auf eine KW springt in den Wandkalender.
+- **Alle Einträge** („Alle Einträge“-Button): chronologische Liste aller Urlaube/Termine/Abwesenheiten
+  aller Personen, gruppiert nach Monat, Klick öffnet den Tag.
+- **Betreuung & Brückentage** („Betreuung & Brückentage“-Button): Betreuungslücken (Werktag mit
+  schulfreiem Kind, aber keinem Elternteil im Urlaub) und Brückentag-Tipps (1 Urlaubstag → 4+ freie Tage).
+- **Personen-Filter** (oben rechts): Einträge nur einer Person oder aller anzeigen (Monats-, Wand-,
+  Balken- und Listenansicht).
+- **Jährlich wiederkehrende Termine**: Checkbox im Eintragsformular (z. B. Geburtstage) – werden
+  jedes Jahr automatisch am gleichen Datum angezeigt.
+- **Drag & Drop im Wandkalender**: Eintrags-Chip auf einen anderen Tag ziehen, um den ganzen
+  Zeitraum zu verschieben.
+- **Druckansicht**: „Drucken“-Button (window.print) mit printoptimierter Darstellung.
 - Einstellungen: Namen/Farben/Rollen ändern, Urlaubstage je Elternteil, eigene Ferien ergänzen
   (z. B. 2030 Herbst/Weihnachten und 2031, sobald offiziell veröffentlicht), Fronleichnam (regional).
 - **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API).

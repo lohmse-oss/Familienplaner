@@ -106,6 +106,19 @@
     display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
     border-bottom: 1px dashed var(--border); padding: .3rem 0; font-size: .9rem;
   }
+  .balken-zeile { display: flex; align-items: center; gap: 1px; margin-bottom: 2px; }
+  .balken-name { width: 9rem; min-width: 9rem; font-size: .8rem; padding-left: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .balken-zelle { width: 1.1rem; height: 1.1rem; min-width: 1.1rem; border-radius: .15rem; background: #f1f5f9; cursor: pointer; font-size: .5rem; text-align: center; color: #94a3b8; line-height: 1.1rem; }
+  .balken-zelle.kopf { cursor: default; background: transparent; }
+  .balken-zelle.b-ferien { background: #fdba74; }
+  .balken-zelle.b-urlaub { background: #16a34a; }
+  .balken-zelle.b-schulfrei { background: #3b82f6; }
+  .balken-zelle.b-termin { background: #a855f7; }
+  @media print {
+    header button, header select, header label, .auswahl-bar, .wand-bar, .hint { display: none !important; }
+    body { background: #fff; }
+    .monat, .liste-karte, .tag-zeile { break-inside: avoid; }
+  }
   .modal {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
     align-items: center; justify-content: center; z-index: 10; padding: 1rem;
@@ -143,6 +156,11 @@
   <button id="btnAnsichtMonate">Monatsansicht</button>
   <button id="btnAnsichtWand">Wandkalender</button>
   <button id="btnAnsichtListe">Urlaubsliste</button>
+  <button id="btnAnsichtBalken">Jahresbalken</button>
+  <button id="btnAnsichtAlle">Alle Einträge</button>
+  <button id="btnAnsichtTipps">Betreuung &amp; Brückentage</button>
+  <button id="btnDrucken">Drucken</button>
+  <label>Anzeige: <select id="filterMitglied"></select></label>
   <button id="btnEinstellungen">Einstellungen</button>
   <button id="btnExport">JSON exportieren</button>
   <button id="btnImport">JSON importieren</button>
@@ -186,6 +204,18 @@
   <div id="listeInhalt"></div>
 </div>
 
+<div id="balkenansicht" style="display:none">
+  <div id="balkenInhalt"></div>
+</div>
+
+<div id="alleEintraege" style="display:none">
+  <div id="alleInhalt"></div>
+</div>
+
+<div id="tippsansicht" style="display:none">
+  <div id="tippsInhalt"></div>
+</div>
+
 <footer>
   Schulferien Sachsen 2027–2030 (offizielle Termine, SMK/KMK). Für 2030 (Herbst/Weihnachten) und 2031 noch nicht
   veröffentlicht – in den Einstellungen manuell ergänzbar. Feiertage werden pro Jahr berechnet
@@ -226,6 +256,9 @@
     <div class="form-row">
       <label for="eNotiz">Notiz</label>
       <textarea id="eNotiz" rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <label><input type="checkbox" id="eJaehrlich"> Jährlich wiederkehrend (z. B. Geburtstag – Monat/Tag aus „Von“)</label>
     </div>
     <button class="prim" id="eintragSpeichern">Speichern</button>
   </div>
