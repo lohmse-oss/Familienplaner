@@ -337,28 +337,33 @@ function normalizeState() {
   state.eigeneFerien = state.eigeneFerien || [];
 }
 
+function leseSpeicher() {
+  try { return localStorage.getItem(STORAGE_KEY); } catch (err) { return null; }
+}
+
 async function load() {
+  const stored = leseSpeicher();
   try {
     const res = await fetch('data.json', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         state = Object.assign(defaultState(), data);
         normalizeState();
         save();
         return;
       }
-      state = JSON.parse(stored);
-      normalizeState();
-      return;
     }
   } catch (err) {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    // fetch/JSON fehlgeschlagen (z. B. file://) – gespeicherten Stand oder Default verwenden
+  }
+  if (stored) {
+    try {
       state = JSON.parse(stored);
       normalizeState();
       return;
+    } catch (err) {
+      // gespeicherter Stand ungueltig – Default verwenden
     }
   }
   state = defaultState();
@@ -1122,7 +1127,7 @@ function init() {
   s.async = true;
   s.defer = true;
   document.head.appendChild(s);
-  load().then(render);
+  load().catch(() => { state = defaultState(); normalizeState(); }).then(render);
 }
 
 if (typeof document !== 'undefined') {
