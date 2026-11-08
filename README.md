@@ -42,6 +42,9 @@ Browser-Speicher (localStorage) gehalten; JSON-Export/Import bleibt verfügbar.
   Kalenderwoche (KW) oder Datum. Doppelklick auf einen Tag öffnet die Detailansicht.
 - **Halbe Tage**: 24.12. und 31.12. gelten als halbe Arbeitstage (½ Urlaubstag) und sind
   markiert (½).
+- **Urlaubslisten-Ansicht** („Urlaubsliste“-Button): zusammenhängende Urlaubsblöcke je Elternteil.
+  Zwei Zeiträume gelten als zusammenhängend, wenn zwischen ihnen kein Arbeitstag liegt (nur
+  Wochenende/Feiertage dazwischen); Block zeigt Kalendertage, Urlaubstage und überlappende Ferien.
 - Einstellungen: Namen/Farben/Rollen ändern, Urlaubstage je Elternteil, eigene Ferien ergänzen
   (z. B. 2030 Herbst/Weihnachten und 2031, sobald offiziell veröffentlicht), Fronleichnam (regional).
 - **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API).

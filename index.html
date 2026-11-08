@@ -99,6 +99,13 @@
   .badge.ferien-b { background: #fed7aa; color: #9a3412; }
   .badge.halb-b { background: #ede9fe; color: #6d28d9; font-weight: 700; }
   .chip-e { color: #fff; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; font-size: .75rem; }
+  .liste-karte { background: #fff; border: 1px solid var(--border); border-radius: .6rem; padding: .8rem 1rem; margin-bottom: 1rem; }
+  .liste-karte h3 { margin: 0 0 .3rem; font-size: 1rem; }
+  .liste-summe { font-size: .9rem; color: #374151; margin-bottom: .5rem; }
+  .liste-zeile {
+    display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
+    border-bottom: 1px dashed var(--border); padding: .3rem 0; font-size: .9rem;
+  }
   .modal {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
     align-items: center; justify-content: center; z-index: 10; padding: 1rem;
@@ -135,6 +142,7 @@
   <button class="prim" id="btnNeu">+ Eintrag</button>
   <button id="btnAnsichtMonate">Monatsansicht</button>
   <button id="btnAnsichtWand">Wandkalender</button>
+  <button id="btnAnsichtListe">Urlaubsliste</button>
   <button id="btnEinstellungen">Einstellungen</button>
   <button id="btnExport">JSON exportieren</button>
   <button id="btnImport">JSON importieren</button>
@@ -172,6 +180,10 @@
   </div>
   <p class="hint">Tage ansteigend von oben nach unten · Klick = Tag auswählen, Shift+Klick = Bereich auswählen, Doppelklick = Details/Löschen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
   <div id="wandliste"></div>
+</div>
+
+<div id="urlaubsliste" style="display:none">
+  <div id="listeInhalt"></div>
 </div>
 
 <footer>

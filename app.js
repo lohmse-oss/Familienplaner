@@ -122,6 +122,84 @@ function feiertagMap(jahr, mitFronleichnam) {
   return map;
 }
 
+function hatWerktagZwischen(a, b, fmap) {
+  for (let k = addDaysKey(a, 1); k < b; k = addDaysKey(k, 1)) {
+    if (isWerktag(k) && !fmap[k]) return true;
+  }
+  return false;
+}
+
+function mergeBloecke(ranges, fmap) {
+  const sortiert = ranges.slice().sort((x, y) => x.von < y.von ? -1 : 1);
+  const merged = [];
+  for (const r of sortiert) {
+    const last = merged[merged.length - 1];
+    if (last && !hatWerktagZwischen(last.bis, r.von, fmap)) {
+      if (r.bis > last.bis) last.bis = r.bis;
+    } else {
+      merged.push({ von: r.von, bis: r.bis });
+    }
+  }
+  return merged;
+}
+
+function bloeckeFor(mitgliedId, typ, jahr) {
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const jahrStart = `${jahr}-01-01`;
+  const jahrEnde = `${jahr}-12-31`;
+  const ranges = state.eintraege
+    .filter(e => e.mitgliedId === mitgliedId && e.typ === typ && e.von <= jahrEnde && e.bis >= jahrStart)
+    .map(e => ({ von: e.von < jahrStart ? jahrStart : e.von, bis: e.bis > jahrEnde ? jahrEnde : e.bis }));
+  return mergeBloecke(ranges, fmap).map(b => ({
+    ...b,
+    kalendertage: daysBetween(b.von, b.bis),
+    urlaubstage: urlaubstageImJahr(b, jahr, fmap),
+    ferien: ferienIn(b.von, b.bis)
+  }));
+}
+
+function ferienIn(von, bis) {
+  const namen = [];
+  for (const f of alleFerien()) {
+    if (f.bis >= von && f.von <= bis && !namen.includes(f.name)) namen.push(f.name);
+  }
+  return namen;
+}
+
+function renderUrlaubsliste() {
+  const jahr = state.jahr;
+  const box = document.getElementById('listeInhalt');
+  let html = `<p class="hint">Zusammenhängende Blöcke: Zeiträume, zwischen denen kein Arbeitstag liegt (nur Wochenende/Feiertage dazwischen), werden zu einem Urlaubsblock zusammengefasst. 24.12./31.12. zählen als ½ Tag.</p>`;
+  for (const m of state.mitglieder) {
+    if (m.rolle === 'elternteil') {
+      const bloecke = bloeckeFor(m.id, 'urlaub', jahr);
+      const gesamt = bloecke.reduce((s, b) => s + b.urlaubstage, 0);
+      html += `<div class="liste-karte" style="border-top:4px solid ${m.farbe}">
+        <h3>${esc(m.name)} – Urlaub ${jahr}</h3>
+        <div class="liste-summe">${gesamt} von ${Number(m.urlaubstage) || 0} Urlaubstagen verbraucht (${(Number(m.urlaubstage) || 0) - gesamt} übrig)</div>`;
+      if (!bloecke.length) html += '<p>Noch kein Urlaub eingetragen.</p>';
+      for (const b of bloecke) {
+        html += `<div class="liste-zeile">
+          <strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong>
+          <span>${b.kalendertage} Kalendertage · <strong>${b.urlaubstage} Urlaubstage</strong></span>
+          ${b.ferien.length ? `<span class="badge ferien-b">${esc(b.ferien.join(', '))}</span>` : ''}
+        </div>`;
+      }
+      html += '</div>';
+    } else {
+      const bloecke = bloeckeFor(m.id, 'schulfrei', jahr);
+      if (!bloecke.length) continue;
+      html += `<div class="liste-karte" style="border-top:4px solid ${m.farbe}">
+        <h3>${esc(m.name)} – flexible schulfreie Tage ${jahr}</h3>`;
+      for (const b of bloecke) {
+        html += `<div class="liste-zeile"><strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong> <span>${b.kalendertage} Kalendertage</span></div>`;
+      }
+      html += '</div>';
+    }
+  }
+  box.innerHTML = html;
+}
+
 function istHalbtag(key, jahr) {
   return key === `${jahr}-12-24` || key === `${jahr}-12-31`;
 }
@@ -503,13 +581,21 @@ function render() {
   renderUebersicht();
   const monate = document.getElementById('monate');
   const wand = document.getElementById('wandkalender');
+  const liste = document.getElementById('urlaubsliste');
   if (state.ansicht === 'wand') {
     monate.style.display = 'none';
     wand.style.display = 'block';
+    liste.style.display = 'none';
     renderWandkalender();
+  } else if (state.ansicht === 'liste') {
+    monate.style.display = 'none';
+    wand.style.display = 'none';
+    liste.style.display = 'block';
+    renderUrlaubsliste();
   } else {
     monate.style.display = 'grid';
     wand.style.display = 'none';
+    liste.style.display = 'none';
     renderKalender();
   }
 }
@@ -803,6 +889,9 @@ function init() {
   document.getElementById('btnAnsichtWand').addEventListener('click', () => {
     state.ansicht = 'wand'; save(); render();
   });
+  document.getElementById('btnAnsichtListe').addEventListener('click', () => {
+    state.ansicht = 'liste'; save(); render();
+  });
   document.getElementById('selectWandMitglied').addEventListener('change', (ev) => {
     state.wandMitglied = ev.target.value; auswahl.clear(); auswahlAnker = null; save(); render();
   });
@@ -849,5 +938,5 @@ if (typeof document !== 'undefined') {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { ostern, bussUndBettag, feiertageSachsen, toKey, fromKey, addDaysKey, isWerktag, isoKW, istHalbtag, urlaubstageImJahr, FERIEN_SACHSEN };
+  module.exports = { ostern, bussUndBettag, feiertageSachsen, toKey, fromKey, addDaysKey, isWerktag, isoKW, istHalbtag, urlaubstageImJahr, hatWerktagZwischen, mergeBloecke, FERIEN_SACHSEN };
 }
