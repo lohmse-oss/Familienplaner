@@ -2,22 +2,21 @@ import { useState } from 'preact/hooks';
 import { planningYear, today, weekStart } from './core/dates';
 import type { Item, Kind, PersonId } from './core/types';
 import type { Tab } from './nav';
-import { useStore } from './store';
+import { undoLast, useStore } from './store';
 import { DaySheet } from './ui/DaySheet';
 import { EditSheet, KindPicker } from './ui/EditSheet';
 import { Home } from './ui/Home';
-import { Planner } from './ui/Planner';
 import { Settings } from './ui/Settings';
 import { Shop } from './ui/Shop';
 import { Tasks } from './ui/Tasks';
 import { Vacation } from './ui/Vacation';
 import { Week } from './ui/Week';
-import { Year } from './ui/Year';
+import { Year, type PlanPreset } from './ui/Year';
 
 const TITLES: Record<Tab, string> = {
   home: 'Familienplaner',
   week: 'Wochenplan',
-  year: 'Jahresforecast',
+  year: 'Jahresplaner',
   vacation: 'Urlaubsverwaltung',
   shop: 'Einkaufsliste',
   tasks: 'Aufgaben & Geburtstage',
@@ -28,19 +27,27 @@ type Sheet =
   | null
   | { t: 'day'; date: string }
   | { t: 'pick'; date?: string }
-  | { t: 'plan'; days?: string[]; persons?: PersonId[]; year: number }
   | { t: 'edit'; item: Partial<Item> & { kind: Kind } };
 
 export function App() {
-  const { sync } = useStore();
+  const { sync, undo } = useStore();
   const [tab, setTab] = useState<Tab>('home');
   const [weekOf, setWeekOf] = useState(weekStart(today()));
   const [year, setYear] = useState(planningYear());
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [preset, setPreset] = useState<PlanPreset | undefined>();
   const close = () => setSheet(null);
   const edit = (item: Item) => setSheet({ t: 'edit', item });
   const openDay = (date: string) => setSheet({ t: 'day', date });
-  const plan = (days?: string[], persons?: PersonId[]) => setSheet({ t: 'plan', days, persons, year });
+  // Planen = Jahresplaner mit vorgewähltem Zeitraum/Personen öffnen
+  const plan = (days?: string[], persons?: PersonId[]) => {
+    const start = days?.[0];
+    const end = days && days.length > 1 ? days[days.length - 1] : undefined;
+    if (start) setYear(Number(start.slice(0, 4)));
+    setPreset({ id: Date.now(), start, end, persons });
+    setSheet(null);
+    setTab('year');
+  };
   const goWeek = (d: string) => {
     setWeekOf(weekStart(d));
     setTab('week');
@@ -50,7 +57,7 @@ export function App() {
     if (t === 'week') setWeekOf(weekStart(today()));
     setTab(t);
   };
-  const showFab = tab === 'week' || tab === 'year' || tab === 'tasks';
+  const showFab = tab === 'week' || tab === 'tasks';
 
   return (
     <div class="app">
@@ -66,7 +73,7 @@ export function App() {
       <main>
         {tab === 'home' && <Home go={go} openDay={openDay} add={() => setSheet({ t: 'pick' })} />}
         {tab === 'week' && <Week weekOf={weekOf} setWeekOf={setWeekOf} openDay={openDay} edit={edit} plan={plan} />}
-        {tab === 'year' && <Year year={year} setYear={setYear} openDay={openDay} goWeek={goWeek} plan={plan} />}
+        {tab === 'year' && <Year year={year} setYear={setYear} openDay={openDay} preset={preset} />}
         {tab === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
         {tab === 'shop' && <Shop />}
         {tab === 'tasks' && <Tasks edit={edit} />}
@@ -74,6 +81,13 @@ export function App() {
       </main>
 
       {showFab && <button class="fab" aria-label="Neuer Eintrag" onClick={() => setSheet({ t: 'pick' })}>＋</button>}
+
+      {undo && (
+        <div class="snack" key={undo.id}>
+          <span>{undo.label}</span>
+          <button onClick={undoLast}>Rückgängig</button>
+        </div>
+      )}
 
       <nav class="tabs">
         <TabBtn on={tab === 'week'} icon="📅" label="Woche" onClick={() => go('week')} />
@@ -91,7 +105,6 @@ export function App() {
       {sheet?.t === 'pick' && (
         <KindPicker onClose={close} onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : tab === 'week' ? { start: today(), end: today() } : {}) } })} onPlan={() => plan()} />
       )}
-      {sheet?.t === 'plan' && <Planner initial={sheet.days} persons={sheet.persons} year={sheet.year} onClose={close} />}
       {sheet?.t === 'edit' && <EditSheet key={sheet.item.id ?? 'new'} initial={sheet.item} onClose={close} />}
     </div>
   );

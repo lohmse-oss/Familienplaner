@@ -4,7 +4,7 @@ import { dayOfYear, daysInYear, diff, fmt, fmtDays, fmtRange, MONTHS, range, tod
 import { gapRuns } from '../core/gaps';
 import { budget, entitlementOf, vacationReport, workdaysBetween, type VacationPeriod } from '../core/report';
 import { PARENTS, PERSONS, type PersonId } from '../core/types';
-import { applyToDays, batch, setEntitlement, setPresenceRange, useStore } from '../store';
+import { applyToDays, setEntitlement, setPresenceRange, useStore, withUndo } from '../store';
 import { Dot, Sheet } from './common';
 
 interface Props {
@@ -24,7 +24,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
   const reports = PARENTS.map((p) => vacationReport(cal, p, year));
 
   const booked = (p: PersonId, a: string, b: string) => [...range(a, b)].every((d) => cal.day(d).parents[p].status === 'vacation');
-  const book = (who: PersonId[], a: string, b: string) => applyToDays([...range(a, b)], { type: 'presence', persons: who, mode: 'vacation', title: 'Brückentage' });
+  const book = (who: PersonId[], a: string, b: string) => withUndo('Brückentage eingetragen', () => applyToDays([...range(a, b)], { type: 'presence', persons: who, mode: 'vacation', title: 'Brückentage' }));
 
   return (
     <div class="page">
@@ -188,14 +188,14 @@ function PeriodSheet({ person, period, onClose, year, entitlement }: { person: P
   const title = period.titles[0];
 
   const save = () => {
-    batch(() => {
+    withUndo('Urlaub geändert', () => {
       setPresenceRange([person], period.start, period.end, 'office', { onlyMode: 'vacation' });
       setPresenceRange([person], a, b, 'vacation', { title, away });
     });
     onClose();
   };
   const remove = () => {
-    setPresenceRange([person], period.start, period.end, 'office', { onlyMode: 'vacation' });
+    withUndo('Urlaub gelöscht', () => setPresenceRange([person], period.start, period.end, 'office', { onlyMode: 'vacation' }));
     onClose();
   };
 

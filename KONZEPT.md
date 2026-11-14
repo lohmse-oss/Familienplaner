@@ -41,9 +41,11 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnungen, die nächsten Termine und Kacheln zu allen Bereichen.
 * **Wochenplan**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
   für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
-* **Jahr** (Forecast): 12 Monate mit Ferien, Feiertagen, Brückentagen, Urlaub/Dienstreise und Ampel; oben die Liste der **offenen Betreuungszeiträume**.
-* **Mehrfach-Planer**: Zeitraum per Start-/Endtag oder Einzeltage wählen, dazu Vorschläge (Schulferien, Brückentage). Für Urlaub, Homeoffice, Dienstreise,
-  Büro (zurücksetzen), Schließtage und Betreuung durch Dritte. Zeigt vorab die Wirkung aufs Urlaubskonto („Rest 13 → 7“).
+* **Jahresplaner**: Kalender des ganzen Jahres mit Zeitraum-Auswahl wie bei Reisebuchungen. Ersten Tag antippen, letzten Tag antippen → Band mit Start-/Endkreis,
+  unten wählen (wer, was) und eintragen. Anzeige: Ferien, Feiertage, Brückentage, Urlaub als durchgehende Streifen je Person (Dienstreise blass), Betreuungs-Ampel.
+  Bestehenden Urlaub antippen → ändern oder löschen. Langes Drücken → Tagesdetails. Schnellwahl für Schulferien und Brückentage; offene Betreuungszeiträume lassen sich
+  direkt markieren. Zeigt vorab die Wirkung aufs Urlaubskonto („Rest 13 → 8“); jede Änderung ist per **Rückgängig** umkehrbar. Auch für Homeoffice, Dienstreise,
+  Büro (zurücksetzen), Schließtage und Betreuung durch Dritte; wahlweise „Einzelne Tage“ statt Zeitraum.
 * **Urlaubsverwaltung**: je Elternteil Urlaubskonto (genommen / geplant / **noch frei**), Jahresband, Zeiträume von–bis mit Urlaubstagen (bearbeiten/löschen),
   Betreuungslücken mit „planen“, Brückentage mit Ein-Tap-Eintragen.
 * **Einkaufsliste**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.

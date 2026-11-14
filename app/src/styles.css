@@ -127,17 +127,6 @@ h1, h2, h3 { margin: 0; }
 @media (min-width: 560px) { .months { grid-template-columns: 1fr 1fr; } }
 .month { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 10px; }
 .month h3 { font-size: 14px; margin-bottom: 4px; }
-.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.wd { text-align: center; font-size: 10px; color: var(--muted); }
-.cell { position: relative; border: 0; border-radius: 7px; background: transparent; aspect-ratio: 1; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12.5px; min-width: 0; }
-.cell.we { color: var(--muted); }
-.cell.sc { background: var(--school); }
-.cell.ho { background: var(--holiday); color: var(--holiday-ink); font-weight: 700; }
-.cell.br { background: var(--bridge); outline: 1px dashed #c9a227; }
-.cell.tod { outline: 2px solid var(--accent); }
-.cell .marks { display: flex; gap: 2px; height: 4px; position: absolute; bottom: 3px; }
-.cell .marks i { width: 8px; height: 3px; border-radius: 2px; }
-.cell .cl { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; }
 
 .status-row { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
 .day-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -263,10 +252,6 @@ h1, h2, h3 { margin: 0; }
 .chips.scroll .chip { white-space: nowrap; flex-shrink: 0; }
 .chips.tight { margin-bottom: 6px; }
 .nav.small .icon-btn { width: 34px; height: 34px; font-size: 20px; }
-.months.planner { grid-template-columns: 1fr; }
-@media (min-width: 560px) { .months.planner { grid-template-columns: 1fr 1fr; } }
-.cell.sel { background: var(--accent) !important; color: #fff !important; }
-.cell.anc { outline: 3px solid var(--maybe); outline-offset: -1px; }
 .kind.featured { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 
 /* ---------- Einkaufsliste ---------- */
@@ -284,3 +269,43 @@ h1, h2, h3 { margin: 0; }
 .done-toggle { display: block; margin: 12px 4px 6px; padding: 4px; }
 
 .days-badge { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--bg); white-space: nowrap; }
+
+/* ---------- Jahresplaner: Kalender mit Zeitraum-Auswahl ---------- */
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 0; row-gap: 3px; }
+.wd { text-align: center; font-size: 10px; color: var(--muted); }
+.cell { position: relative; border: 0; background: transparent; padding: 0; height: 46px; display: flex; align-items: center; justify-content: center; min-width: 0; font-size: 14px; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.cell .fill { position: absolute; inset: 2px 1px; border-radius: 9px; z-index: 0; }
+.cell.sc .fill { background: var(--school); }
+.cell.ho .fill { background: var(--holiday); }
+.cell.br .fill { background: var(--bridge); outline: 1px dashed #c9a227; outline-offset: -1px; }
+.cell.we { color: var(--muted); }
+.cell.ho { color: var(--holiday-ink); font-weight: 700; }
+.cell .num { position: relative; z-index: 3; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.cell.tod .num { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cell .num.edge { background: var(--accent); color: #fff; font-weight: 700; outline: none; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.cell .rng { position: absolute; top: 5px; bottom: 5px; left: 0; right: 0; z-index: 1; background: color-mix(in srgb, var(--accent) 24%, var(--card)); }
+.cell .rng-l { left: 3px; border-radius: 99px 0 0 99px; }
+.cell .rng-r { right: 3px; border-radius: 0 99px 99px 0; }
+.cell .rng-l.rng-r { border-radius: 99px; }
+.cell .lane { position: absolute; left: 0; right: 0; height: 4px; z-index: 2; }
+.cell .lane-0 { bottom: 1px; }
+.cell .lane-1 { bottom: 6px; }
+.cell .lane.cl { left: 4px; border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
+.cell .lane.cr { right: 4px; border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
+.cell .lane.trip { opacity: .4; }
+.cell .cl-dot { position: absolute; top: 3px; right: 6px; width: 6px; height: 6px; z-index: 3; }
+.plan-hint { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.quick-pick { margin-bottom: 10px; }
+.page.has-panel { padding-bottom: 300px; }
+.plan-panel { position: fixed; left: 0; right: 0; bottom: calc(70px + var(--safe-b)); z-index: 8; max-width: 640px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 20px 20px 0 0; box-shadow: 0 -8px 28px rgba(0,0,0,.22); padding: 12px 14px 12px; animation: up .18s ease-out; }
+.pp-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.pp-top .icon-btn { width: 34px; height: 34px; font-size: 16px; flex-shrink: 0; }
+.pp-range { font-size: 16px; }
+.pp-edit { font-size: 12px; font-weight: 600; color: var(--accent); }
+.pp-sub { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.pp-sub .eff { display: inline-flex; align-items: center; color: var(--ink); }
+.pp-more { margin-top: 8px; max-height: 34vh; overflow: auto; }
+.pp-more label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 6px 0 4px; }
+.plan-panel .actions { margin-top: 10px; }
+.snack { position: fixed; left: 12px; right: 12px; bottom: calc(86px + var(--safe-b)); z-index: 40; max-width: 616px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--ink); color: var(--bg); padding: 11px 14px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.3); animation: up .18s ease-out; }
+.snack button { border: 0; background: none; color: #9ad0ff; font-weight: 700; padding: 4px 6px; }

@@ -59,7 +59,7 @@ export function useStore() {
     f(); // Änderungen nachholen, die zwischen erstem Rendern und Abonnieren eintrafen
     return () => void listeners.delete(f);
   }, []);
-  return { items, settings, hd, sync: syncState, cal: getCalendar() };
+  return { items, settings, hd, sync: syncState, cal: getCalendar(), undo: undoInfo ? { id: undoInfo.id, label: undoInfo.label } : null };
 }
 
 export function getCalendar(): Calendar {
@@ -80,6 +80,39 @@ export function batch(fn: () => void) {
       persist();
     }
   }
+}
+
+/* ---------- Rückgängig ---------- */
+let undoInfo: { id: number; label: string; restore: () => void } | null = null;
+let undoTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Änderungen ausführen und für ein paar Sekunden „Rückgängig“ anbieten. */
+export function withUndo(label: string, fn: () => void) {
+  const before = new Map(items.map((i) => [i.id, i]));
+  batch(fn);
+  const changed = items.filter((i) => before.get(i.id) !== i);
+  const restore = () =>
+    batch(() => {
+      for (const cur of changed) {
+        const old = before.get(cur.id);
+        saveItem(old ? { ...old } : { ...cur, deleted: true });
+      }
+    });
+  undoInfo = { id: Date.now(), label, restore };
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    undoInfo = null;
+    emit();
+  }, 7000);
+  emit();
+}
+
+export function undoLast() {
+  const u = undoInfo;
+  if (!u) return;
+  undoInfo = null;
+  clearTimeout(undoTimer);
+  u.restore();
 }
 
 function persist() {

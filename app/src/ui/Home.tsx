@@ -25,7 +25,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
 
   const tiles: { tab: Tab; icon: string; title: string; sub: string; badge?: string }[] = [
     { tab: 'week', icon: '📅', title: 'Wochenplan', sub: 'Wer ist wo, Termine, Betreuung' },
-    { tab: 'year', icon: '🗓️', title: 'Jahresforecast', sub: 'Ferien, Brücken, offene Betreuung' },
+    { tab: 'year', icon: '🗓️', title: 'Jahresplaner', sub: 'Zeiträume markieren, Ferien, Brücken' },
     { tab: 'vacation', icon: '🌴', title: 'Urlaubsverwaltung', sub: freeText },
     { tab: 'shop', icon: '🛒', title: 'Einkaufsliste', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
     { tab: 'tasks', icon: '☑', title: 'Aufgaben & Geburtstage', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
