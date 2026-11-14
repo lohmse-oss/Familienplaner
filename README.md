@@ -174,6 +174,7 @@ Zwei Wege, beide ohne manuelles `wrangler deploy`:
 3. `SYNC_TOKEN` als Worker-Secret setzen (persistiert, wird nicht bei jedem Deploy neu gesetzt):
    lokal `npx wrangler secret put SYNC_TOKEN` oder Dashboard → Workers & Pages → `familienplaner-sync` → Settings → Variables → Encrypted.
    Danach PR #6 auf `main` mergen bzw. auf `main` pushen – der Worker deployt automatisch.
+   Solange Secrets oder KV-ID fehlen, überspringt der Workflow den Deploy mit einem Warning (Check bleibt grün).
 
 **B) Cloudflare „Workers Builds“ (connected Git)** – im Cloudflare-Dashboard: Workers & Pages → Create →
 Builds → dieses Repo verbinden, Branch `main`, Deploy-Command: `npx wrangler deploy --config cloudflare/wrangler.toml`.
