@@ -1,1 +1,4 @@
 server/data/
+node_modules/
+test/test-results/
+test/playwright-report/

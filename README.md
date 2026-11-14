@@ -11,7 +11,7 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 - `cloudflare/worker.js` + `wrangler.toml` – gleicher Sync-Server als Cloudflare Worker (kostenlos, HTTPS, siehe unten)
 - `server/test-sync.mjs` – Test für den Sync-Server (zero dependencies)
 - `android/` – WebView-Wrapper, baut die App als APK (siehe unten)
-- `test/` – App-seitige Sync-Tests (happy-dom, `cd test && npm install && npm test`)
+- `test/` – App-seitige Sync-Tests (happy-dom, `cd test && npm install && npm test`) und Playwright-E2E-Tests (`npm run test:e2e`, siehe unten)
 - `dist/` – fertige, signierte APK aus dem jeweiligen Branch
 
 ## Lokal starten
@@ -210,6 +210,13 @@ Ohne `keystore.properties` wird eine unsignierte APK gebaut.
 - `cd test && npm install && npm test` – App-Sync-Logik (Push/Pull, last-write-wins, Token nicht im Export,
   Import überschreibt Sync-Konfig nicht, Server-Daten werden beim Pull wie ein Import validiert, Gerätename/Sync-Zugang
   bleiben lokal, `updatedAt` übersteht einen Neustart) gegen einen lokalen Test-Server
+- `cd test && npm install && npx playwright install chromium && npm run test:e2e` – E2E-Tests (Playwright, Chromium)
+  gegen die echte App in `index.html`: UI-Flows (Default-State, Ansichten, Eintrag anlegen/bearbeiten/löschen,
+  Zellen auswählen + markieren, JSON-Export ohne Sync-Token + Import-Roundtrip, Jahrwechsel, Datumsprung,
+  mobile Ansicht) und Familien-Sync im Browser (Konfigurieren, „Jetzt synchronisieren“, Auto-Push nach ~1 s,
+  Pull eines neueren Fremdzustands via last-write-wins). Startet die nötigen Server selbst auf Loopback
+  (statischer Server + `server/sync-server.js`, Ports siehe `test/playwright.config.mjs`); lokal ggf.
+  `npx playwright install --with-deps chromium` für die Systembibliotheken.
 
 ## Datenquellen
 Schulferien: eingebaute Termine 2027–2030 (Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender, mit der
