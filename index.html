@@ -792,14 +792,91 @@ function save() {
 
 const ANSICHTEN = ['wand', 'monate', 'liste', 'balken', 'alle', 'tipps'];
 
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const FARBE_RE = /^#[0-9a-fA-F]{6}$/;
+const DATUM_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function istDatum(k) {
+  return typeof k === 'string' && DATUM_RE.test(k) && toKey(fromKey(k)) === k;
+}
+
+function kurzText(v, max) {
+  return typeof v === 'string' ? v.slice(0, max) : '';
+}
+
+function zahl(v, min, max, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+// Prueft und bereinigt Planungsdaten aus JSON-Import und localStorage. Alles, was spaeter
+// ungeescaped in HTML-Attribute geschrieben wird (id, farbe, Datum), wird hier auf
+// ein sicheres Format eingeschraenkt; ungueltige Eintraege werden verworfen.
+function sanitizePlan(data) {
+  const standard = defaultState();
+  const out = { verworfen: 0 };
+  const ids = new Set();
+  const mitglieder = [];
+  for (const m of Array.isArray(data.mitglieder) ? data.mitglieder : []) {
+    if (!m || typeof m !== 'object' || (m.rolle !== 'elternteil' && m.rolle !== 'kind') || !ID_RE.test(String(m.id)) || ids.has(String(m.id))) { out.verworfen++; continue; }
+    ids.add(String(m.id));
+    const neu = {
+      id: String(m.id),
+      name: kurzText(m.name, 60) || 'Person',
+      rolle: m.rolle,
+      farbe: FARBE_RE.test(m.farbe) ? m.farbe : '#6b7280'
+    };
+    if (m.rolle === 'elternteil') {
+      neu.urlaubstage = zahl(m.urlaubstage, 0, 366, 30);
+      neu.resturlaubVorjahr = zahl(m.resturlaubVorjahr, 0, 366, 0);
+    }
+    mitglieder.push(neu);
+  }
+  out.mitglieder = mitglieder.length ? mitglieder : standard.mitglieder;
+  const bekannt = new Set(out.mitglieder.map(m => m.id));
+  const eintragIds = new Set();
+  out.eintraege = [];
+  for (const e of Array.isArray(data.eintraege) ? data.eintraege : []) {
+    if (!e || typeof e !== 'object' || !bekannt.has(e.mitgliedId) || !Object.prototype.hasOwnProperty.call(TYP_LABEL, e.typ)
+      || !istDatum(e.von) || !istDatum(e.bis) || e.bis < e.von) { out.verworfen++; continue; }
+    let id = ID_RE.test(String(e.id)) && !eintragIds.has(String(e.id)) ? String(e.id) : uid();
+    eintragIds.add(id);
+    const neu = { id, mitgliedId: e.mitgliedId, typ: e.typ, von: e.von, bis: e.bis, titel: kurzText(e.titel, 200), notiz: kurzText(e.notiz, 1000) };
+    if (e.jaehrlich === true) {
+      neu.jaehrlich = true;
+      neu.monat = Number(e.von.slice(5, 7));
+      neu.tag = Number(e.von.slice(8, 10));
+      neu.bis = neu.von;
+    }
+    if (typeof e.gcalId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(e.gcalId)) neu.gcalId = e.gcalId;
+    out.eintraege.push(neu);
+  }
+  out.eigeneFerien = [];
+  for (const f of Array.isArray(data.eigeneFerien) ? data.eigeneFerien : []) {
+    if (!f || typeof f !== 'object' || !istDatum(f.von) || !istDatum(f.bis) || f.bis < f.von) { out.verworfen++; continue; }
+    out.eigeneFerien.push({ name: kurzText(f.name, 80) || 'Ferien', von: f.von, bis: f.bis });
+  }
+  const ein = data.einstellungen && typeof data.einstellungen === 'object' ? data.einstellungen : {};
+  out.einstellungen = {
+    fronleichnamRegional: ein.fronleichnamRegional === true,
+    gcalClientId: kurzText(ein.gcalClientId, 200).trim()
+  };
+  out.jahr = Number.isInteger(data.jahr) && data.jahr >= JAHR_MIN && data.jahr <= JAHR_MAX ? data.jahr : standard.jahr;
+  return out;
+}
+
 function normalizeState() {
   state.ansicht = ANSICHTEN.includes(state.ansicht) ? state.ansicht : 'wand';
   state.filterMitglied = state.filterMitglied || 'alle';
-  state.wandModus = state.wandModus || {};
+  if (state.filterMitglied !== 'alle' && !mitgliedById(state.filterMitglied)) state.filterMitglied = 'alle';
+  state.wandModus = state.wandModus && typeof state.wandModus === 'object' ? state.wandModus : {};
   for (const m of state.mitglieder || []) {
     const erlaubt = MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil;
     if (!erlaubt.includes(state.wandModus[m.id])) state.wandModus[m.id] = m.rolle === 'kind' ? 'schulfrei' : 'urlaub';
-    if (m.rolle === 'elternteil') m.resturlaubVorjahr = Number(m.resturlaubVorjahr) || 0;
+    if (m.rolle === 'elternteil') {
+      m.urlaubstage = Number.isFinite(Number(m.urlaubstage)) && m.urlaubstage !== undefined && m.urlaubstage !== null ? Number(m.urlaubstage) : 30;
+      m.resturlaubVorjahr = Number(m.resturlaubVorjahr) || 0;
+    }
   }
   state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '' };
   state.eigeneFerien = state.eigeneFerien || [];
@@ -813,7 +890,14 @@ function load() {
   const stored = leseSpeicher();
   if (stored) {
     try {
-      state = JSON.parse(stored);
+      const roh = JSON.parse(stored);
+      if (!roh || typeof roh !== 'object' || Array.isArray(roh)) throw new Error('ungueltig');
+      const plan = sanitizePlan(roh);
+      state = Object.assign(defaultState(), {
+        ansicht: roh.ansicht, filterMitglied: roh.filterMitglied, wandModus: roh.wandModus,
+        jahr: plan.jahr, mitglieder: plan.mitglieder, eintraege: plan.eintraege,
+        eigeneFerien: plan.eigeneFerien, einstellungen: plan.einstellungen
+      });
       normalizeState();
       return;
     } catch (err) {
@@ -1207,7 +1291,7 @@ function renderBalken() {
   const seen = new Set();
   for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
     const id = isoKWJahr(k) + '-' + isoKW(k);
-    if (!seen.has(id)) { seen.add(id); kws.push({ id, nr: isoKW(k) }); }
+    if (!seen.has(id)) { seen.add(id); kws.push({ id, nr: isoKW(k), start: k }); }
   }
   const tageProKW = {};
   for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
@@ -1216,7 +1300,7 @@ function renderBalken() {
   }
   let html = '<p class="hint">Jahresbalken pro Person (KW-Spalten). Klick auf eine KW springt in den Wandkalender.</p>';
   html += '<div class="balken-zeile balken-kopf"><span class="balken-name"></span>' +
-    kws.map(x => `<span class="balken-zelle kopf" data-kw="${x.nr}" title="KW ${x.nr}">${x.nr}</span>`).join('') + '</div>';
+    kws.map(x => `<span class="balken-zelle kopf" data-kw="${x.nr}" data-start="${x.start}" title="KW ${x.nr}">${x.nr}</span>`).join('') + '</div>';
   for (const m of state.mitglieder) {
     html += `<div class="balken-zeile" style="border-left:4px solid ${m.farbe}"><span class="balken-name">${esc(m.name)}</span>`;
     for (const x of kws) {
@@ -1229,14 +1313,14 @@ function renderBalken() {
       if (own.some(e => e.typ === 'urlaub')) { cls += ' b-urlaub'; title += ' · Urlaub'; }
       else if (own.some(e => e.typ === 'schulfrei')) { cls += ' b-schulfrei'; title += ' · schulfrei'; }
       else if (own.length) { cls += ' b-termin'; title += ' · ' + own.map(e => TYP_LABEL[e.typ]).join(', '); }
-      html += `<span class="${cls}" data-kw="${x.nr}" title="${esc(title)}"></span>`;
+      html += `<span class="${cls}" data-kw="${x.nr}" data-start="${x.start}" title="${esc(title)}"></span>`;
     }
     html += '</div>';
   }
   const box = document.getElementById('balkenInhalt');
   box.innerHTML = html;
   box.querySelectorAll('.balken-zelle[data-kw]').forEach(el => el.addEventListener('click', () => {
-    state.ansicht = 'wand'; save(); render(); jumpKW(el.dataset.kw);
+    state.ansicht = 'wand'; save(); render(); jumpDatum(el.dataset.start); // Datum statt KW-Nummer: KW 52/53 kommt am Jahresanfang und -ende vor
   }));
 }
 
@@ -1538,7 +1622,14 @@ function renderEinstellungen() {
     mitgliedById(inp.dataset.farbe).farbe = inp.value; save(); render();
   }));
   box.querySelectorAll('[data-rolle]').forEach(sel => sel.addEventListener('change', () => {
-    mitgliedById(sel.dataset.rolle).rolle = sel.value; save(); render(); renderEinstellungen();
+    const m = mitgliedById(sel.dataset.rolle);
+    m.rolle = sel.value;
+    delete state.wandModus[m.id]; // passenden Markier-Modus fuer die neue Rolle waehlen
+    normalizeState();
+    const unpassend = state.eintraege.filter(e => e.mitgliedId === m.id
+      && ((m.rolle === 'kind' && e.typ === 'urlaub') || (m.rolle === 'elternteil' && (e.typ === 'schulfrei' || e.typ === 'betreuung')))).length;
+    save(); render(); renderEinstellungen();
+    if (unpassend) alert(`${m.name} hat ${unpassend} Eintrag/Einträge, die zur neuen Rolle nicht passen (Urlaub nur für Eltern, Schulfrei/Betreuung nur für Kinder). Sie bleiben erhalten, zählen aber nicht mehr korrekt – bitte prüfen.`);
   }));
   box.querySelectorAll('[data-urlaub]').forEach(inp => inp.addEventListener('change', () => {
     mitgliedById(inp.dataset.urlaub).urlaubstage = Number(inp.value); save(); render();
@@ -1582,15 +1673,21 @@ function importJson(file) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!Array.isArray(data.eintraege)) throw new Error('ungültig');
-      if (Array.isArray(data.mitglieder) && data.mitglieder.length) state.mitglieder = data.mitglieder;
-      if (data.jahr) state.jahr = data.jahr;
-      state.eintraege = data.eintraege;
-      state.eigeneFerien = Array.isArray(data.eigeneFerien) ? data.eigeneFerien : [];
-      state.einstellungen = Object.assign({ fronleichnamRegional: false, gcalClientId: '' }, data.einstellungen || {});
+      if (!data || typeof data !== 'object' || !Array.isArray(data.eintraege)) throw new Error('keine gültige Planungsdatei');
+      const plan = sanitizePlan(data);
+      if (Array.isArray(data.mitglieder) && data.mitglieder.length) state.mitglieder = plan.mitglieder;
+      else {
+        // ohne Personen in der Datei: vorhandene behalten, Einträge fremder Personen verwerfen
+        const bekannt = new Set(state.mitglieder.map(m => m.id));
+        plan.eintraege = sanitizePlan({ ...data, mitglieder: state.mitglieder }).eintraege.filter(e => bekannt.has(e.mitgliedId));
+      }
+      state.jahr = plan.jahr;
+      state.eintraege = plan.eintraege;
+      state.eigeneFerien = plan.eigeneFerien;
+      state.einstellungen = plan.einstellungen;
       normalizeState();
       save(); render();
-      alert('Import erfolgreich.');
+      alert('Import erfolgreich.' + (plan.verworfen ? `\n${plan.verworfen} ungültige Einträge wurden verworfen.` : ''));
     } catch (err) {
       alert('Datei konnte nicht gelesen werden: ' + err.message);
     }

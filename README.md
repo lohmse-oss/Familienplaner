@@ -15,6 +15,7 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 
 ## Speicherung
 - Automatisch im Browser (localStorage) nach jeder Änderung; ohne localStorage (z. B. blockierte Cookies) arbeitet die App mit den integrierten Basisdaten weiter.
+- Importierte JSON-Dateien und der gespeicherte Browser-Stand werden geprüft: ungültige Einträge (unbekannte Person/Art, ungültiges Datum) werden verworfen, Farben und IDs auf ein sicheres Format beschränkt.
 - **JSON exportieren** speichert nur die eigene Planung als Datei (Einträge inkl. Titel/Kommentare, eigene Ferien, Einstellungen, Jahr); **JSON importieren** spielt sie zurück. Die Basisdaten (Personen, Sachsen-Ferien/Feiertage) bleiben fest in der HTML-Datei integriert.
 
 ## Funktionen
