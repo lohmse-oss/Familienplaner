@@ -185,6 +185,8 @@
   .dd-list button[aria-pressed="true"] { font-weight: 700; background: #dbeafe; }
   .dd-sep { height: 1px; background: var(--border); margin: 5px 2px; }
   .dd-cap { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; padding: .25rem .5rem; }
+  a.btn-link { display: inline-block; font-size: .85rem; padding: .35rem .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; color: inherit; text-decoration: none; text-align: center; }
+  a.btn-link:hover { background: #f1f5f9; }
   #pflegeModal > div { max-width: 760px; }
   .pf-box { background: #f1f5f9; border-radius: .5rem; padding: .6rem .8rem; margin-bottom: .8rem; font-size: .9rem; }
   .pf-box > * + * { margin-top: .4rem; }
@@ -307,7 +309,9 @@
     .modal h3 { padding-right: 3.2rem; min-height: 2.75rem; display: flex; align-items: center; margin-bottom: .5rem; }
     .eintrag-zeile { flex-direction: column; }
     .eintrag-zeile > span { display: flex; gap: .5rem; }
+    .eintrag-zeile > span { flex-wrap: wrap; }
     .eintrag-zeile > span button { flex: 1; }
+    .eintrag-zeile > span a.btn-link { flex: 1 1 100%; padding: .7rem; font-size: .9rem; }
     #tagNeuBtn, #eintragSpeichern { width: 100%; }
     .mit-row { gap: .4rem; }
     .pf-zeile input[type=checkbox] { width: 1.4rem; height: 1.4rem; }
@@ -1641,7 +1645,7 @@ function openTagModal(key) {
       <strong>${esc(e.titel || '–')}</strong><br>
       <small>${fmtDeutsch(e.von)} – ${fmtDeutsch(e.bis)}${e.typ === 'urlaub' ? ` (${urlaubstageImJahr(e, jahr, fmap)} Urlaubstage in ${jahr})` : ''}</small>
       ${e.notiz ? `<br><small>${esc(e.notiz)}</small>` : ''}</div>
-      <span><button class="bearbeiten" data-id="${e.id}">Bearbeiten</button> <button class="loeschen" data-id="${e.id}">Löschen</button></span>
+      <span><button class="bearbeiten" data-id="${e.id}">Bearbeiten</button> <button class="loeschen" data-id="${e.id}">Löschen</button> <a class="btn-link" href="${esc(gcalVorlageUrl(e))}" target="_blank" rel="noopener noreferrer" title="Öffnet Google Kalender mit diesem Termin vorausgefüllt">In Google Kalender öffnen</a></span>
     </div>`;
   }
   html += `<button id="tagNeuBtn" data-key="${key}">+ Eintrag an diesem Tag</button>`;
@@ -1912,6 +1916,20 @@ async function gcalRequest(method, path, body) {
 }
 
 // Nur von der App angelegte Termine tragen diese Markierung; nur sie werden je geloescht.
+// Ohne Anmeldung und ohne Client-ID: öffnet Google Kalender mit vorausgefülltem Termin (Speichern dort mit einem Tipp)
+function gcalVorlageUrl(e) {
+  const m = mitgliedById(e.mitgliedId);
+  const tag = k => k.replace(/-/g, '');
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`,
+    dates: `${tag(e.von)}/${tag(addDaysKey(e.bis, 1))}`,
+    details: e.notiz || ''
+  });
+  if (e.jaehrlich) p.set('recur', 'RRULE:FREQ=YEARLY');
+  return 'https://calendar.google.com/calendar/render?' + p.toString();
+}
+
 function gcalEvent(e) {
   const m = mitgliedById(e.mitgliedId);
   const ev = {
@@ -1976,7 +1994,22 @@ function gcalLadeSkript() {
   return gcalSkriptPromise;
 }
 
+// Der Google-Login (Google Identity Services) braucht eine registrierte http(s)-Adresse und einen echten Browser:
+// aus file:// oder einer eingebetteten App-WebView (z. B. Capacitor, WebView-APK) wird er nicht angeboten.
+function gcalUmgebungsProblem() {
+  const ua = navigator.userAgent || '';
+  if (location.protocol === 'file:') {
+    return 'Der Google-Login funktioniert nicht, wenn die Datei lokal geöffnet wird (file://). Bitte die App über eine https-Adresse (oder http://localhost) öffnen und diese Adresse im Google-Cloud-Projekt unter „Autorisierte JavaScript-Quellen“ eintragen.\n\nOhne Einrichtung geht es immer über „In Google Kalender öffnen“ bei einem Eintrag (Tag antippen).';
+  }
+  if (/; wv\)/.test(ua) || (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) {
+    return 'In einer eingebetteten App-Ansicht (WebView) blockiert Google den Login. Öffne den Planer im Browser (Chrome) bzw. als installierte Web-App über https.\n\nOhne Einrichtung geht es immer über „In Google Kalender öffnen“ bei einem Eintrag (Tag antippen).';
+  }
+  return null;
+}
+
 async function gcalConnect() {
+  const problem = gcalUmgebungsProblem();
+  if (problem) { alert(problem); gcalStatus('Google-Sync hier nicht möglich – siehe Hinweis.'); return; }
   const clientId = (state.einstellungen?.gcalClientId || '').trim();
   if (!clientId) { alert('Bitte zuerst die Google Client-ID in den Einstellungen hinterlegen.'); return; }
   try { await gcalLadeSkript(); } catch (err) { alert(err.message); return; }
