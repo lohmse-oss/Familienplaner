@@ -499,7 +499,9 @@ const STORAGE_KEY = 'familienplaner.v1';
 
 let state = null;
 let gcalToken = null;
+let gcalTokenBis = 0; // Ablaufzeit des Tokens (ms)
 let gcalCalendarId = null;
+let gcalSkriptPromise = null;
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -1111,7 +1113,7 @@ function markiereAuswahl() {
     for (const seg of segmente) {
       const e = { id: uid(), mitgliedId: mid, typ, von: seg.von, bis: seg.bis, titel: kommentar, notiz: '' };
       state.eintraege.push(e);
-      if (gcalToken && gcalCalendarId) gcalUpsert(e);
+      gcalAutoUpsert(e);
     }
   }
   auswahl.clear();
@@ -1231,7 +1233,7 @@ function renderWandkalender() {
         e.tag = p[2];
       }
       save(); render();
-      if (gcalToken && gcalCalendarId) gcalUpsert(e);
+      gcalAutoUpsert(e);
     });
   });
   wrap.querySelectorAll('.chip-e[draggable]').forEach(chip => {
@@ -1435,7 +1437,7 @@ function renderTipps() {
     if (belegt) { alert('Für diesen Zeitraum ist bereits Urlaub eingetragen.'); return; }
     const e = { id: uid(), mitgliedId: mid, typ: 'urlaub', von, bis, titel: '', notiz: '' };
     state.eintraege.push(e);
-    if (gcalToken && gcalCalendarId) gcalUpsert(e);
+    gcalAutoUpsert(e);
     save(); render();
   }));
 }
@@ -1496,7 +1498,7 @@ function openTagModal(key) {
     const id = b.dataset.id;
     const e = state.eintraege.find(x => x.id === id);
     state.eintraege = state.eintraege.filter(x => x.id !== id);
-    if (e && e.gcalId && gcalToken && gcalCalendarId) gcalDelete(e.gcalId);
+    if (e && e.gcalId && gcalAktiv()) gcalDelete(e.gcalId);
     save(); render(); closeModal('tagModal');
   }));
   body.querySelectorAll('.bearbeiten').forEach(b => b.addEventListener('click', () => {
@@ -1567,7 +1569,7 @@ function submitEintrag() {
         delete e.jaehrlich;
       }
       save(); render(); closeModal('eintragModal');
-      if (gcalToken && gcalCalendarId) gcalUpsert(e);
+      gcalAutoUpsert(e);
     }
     editEintragId = null;
     return;
@@ -1581,7 +1583,7 @@ function submitEintrag() {
   }
   state.eintraege.push(e);
   save(); render(); closeModal('eintragModal');
-  if (gcalToken && gcalCalendarId) gcalUpsert(e);
+  gcalAutoUpsert(e);
 }
 
 function renderEinstellungen() {
@@ -1659,7 +1661,7 @@ function renderEinstellungen() {
 }
 
 function exportJson() {
-  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege, eigeneFerien: state.eigeneFerien || [], einstellungen: state.einstellungen };
+  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege.map(({ gcalId, ...rest }) => rest), eigeneFerien: state.eigeneFerien || [], einstellungen: state.einstellungen };
   const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1682,7 +1684,7 @@ function importJson(file) {
         plan.eintraege = sanitizePlan({ ...data, mitglieder: state.mitglieder }).eintraege.filter(e => bekannt.has(e.mitgliedId));
       }
       state.jahr = plan.jahr;
-      state.eintraege = plan.eintraege;
+      state.eintraege = plan.eintraege.map(({ gcalId, ...rest }) => rest);
       state.eigeneFerien = plan.eigeneFerien;
       state.einstellungen = plan.einstellungen;
       normalizeState();
@@ -1719,6 +1721,25 @@ function exportIcs() {
   URL.revokeObjectURL(a.href);
 }
 
+function gcalStatus(text) {
+  const el = document.getElementById('gcalStatus');
+  if (el) el.textContent = text;
+}
+
+// Sync nur, wenn schon einmal verbunden wurde; laeuft die Sitzung ab, wird das sichtbar gemeldet
+function gcalAktiv() {
+  if (!gcalCalendarId) return false;
+  if (!gcalToken || Date.now() >= gcalTokenBis) {
+    gcalStatus('⚠️ Google-Sitzung abgelaufen – Änderungen werden nicht synchronisiert. Bitte unter Extras neu verbinden.');
+    return false;
+  }
+  return true;
+}
+
+function gcalAutoUpsert(e) {
+  if (gcalAktiv()) gcalUpsert(e);
+}
+
 async function gcalRequest(method, path, body) {
   const res = await fetch('https://www.googleapis.com/calendar/v3' + path, {
     method,
@@ -1726,80 +1747,134 @@ async function gcalRequest(method, path, body) {
     body: body ? JSON.stringify(body) : undefined
   });
   if (!res.ok) {
-    if (res.status === 401) { gcalToken = null; throw new Error('Google-Sitzung abgelaufen – bitte neu verbinden.'); }
-    const t = await res.text();
-    throw new Error('Google API Fehler ' + res.status + ': ' + t.slice(0, 200));
+    let msg;
+    if (res.status === 401) { gcalToken = null; msg = 'Google-Sitzung abgelaufen – bitte neu verbinden.'; }
+    else msg = 'Google API Fehler ' + res.status + ': ' + (await res.text()).slice(0, 200);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }
 
+// Nur von der App angelegte Termine tragen diese Markierung; nur sie werden je geloescht.
 function gcalEvent(e) {
   const m = mitgliedById(e.mitgliedId);
-  return {
+  const ev = {
     summary: `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`,
-    description: (e.notiz || '') + (e.typ === 'urlaub' ? `\nVerbrauchte Urlaubstage zählen über die App.` : ''),
+    description: e.notiz || '',
     start: { date: e.von },
-    end: { date: addDaysKey(e.bis, 1) }
+    end: { date: addDaysKey(e.bis, 1) },
+    extendedProperties: { private: { familienplaner: '1' } }
   };
+  if (e.jaehrlich) ev.recurrence = ['RRULE:FREQ=YEARLY'];
+  return ev;
 }
 
 async function gcalUpsert(e) {
+  const basis = `/calendars/${encodeURIComponent(gcalCalendarId)}/events`;
   try {
     if (e.gcalId) {
-      await gcalRequest('PATCH', `/calendars/${encodeURIComponent(gcalCalendarId)}/events/${e.gcalId}`, gcalEvent(e));
-    } else {
-      const res = await gcalRequest('POST', `/calendars/${encodeURIComponent(gcalCalendarId)}/events`, gcalEvent(e));
-      e.gcalId = res.id;
-      save();
+      try {
+        await gcalRequest('PATCH', `${basis}/${encodeURIComponent(e.gcalId)}`, gcalEvent(e));
+        return true;
+      } catch (err) {
+        if (err.status !== 404 && err.status !== 410) throw err;
+        delete e.gcalId; // in Google geloescht -> neu anlegen
+      }
     }
-  } catch (err) { console.warn('GCAL upsert fehlgeschlagen', err); }
+    const res = await gcalRequest('POST', basis, gcalEvent(e));
+    e.gcalId = res.id;
+    save();
+    return true;
+  } catch (err) {
+    console.warn('GCAL upsert fehlgeschlagen', err);
+    gcalStatus('⚠️ Google-Sync fehlgeschlagen: ' + err.message);
+    return false;
+  }
 }
 
 async function gcalDelete(gcalId) {
   try {
-    await gcalRequest('DELETE', `/calendars/${encodeURIComponent(gcalCalendarId)}/events/${gcalId}`);
-  } catch (err) { console.warn('GCAL delete fehlgeschlagen', err); }
+    await gcalRequest('DELETE', `/calendars/${encodeURIComponent(gcalCalendarId)}/events/${encodeURIComponent(gcalId)}`);
+    return true;
+  } catch (err) {
+    if (err.status === 404 || err.status === 410) return true; // schon weg
+    console.warn('GCAL delete fehlgeschlagen', err);
+    gcalStatus('⚠️ Google-Sync fehlgeschlagen: ' + err.message);
+    return false;
+  }
+}
+
+// Das Google-Skript wird erst bei Bedarf geladen (nicht bei jedem Appstart).
+function gcalLadeSkript() {
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if (!gcalSkriptPromise) {
+    gcalSkriptPromise = new Promise((resolve, reject) => {
+      const sk = document.createElement('script');
+      sk.src = 'https://accounts.google.com/gsi/client';
+      sk.async = true;
+      sk.onload = () => resolve();
+      sk.onerror = () => { gcalSkriptPromise = null; sk.remove(); reject(new Error('Google-Login-Skript konnte nicht geladen werden (offline?).')); };
+      document.head.appendChild(sk);
+    });
+  }
+  return gcalSkriptPromise;
 }
 
 async function gcalConnect() {
   const clientId = (state.einstellungen?.gcalClientId || '').trim();
   if (!clientId) { alert('Bitte zuerst die Google Client-ID in den Einstellungen hinterlegen.'); return; }
-  if (!window.google || !google.accounts || !google.accounts.oauth2) { alert('Google-Login-Skript lädt noch… bitte kurz warten.'); return; }
+  try { await gcalLadeSkript(); } catch (err) { alert(err.message); return; }
   const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope: 'https://www.googleapis.com/auth/calendar',
     callback: (resp) => {
       if (resp.error) { alert('Google-Login fehlgeschlagen: ' + resp.error); return; }
       gcalToken = resp.access_token;
+      gcalTokenBis = Date.now() + ((Number(resp.expires_in) || 3600) - 60) * 1000;
       gcalSync();
-    }
+    },
+    error_callback: () => gcalStatus('Google-Login abgebrochen.')
   });
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
 async function gcalSync() {
-  const status = document.getElementById('gcalStatus');
-  status.textContent = 'Synchronisiere mit Google Kalender…';
+  gcalStatus('Synchronisiere mit Google Kalender…');
   try {
-    const list = await gcalRequest('GET', '/users/me/calendarList');
-    let cal = (list.items || []).find(c => c.summary === 'Familienplaner');
-    if (!cal) {
-      cal = await gcalRequest('POST', '/calendars', { summary: 'Familienplaner' });
-    }
+    let cal = null;
+    let seite = '';
+    do {
+      const list = await gcalRequest('GET', '/users/me/calendarList' + (seite ? '?pageToken=' + encodeURIComponent(seite) : ''));
+      cal = cal || (list.items || []).find(c => c.summary === 'Familienplaner' && c.accessRole === 'owner');
+      seite = cal ? '' : (list.nextPageToken || '');
+    } while (seite);
+    if (!cal) cal = await gcalRequest('POST', '/calendars', { summary: 'Familienplaner' });
     gcalCalendarId = cal.id;
-    const remote = await gcalRequest('GET', `/calendars/${encodeURIComponent(gcalCalendarId)}/events?maxResults=2500`);
-    const remoteIds = new Set((remote.items || []).map(i => i.id));
+    const basis = `/calendars/${encodeURIComponent(gcalCalendarId)}/events`;
+    // nur von der App angelegte Termine (Markierung) und alle Seiten abrufen
+    const remoteIds = new Set();
+    let token = '';
+    do {
+      const r = await gcalRequest('GET', `${basis}?maxResults=2500&privateExtendedProperty=familienplaner%3D1${token ? '&pageToken=' + encodeURIComponent(token) : ''}`);
+      for (const i of r.items || []) remoteIds.add(i.id);
+      token = r.nextPageToken || '';
+    } while (token);
     const lokalIds = new Set();
+    let fehler = 0;
     for (const e of state.eintraege) {
-      await gcalUpsert(e);
-      if (e.gcalId) lokalIds.add(e.gcalId);
+      if (await gcalUpsert(e)) lokalIds.add(e.gcalId); else fehler++;
     }
-    for (const rid of remoteIds) {
-      if (!lokalIds.has(rid)) await gcalDelete(rid);
+    if (fehler) { gcalStatus(`⚠️ ${fehler} Einträge konnten nicht synchronisiert werden; nichts gelöscht.`); return; }
+    const entfernen = [...remoteIds].filter(rid => !lokalIds.has(rid));
+    let entfernt = 0;
+    if (entfernen.length && confirm(`${entfernen.length} Termin(e) im Google-Kalender „Familienplaner“ gibt es lokal nicht (mehr). Jetzt dort löschen?\n\nAbbrechen lässt sie unverändert.`)) {
+      for (const rid of entfernen) if (await gcalDelete(rid)) entfernt++;
     }
-    status.textContent = `Synchronisiert: ${state.eintraege.length} Einträge im Kalender „Familienplaner“.`;
+    gcalStatus(`Synchronisiert: ${state.eintraege.length} Einträge im Kalender „Familienplaner“${entfernt ? `, ${entfernt} entfernt` : ''}.`);
   } catch (err) {
-    status.textContent = 'Fehler: ' + err.message;
+    gcalStatus('Fehler: ' + err.message);
   }
 }
 
@@ -1873,6 +1948,9 @@ function init() {
     ev.target.value = '';
   });
   document.getElementById('btnGcal').addEventListener('click', gcalConnect);
+  document.getElementById('btnExtras').addEventListener('click', () => {
+    if (state.einstellungen?.gcalClientId) gcalLadeSkript().catch(() => {});
+  });
   document.getElementById('eintragSpeichern').addEventListener('click', submitEintrag);
   document.querySelectorAll('.dd').forEach(dd => {
     const trigger = dd.querySelector('button');
@@ -1909,11 +1987,6 @@ function init() {
   document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (ev) => {
     if (ev.target === m) m.classList.remove('offen');
   }));
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  s.defer = true;
-  document.head.appendChild(s);
   try { load(); } catch (err) { state = defaultState(); normalizeState(); }
   render();
 }

@@ -74,8 +74,13 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 2. In den Einstellungen der App die Client-ID eintragen; die eigene Origin
    (z. B. `http://localhost:8000`) als „Autorisierte JavaScript-Origin“ eintragen.
 3. Button „Mit Google Kalender verbinden & syncen“: legt einen Kalender „Familienplaner“ an und
-   überträgt alle Einträge als Ganztagstermine (bei Änderungen werden Termine aktualisiert bzw.
-   gelöschte entfernt). Richtung: App → Google Kalender.
+   überträgt alle Einträge als Ganztagstermine (jährliche Einträge als jährlich wiederkehrend; bei Änderungen
+   werden Termine aktualisiert bzw. gelöschte entfernt). Richtung: App → Google Kalender.
+   - Von der App angelegte Termine sind markiert; **nur diese** werden je gelöscht. Fremde Termine im selben
+     Kalender bleiben unangetastet. Vor dem Löschen fragt die App nach.
+   - Das Google-Skript wird erst nachgeladen, wenn eine Client-ID hinterlegt ist und das Extras-Menü geöffnet wird.
+   - Läuft die Google-Sitzung ab (ca. 1 Stunde), warnt die App in der Kopfzeile, statt still nicht mehr zu synchronisieren.
+   - Die Google-Termin-IDs werden nicht in die JSON-Datei exportiert (gehören zu einem Konto/Kalender).
 
 ## Datenquellen
 Schulferien: Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender (2027–2029 vollständig,
