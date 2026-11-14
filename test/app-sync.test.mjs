@@ -71,8 +71,9 @@ try {
   let r = await fetch(BASE + '/state', { headers: { Authorization: 'Bearer ' + TOKEN } });
   let remote = await r.json();
   check('Push landet auf dem Server (updatedBy=Test-Handy)', r.status === 200 && remote.updatedBy === 'Test-Handy' && typeof remote.updatedAt === 'number');
+  check('Push legt kein Sync-Token im geteilten Zustand ab', remote.einstellungen && remote.einstellungen.syncToken === '');
 
-  const other = { ...remote, updatedAt: remote.updatedAt + 10000, updatedBy: 'Anderes Handy', eintraege: [{ id: 'e99', mitglied: 'm2', typ: 'urlaub', von: '2026-08-03', bis: '2026-08-07', titel: 'Festival' }] };
+  const other = { ...remote, updatedAt: remote.updatedAt + 10000, updatedBy: 'Anderes Handy', eintraege: [{ id: 'e99', mitgliedId: 'm2', typ: 'urlaub', von: '2026-08-03', bis: '2026-08-07', titel: 'Festival' }] };
   r = await fetch(BASE + '/state', { method: 'PUT', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(other) });
   check('Anderes Gerät pusht -> 200', r.status === 200);
 
@@ -86,6 +87,24 @@ try {
   await sb.syncPull();
   st = JSON.parse(sb.localStorage.getItem(KEY));
   check('Pull nach neuerem Push behält lokalen Stand', st.updatedBy === 'Anderes Handy' && st.eintraege.length === 1);
+
+  // updatedAt muss einen Neustart überstehen, sonst überschreibt der Server später lokale Änderungen
+  const ts = st.updatedAt;
+  sb.load();
+  check('load() behält updatedAt/updatedBy (Neustart)', vm.runInContext('state.updatedAt', sb) === ts && vm.runInContext('state.updatedBy', sb) === 'Anderes Handy');
+
+  // Server-Daten sind nicht vertrauenswürdig: Pull validiert wie der Import und behält die Geräte-Einstellungen
+  const boese = { ...other, updatedAt: other.updatedAt + 9000, updatedBy: 'Evil', ansicht: 'balken', jahr: 2029,
+    mitglieder: [{ id: 'm1', name: 'A', rolle: 'elternteil', farbe: 'red;" onmouseover="x', urlaubstage: 30 }, ...st.mitglieder.slice(1)],
+    eintraege: [{ id: 'e"><script>', mitgliedId: 'm1', typ: 'urlaub', von: '2026-08-03', bis: '2026-08-07' }, { id: 'x', mitgliedId: 'nix', typ: 'urlaub', von: '2026-08-03', bis: '2026-08-07' }],
+    einstellungen: { ...st.einstellungen, syncUrl: 'http://evil', syncToken: 'evil-token', geraetName: 'Evil-Gerät' } };
+  await fetch(BASE + '/state', { method: 'PUT', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(boese) });
+  await sb.syncPull();
+  st = JSON.parse(sb.localStorage.getItem(KEY));
+  check('Pull übernimmt den neuen Stand (updatedBy=Evil)', st.updatedBy === 'Evil');
+  check('Pull validiert Server-Daten (Farbe und ID bereinigt, Eintrag ohne Person verworfen)', st.mitglieder[0].farbe === '#6b7280' && st.eintraege.length === 1 && /^[A-Za-z0-9_-]+$/.test(st.eintraege[0].id));
+  check('Pull behält Sync-Zugang und Gerätename dieses Geräts', st.einstellungen.syncUrl === BASE && st.einstellungen.syncToken === TOKEN && st.einstellungen.geraetName === 'Test-Handy');
+  check('Pull behält eigene Ansicht und Jahr', st.ansicht !== 'balken' && st.jahr !== 2029);
 
   // Export darf das Token nicht enthalten
   let captured = null;
