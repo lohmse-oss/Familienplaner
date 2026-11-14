@@ -1,0 +1,16 @@
+name = "familienplaner-sync"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# Ferien/Feiertage täglich um 04:00 UTC aktualisieren
+[triggers]
+crons = ["0 4 * * *"]
+
+# Vor dem ersten Deploy:  npx wrangler d1 create familienplaner
+# und die ausgegebene database_id hier eintragen.
+[[d1_databases]]
+binding = "DB"
+database_name = "familienplaner"
+database_id = "24e028b6-205d-4543-b030-8c3df6dcc0ea"
+
+# Familiencode als Secret setzen:  npx wrangler secret put FAMILY_CODE
