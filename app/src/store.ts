@@ -3,10 +3,15 @@ import bundled from './data/holidays.json';
 import { buildCalendar, type Calendar } from './core/calendar';
 import { contiguousRuns } from './core/dates';
 import { planPresence, type PresenceOptions } from './core/presence';
+import type { PersonFilter } from './core/filter';
 import { scheduleNotifications } from './notifications';
-import type { HolidayData, Item, Mode, PersonId } from './core/types';
+import { pushWidget } from './widget';
+import { PERSONS, type HolidayData, type Item, type Mode, type PersonId } from './core/types';
 
 export interface Settings {
+  theme: 'system' | 'light' | 'dark';
+  filter: PersonFilter; // Personenfilter für Woche/Jahr/Aufgaben
+  weekView: 'matrix' | 'day';
   me: PersonId; // wer nutzt dieses Handy
   server: string; // z. B. https://familienplaner.<konto>.workers.dev
   code: string; // Familiencode
@@ -43,7 +48,17 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { theme: 'system', filter: 'all', weekView: 'matrix', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+
+/** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
+function applyLook() {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (settings.theme === 'system') delete root.dataset.theme;
+  else root.dataset.theme = settings.theme;
+  root.style.setProperty('--head', PERSONS[settings.me].color);
+}
+applyLook();
 const configured = () => !!settings.server && !!settings.code;
 let syncState: SyncState = { status: configured() ? 'idle' : 'off' };
 
@@ -207,6 +222,7 @@ export function removeShop(ids: string[]) {
 export function updateSettings(patch: Partial<Settings>) {
   settings = { ...settings, ...patch };
   write(LS.settings, settings);
+  applyLook();
   if ('server' in patch || 'code' in patch) syncState = { status: configured() ? 'idle' : 'off' };
   emit();
   scheduleSoon();
@@ -217,7 +233,10 @@ export function updateSettings(patch: Partial<Settings>) {
 let schedTimer: ReturnType<typeof setTimeout> | undefined;
 function scheduleSoon() {
   clearTimeout(schedTimer);
-  schedTimer = setTimeout(() => void scheduleNotifications(getCalendar(), settings.notify).catch(() => {}), 1500);
+  schedTimer = setTimeout(() => {
+    void scheduleNotifications(getCalendar(), settings.notify).catch(() => {});
+    void pushWidget(getCalendar()).catch(() => {});
+  }, 1500);
 }
 
 /* ---------- Synchronisierung (Cloudflare Worker + D1) ---------- */

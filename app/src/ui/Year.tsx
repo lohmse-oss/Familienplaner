@@ -5,7 +5,9 @@ import { gapRuns } from '../core/gaps';
 import { budget, vacationReport } from '../core/report';
 import { ALL, CHILDREN, PARENTS, PERSONS, type Mode, type PersonId } from '../core/types';
 import { applyToDays, setPresenceRange, useStore, withUndo } from '../store';
-import { Chips } from './common';
+import { Chips, PersonFilterBar } from './common';
+import { haptic } from '../haptics';
+import { Ic, type IconName } from './icons';
 import { MonthGrid } from './MonthGrid';
 
 export type PlanMode = 'vacation' | 'homeoffice' | 'trip' | 'office' | 'care' | 'cover';
@@ -17,14 +19,15 @@ export interface PlanPreset {
   mode?: PlanMode;
 }
 
-const MODES: { value: PlanMode; label: string }[] = [
-  { value: 'vacation', label: '🌴 Urlaub' },
-  { value: 'homeoffice', label: '🏠 Homeoffice' },
-  { value: 'trip', label: '✈️ Dienstreise' },
-  { value: 'office', label: '🏢 Büro (zurücksetzen)' },
-  { value: 'care', label: '🧒 Schließtag / Betreuung nötig' },
-  { value: 'cover', label: '🤝 Betreuung durch Dritte' },
+const MODE_DEF: { value: PlanMode; text: string; icon: IconName }[] = [
+  { value: 'vacation', text: 'Urlaub', icon: 'palm' },
+  { value: 'homeoffice', text: 'Homeoffice', icon: 'home' },
+  { value: 'trip', text: 'Dienstreise', icon: 'plane' },
+  { value: 'office', text: 'Büro (zurücksetzen)', icon: 'office' },
+  { value: 'care', text: 'Schließtag / Betreuung nötig', icon: 'baby' },
+  { value: 'cover', text: 'Betreuung durch Dritte', icon: 'hand' },
 ];
+const MODES = MODE_DEF.map((m) => ({ value: m.value, label: <><Ic n={m.icon} size={15} /> {m.text}</> }));
 const VERB: Record<PlanMode, string> = { vacation: 'Urlaub', homeoffice: 'Homeoffice', trip: 'Dienstreise', office: 'Büro', care: 'Betreuungsbedarf', cover: 'Betreuung' };
 const CARE_PRESETS: { label: string; child: PersonId }[] = [
   { label: 'Schließtag Kita', child: 'irma' },
@@ -62,18 +65,22 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
 
   const bridges = useMemo(() => findBridges(cal, year), [cal, year]);
   const bridgeDays = useMemo(() => new Set(bridges.flatMap((b) => [...range(b.gapStart, b.gapEnd)])), [bridges]);
-  const gaps = useMemo(() => gapRuns(cal, `${year}-01-01`, `${year}-12-31`), [cal, year]);
+  const gaps = useMemo(() => gapRuns(cal, `${year}-01-01`, `${year}-12-31`).filter((g) => settings.filter === 'ida' || settings.filter === 'irma' ? g.who.includes(PERSONS[settings.filter].name) : true), [cal, year, settings.filter]);
   const periods = useMemo(() => PARENTS.flatMap((p) => vacationReport(cal, p, year).periods.map((x) => ({ person: p, ...x }))), [cal, year]);
   const bands = useMemo(() => {
     const out: Record<string, Map<string, Mode>> = {};
     for (const p of PARENTS) {
+      if (settings.filter !== 'all' && settings.filter !== p) {
+        out[p] = new Map();
+        continue;
+      }
       const m = new Map<string, Mode>();
       for (const per of periods.filter((x) => x.person === p)) for (const d of range(per.start, per.end)) m.set(d, 'vacation');
       for (const d of range(`${year}-01-01`, `${year}-12-31`)) if (cal.day(d).parents[p].status === 'trip') m.set(d, 'trip');
       out[p] = m;
     }
     return out;
-  }, [cal, year, periods]);
+  }, [cal, year, periods, settings.filter]);
 
   const days = useMemo(() => (selMode === 'range' ? (rg.start ? [...range(rg.start, rg.end ?? rg.start)] : []) : [...multi].sort()), [selMode, rg, multi]);
   const selected = useMemo(() => new Set(days), [days]);
@@ -142,6 +149,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
       if (per) return startEdit(per); // bestehenden Urlaub antippen → ändern/löschen
       return setRg({ start: d, end: null });
     }
+    haptic();
     if (rg.end || d < rg.start) setRg({ start: d, end: null }); // neuer Start
     else setRg({ start: rg.start, end: d });
   };
@@ -168,6 +176,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
       if (mode === 'care' || mode === 'cover') applyToDays(days, { type: mode, persons, title: tt });
       else applyToDays(days, { type: 'presence', persons, mode, title: tt, away: mode === 'vacation' ? away : undefined });
     });
+    haptic('success');
     reset();
   };
   const remove = () => {
@@ -198,11 +207,12 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
   return (
     <div class={`page ${panel ? 'has-panel' : ''}`}>
       <div class="nav">
-        <button class="icon-btn" onClick={() => { setYear(year - 1); reset(); }} aria-label="Vorjahr">‹</button>
+        <button class="icon-btn" onClick={() => { setYear(year - 1); reset(); }} aria-label="Vorjahr"><Ic n="left" size={22} /></button>
         <div class="nav-title"><strong>{year}</strong><span>Jahresplaner</span></div>
-        <button class="icon-btn" onClick={() => { setYear(year + 1); reset(); }} aria-label="Nächstes Jahr">›</button>
+        <button class="icon-btn" onClick={() => { setYear(year + 1); reset(); }} aria-label="Nächstes Jahr"><Ic n="right" size={22} /></button>
       </div>
 
+      <PersonFilterBar />
       <div class="plan-hint">
         <span>{hint}</span>
         <Chips<'range' | 'single'> options={[{ value: 'range', label: 'Zeitraum' }, { value: 'single', label: 'Einzelne Tage' }]} value={[selMode]} onChange={(v) => { setSelMode(v[0]); reset(); }} />
@@ -210,10 +220,10 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
 
       {(ferien.length > 0 || bridges.length > 0) && (
         <div class="chips scroll quick-pick">
-          {ferien.map((h) => <button key={h.name + h.start} class="chip" onClick={() => pickRange(h.start, h.end)}>🏫 {h.name} {fmtShort(h.start)}–{fmtShort(h.end)}</button>)}
+          {ferien.map((h) => <button key={h.name + h.start} class="chip" onClick={() => pickRange(h.start, h.end)}><Ic n="school" size={14} /> {h.name} {fmtShort(h.start)}–{fmtShort(h.end)}</button>)}
           {[...bridges].sort((a, b) => b.total / b.cost - a.total / a.cost).slice(0, 8).map((b) => (
             <button key={b.gapStart} class="chip" onClick={() => pickRange(b.gapStart, b.gapEnd)}>
-              🌉 {fmtShort(b.gapStart)}{b.gapEnd !== b.gapStart ? `–${fmtShort(b.gapEnd)}` : ''} ({fmtDays(b.cost)} → {b.total} frei)
+              <Ic n="bridge" size={14} /> {fmtShort(b.gapStart)}{b.gapEnd !== b.gapStart ? `–${fmtShort(b.gapEnd)}` : ''} ({fmtDays(b.cost)} → {b.total} frei)
             </button>
           ))}
         </div>
@@ -221,7 +231,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
 
       <section class="card gaps">
         <header class="card-head link-row" onClick={() => setGapsOpen(!gapsOpen)}>
-          <strong>{gapsOpen ? '▾' : '▸'} Offene Betreuung</strong>
+          <strong><Ic n={gapsOpen ? 'down' : 'right'} size={15} /> Offene Betreuung</strong>
           <span class={`pill ${gaps.length ? 'pill-gap' : 'pill-ok'}`}>{gaps.length ? `${gaps.length} Zeiträume` : 'alles geklärt'}</span>
         </header>
         {gapsOpen && gaps.length === 0 && <div class="line">Für {year} ist jeder Betreuungstag abgedeckt.</div>}
@@ -240,7 +250,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <span><i class="sw sw-school" /> Ferien</span>
         <span><i class="sw sw-holiday" /> Feiertag</span>
         <span><i class="sw sw-bridge" /> Brückentag</span>
-        <span>▬ Urlaub je Person · blass = Dienstreise</span>
+        <span><i class="sw sw-stripe" /> Urlaub je Person · blass = Dienstreise</span>
       </div>
 
       <div class="months">
@@ -253,7 +263,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <aside class="plan-panel">
           <div class="pp-top">
             <div>
-              {editing && <div class="pp-edit">✎ Urlaub {PERSONS[editing.person].name} ändern</div>}
+              {editing && <div class="pp-edit"><Ic n="edit" size={12} /> Urlaub {PERSONS[editing.person].name} ändern</div>}
               <b class="pp-range">{rangeText || 'Zeitraum wählen'}</b>
               <div class="pp-sub">
                 {days.length > 0 && <span><b>{fmtDays(weight)}</b> {mode === 'vacation' ? 'Urlaubstage' : 'Arbeitstage'} · {days.length} Kalendertage</span>}
@@ -262,7 +272,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
                 ))}
               </div>
             </div>
-            <button class="icon-btn" onClick={reset} aria-label="Auswahl verwerfen">✕</button>
+            <button class="icon-btn" onClick={reset} aria-label="Auswahl verwerfen"><Ic n="x" size={16} /></button>
           </div>
 
           <Chips<PersonId> options={opt(peopleFor(mode))} value={persons} onChange={setPersons} multi />
@@ -284,7 +294,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
           )}
 
           <div class="actions">
-            <button class="btn small" onClick={() => setMore(!more)}>{more ? 'Weniger ▴' : `${MODES.find((x) => x.value === mode)!.label} ▾`}</button>
+            <button class="btn small" onClick={() => setMore(!more)}>{more ? <>Weniger <Ic n="up" size={14} /></> : <>{MODES.find((x) => x.value === mode)!.label} <Ic n="down" size={14} /></>}</button>
             {editing && <button class="btn danger small" onClick={remove}>Löschen</button>}
             {days.length === 1 && !editing && <button class="btn small" onClick={() => openDay(days[0])}>Details</button>}
             <span class="grow" />

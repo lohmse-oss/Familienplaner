@@ -3,6 +3,8 @@ import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
 import { buildCalendar } from './calendar';
 import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekStart } from './dates';
+import { relevant } from './filter';
+import { buildWidgetData } from './widget';
 import { gapRuns, nextGap } from './gaps';
 import { planPresence } from './presence';
 import { buildNotices } from './notify';
@@ -266,5 +268,45 @@ describe('Urlaubstage korrekt zählen (Feiertage, 24.12./31.12. halb)', () => {
     expect(before).toMatchObject({ gapEnd: '2026-12-24', days: 4, cost: 3.5, total: 9 });
     const after = b.find((x) => x.gapStart === '2026-12-28')!;
     expect(after).toMatchObject({ gapEnd: '2026-12-31', days: 4, cost: 3.5, total: 10 });
+  });
+});
+
+describe('Personenfilter', () => {
+  const ev = (persons: PersonId[], owner: PersonId | null = null) => item({ kind: 'event', start: '2027-03-10', persons, owner });
+  it('alle zeigt alles, Person zeigt Betroffene, Zuständige und Familien-Einträge', () => {
+    expect(relevant(ev(['irma']), 'all')).toBe(true);
+    expect(relevant(ev(['irma']), 'irma')).toBe(true);
+    expect(relevant(ev(['irma']), 'ida')).toBe(false);
+    expect(relevant(ev(['irma'], 'betty'), 'betty')).toBe(true); // Betty kümmert sich
+    expect(relevant(ev(['irma'], 'betty'), 'sebastian')).toBe(false);
+    expect(relevant(ev([]), 'ida')).toBe(true); // Familie
+  });
+});
+
+describe('Widget-Daten', () => {
+  it('liefert 14 Tage mit Status, Betreuung, nächsten Terminen und Einkauf', () => {
+    const cal = buildCalendar(
+      [
+        item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13' }),
+        item({ kind: 'presence', mode: 'homeoffice', persons: ['betty'], start: '2027-07-12' }),
+        item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt', time: '15:30', persons: ['irma'], start: '2027-07-14' }),
+        item({ kind: 'event', sub: 'elternabend', title: 'Elternabend', time: '18:00', persons: ['irma'], owner: 'betty', start: '2027-07-12' }),
+        item({ kind: 'shop', title: 'Milch', ts: 2, start: '2027-07-10' }),
+        item({ kind: 'shop', title: 'Brot', ts: 1, start: '2027-07-10' }),
+        item({ kind: 'shop', title: 'Eier', ts: 0, done: true, start: '2027-07-10' }),
+      ],
+      data,
+    );
+    const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5));
+    expect(w.days).toHaveLength(14);
+    expect(w.updated).toBe('Stand 08:05');
+    expect(w.shop).toBe('Einkauf (2): Milch, Brot');
+    const mo = w.days[0];
+    expect(mo).toMatchObject({ date: '2027-07-12', cov: 'maybe', covText: 'nur per Homeoffice', need: 'Ida: Sommerferien' });
+    expect(mo.parents).toBe('Sebastian: Büro  ·  Betty: Homeoffice');
+    expect(mo.next).toEqual(['18:00 Elternabend (Betty)', 'Mi 15:30 Kinderarzt – wer kümmert sich?']);
+    expect(w.days[1].parents).toContain('Sebastian: Dienstreise');
+    expect(w.days[1].next[0]).toBe('Mi 15:30 Kinderarzt – wer kümmert sich?'); // 13.7.: Termin morgen → mit Wochentag
+    expect(w.days[2].next[0]).toBe('15:30 Kinderarzt – wer kümmert sich?'); // am Tag selbst ohne Wochentag
   });
 });

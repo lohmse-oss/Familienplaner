@@ -3,15 +3,16 @@ import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, SUB_LABEL, type EventSub, 
 import { deleteItem, newId, saveItem, useStore } from '../store';
 import { today } from '../core/dates';
 import { Chips, Sheet } from './common';
+import { Ic, type IconName } from './icons';
 
-export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; label: string; icon: string; hint: string }[] = [
-  { kind: 'presence', label: 'Urlaub / Dienstreise / Homeoffice', icon: '🌴', hint: 'Wer ist anwesend?' },
-  { kind: 'care', label: 'Betreuungsbedarf', icon: '🧒', hint: 'Schließtag Kita/Schule, krank …' },
-  { kind: 'event', label: 'Termin', icon: '📌', hint: 'Arzt, Klassenarbeit, Elternabend' },
-  { kind: 'task', label: 'Aufgabe', icon: '☑', hint: 'mit Fälligkeit' },
-  { kind: 'cover', label: 'Betreuung durch Dritte', icon: '🤝', hint: 'Oma, Freunde …' },
-  { kind: 'info', label: 'Info (Festival, Veranstaltung)', icon: 'ℹ️', hint: 'nur zur Orientierung' },
-  { kind: 'birthday', label: 'Geburtstag', icon: '🎂', hint: 'jährlich' },
+export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; label: string; icon: IconName; hint: string }[] = [
+  { kind: 'presence', label: 'Urlaub / Dienstreise / Homeoffice', icon: 'palm', hint: 'Wer ist anwesend?' },
+  { kind: 'care', label: 'Betreuungsbedarf', icon: 'baby', hint: 'Schließtag Kita/Schule, krank …' },
+  { kind: 'event', label: 'Termin', icon: 'addcal', hint: 'Arzt, Klassenarbeit, Elternabend' },
+  { kind: 'task', label: 'Aufgabe', icon: 'tasks', hint: 'mit Fälligkeit' },
+  { kind: 'cover', label: 'Betreuung durch Dritte', icon: 'hand', hint: 'Oma, Freunde …' },
+  { kind: 'info', label: 'Info (Festival, Veranstaltung)', icon: 'info', hint: 'nur zur Orientierung' },
+  { kind: 'birthday', label: 'Geburtstag', icon: 'cake', hint: 'jährlich' },
 ];
 
 const personOpts = (list: PersonId[]) => list.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }));
@@ -27,12 +28,12 @@ export function KindPicker({ onPick, onClose, onPlan }: { onPick: (k: Kind) => v
     <Sheet title="Neuer Eintrag" onClose={onClose}>
       <div class="kinds">
         <button class="kind featured" onClick={onPlan}>
-          <span class="ic">🗓️</span>
+          <span class="ic"><Ic n="year" size={24} /></span>
           <span><b>Mehrere Tage auswählen</b><small>Urlaub, Homeoffice, Dienstreise, Schließtage über einen Zeitraum</small></span>
         </button>
         {KINDS.map((k) => (
           <button key={k.kind} class="kind" onClick={() => onPick(k.kind)}>
-            <span class="ic">{k.icon}</span>
+            <span class="ic"><Ic n={k.icon} size={24} /></span>
             <span><b>{k.label}</b><small>{k.hint}</small></span>
           </button>
         ))}
@@ -77,7 +78,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   };
 
   return (
-    <Sheet title={`${info.icon} ${isNew ? '' : 'Bearbeiten: '}${info.label}`} onClose={onClose}>
+    <Sheet title={`${isNew ? '' : 'Bearbeiten: '}${info.label}`} onClose={onClose}>
       <div class="form">
         {k === 'presence' && (
           <>

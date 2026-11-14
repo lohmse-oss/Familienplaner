@@ -6,6 +6,7 @@ import { budget, entitlementOf, vacationReport, workdaysBetween, type VacationPe
 import { PARENTS, PERSONS, type PersonId } from '../core/types';
 import { applyToDays, setEntitlement, setPresenceRange, useStore, withUndo } from '../store';
 import { Dot, Sheet } from './common';
+import { Ic } from './icons';
 
 interface Props {
   year: number;
@@ -29,9 +30,9 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
   return (
     <div class="page">
       <div class="nav">
-        <button class="icon-btn" onClick={() => setYear(year - 1)} aria-label="Vorjahr">‹</button>
+        <button class="icon-btn" onClick={() => setYear(year - 1)} aria-label="Vorjahr"><Ic n="left" size={22} /></button>
         <div class="nav-title"><strong>Urlaubsverwaltung {year}</strong><span>Konto · Planung · Übersicht für den Arbeitgeber</span></div>
-        <button class="icon-btn" onClick={() => setYear(year + 1)} aria-label="Nächstes Jahr">›</button>
+        <button class="icon-btn" onClick={() => setYear(year + 1)} aria-label="Nächstes Jahr"><Ic n="right" size={22} /></button>
       </div>
 
       {/* Urlaubskonto: genommen + geplant + noch frei */}
@@ -63,7 +64,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
                 </div>
               </>
             )}
-            <button class="btn primary wide" onClick={() => plan(undefined, [p])}>＋ Urlaub für {PERSONS[p].name} planen</button>
+            <button class="btn primary wide" onClick={() => plan(undefined, [p])}><Ic n="plus" size={16} /> Urlaub für {PERSONS[p].name} planen</button>
           </section>
         );
       })}
@@ -85,7 +86,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
                 {p.titles.length > 0 && <><br /><span class="muted">{p.titles.join(', ')}</span></>}
               </span>
               <span class="days-badge">{fmtDays(p.workdays)} {p.workdays === 1 ? 'Tag' : 'Tage'}</span>
-              <span class="muted">✎</span>
+              <Ic n="edit" size={15} class="muted" />
             </div>
           ))}
           <p class="hint">Gezählt werden nur Arbeitstage: ohne Wochenenden und Feiertage; 24.12. und 31.12. zählen als halber Tag.</p>
@@ -96,7 +97,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
       <div>
         <h3 class="section">Betreuung noch offen – Urlaub nötig?</h3>
         <section class="card">
-          {gaps.length === 0 && <div class="line">Für {year} ist jeder Betreuungstag abgedeckt. 🎉</div>}
+          {gaps.length === 0 && <div class="empty"><Ic n="check" size={24} /><br />Für {year} ist jeder Betreuungstag abgedeckt.</div>}
           {gaps.map((g) => (
             <div key={g.start} class="line link-row" onClick={() => plan([...range(g.start, g.end)].filter((d) => !cal.isFree(d)))}>
               <span class="grow"><b>{fmtRange(g.start, g.end)}</b> · {g.who} · {g.why}<br /><span class="muted">{g.days} Arbeitstage offen</span></span>
@@ -120,7 +121,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
             </div>
             <div class="actions">
               {PARENTS.map((p) =>
-                booked(p, b.gapStart, b.gapEnd) ? <span key={p} class="booked"><Dot p={p} /> ✓ eingetragen</span> : (
+                booked(p, b.gapStart, b.gapEnd) ? <span key={p} class="booked"><Dot p={p} /> <Ic n="check" size={14} /> eingetragen</span> : (
                   <button key={p} class="btn" onClick={() => book([p], b.gapStart, b.gapEnd)}><Dot p={p} /> {PERSONS[p].name}</button>
                 ),
               )}

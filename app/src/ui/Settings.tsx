@@ -5,6 +5,7 @@ import { today } from '../core/dates';
 import { PARENTS, PERSONS } from '../core/types';
 import { sync, updateSettings, useStore } from '../store';
 import { Chips } from './common';
+import { Ic } from './icons';
 
 export function Settings() {
   const { settings, sync: st, hd, cal } = useStore();
@@ -25,6 +26,17 @@ export function Settings() {
       <section class="card form">
         <Chips<string> options={PARENTS.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }))} value={[settings.me]} onChange={(v) => updateSettings({ me: v[0] as 'sebastian' | 'betty' })} />
         <p class="hint">Damit sehen beide, wer etwas eingetragen hat.</p>
+      </section>
+
+      <h3 class="section">Darstellung</h3>
+      <section class="card form">
+        <label>Farbschema</label>
+        <Chips<'system' | 'light' | 'dark'>
+          options={[{ value: 'system', label: 'Wie das Handy' }, { value: 'light', label: <><Ic n="sun" size={15} /> Hell</> }, { value: 'dark', label: <><Ic n="moon" size={15} /> Dunkel</> }]}
+          value={[settings.theme]}
+          onChange={(v) => updateSettings({ theme: v[0] })}
+        />
+        <p class="hint">Die Kopfzeile zeigt die Farbe der Person, der dieses Handy gehört.</p>
       </section>
 
       <h3 class="section">Synchronisierung (Cloudflare)</h3>

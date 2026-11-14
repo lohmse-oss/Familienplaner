@@ -31,6 +31,8 @@ Der Build läuft in GitHub Actions (`.github/workflows/android.yml`) – lokal i
 Beim ersten Start: *Mehr* → „Dieses Handy gehört“ wählen → Familiencode eintragen (die Server-Adresse ist in `app/src/store.ts` als `DEFAULT_SERVER` voreingestellt) → *Speichern & verbinden*.
 Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
 
+**Widget:** Homescreen lange drücken → Widgets → „Familienplaner Heute“ (zeigt Status, Betreuung, nächste Termine und Einkaufsliste).
+
 ## Entwicklung
 ```bash
 cd app && npm install

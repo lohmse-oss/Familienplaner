@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { PERSONS, type Item } from '../core/types';
+import { haptic } from '../haptics';
 import { addShop, removeShop, sync, toggleShop, useStore } from '../store';
+import { Ic } from './icons';
 
 const rel = (a: Item, b: Item) => (b.ts ?? 0) - (a.ts ?? 0);
 
@@ -47,16 +49,17 @@ export function Shop() {
     const parts = text.split(',').map((s) => s.trim()).filter(Boolean); // „Milch, Brot, Eier“ → drei Einträge
     let dup = 0;
     for (const p of parts) if (!addShop(p)) dup++;
+    if (parts.length > dup) haptic();
     setText('');
     if (dup) flash(dup === parts.length && parts.length === 1 ? 'Steht schon auf der Liste' : `${dup} bereits auf der Liste`);
   };
 
   const Row = ({ i }: { i: Item }) => (
     <div class={`shop-row ${i.done ? 'done' : ''}`}>
-      <button class="check-btn" onClick={() => toggleShop(i.id)} aria-label={i.done ? 'wieder offen' : 'abhaken'}>{i.done ? '✓' : ''}</button>
-      <span class="grow" onClick={() => toggleShop(i.id)}>{i.title}</span>
+      <button class="check-btn" onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }} aria-label={i.done ? 'wieder offen' : 'abhaken'}>{i.done && <Ic n="check" size={16} sw={3} />}</button>
+      <span class="grow" onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }}>{i.title}</span>
       {i.by && i.by !== settings.me && <i class="dot" style={{ background: PERSONS[i.by].color }} title={`von ${PERSONS[i.by].name}`} />}
-      <button class="x-btn" onClick={() => removeShop([i.id])} aria-label="entfernen">✕</button>
+      <button class="x-btn" onClick={() => removeShop([i.id])} aria-label="entfernen"><Ic n="x" size={16} /></button>
     </div>
   );
 
@@ -64,26 +67,26 @@ export function Shop() {
     <div class="page">
       <form class="shop-add" onSubmit={submit}>
         <input type="text" placeholder="Artikel hinzufügen …" value={text} onInput={(e) => setText((e.target as HTMLInputElement).value)} enterkeyhint="done" autocomplete="off" />
-        <button class="btn primary" type="submit" disabled={!text.trim()}>＋</button>
+        <button class="btn primary" type="submit" disabled={!text.trim()} aria-label="hinzufügen"><Ic n="plus" size={22} /></button>
       </form>
       {note ? <div class="hint neg">{note}</div> : open.length === 0 && all.length === 0 ? <div class="hint">Mehrere Artikel mit Komma trennen, z. B. „Milch, Brot, Eier“.</div> : null}
 
       {suggestions.length > 0 && (
         <div class="chips scroll sugg">
           {suggestions.map((s) => (
-            <button key={s.title} class="chip" onClick={() => addShop(s.title)}>＋ {s.title}</button>
+            <button key={s.title} class="chip" onClick={() => { haptic(); addShop(s.title); }}><Ic n="plus" size={13} /> {s.title}</button>
           ))}
         </div>
       )}
 
       <section class="card shop-list">
-        {open.length === 0 && <div class="empty">Die Liste ist leer. 🎉<br /><span class="muted">Oben etwas eintragen, beide Handys sehen es sofort.</span></div>}
+        {open.length === 0 && <div class="empty"><Ic n="cart" size={26} /><br />Die Liste ist leer.<br /><span class="muted">Oben etwas eintragen – beide Handys sehen es sofort.</span></div>}
         {open.map((i) => <Row key={i.id} i={i} />)}
       </section>
 
       {doneRecent.length > 0 && (
         <>
-          <button class="link done-toggle" onClick={() => setShowDone(!showDone)}>{showDone ? '▾' : '▸'} Erledigt ({doneRecent.length})</button>
+          <button class="link done-toggle" onClick={() => setShowDone(!showDone)}><Ic n={showDone ? 'down' : 'right'} size={15} /> Erledigt ({doneRecent.length})</button>
           {showDone && (
             <section class="card shop-list">
               {doneRecent.map((i) => <Row key={i.id} i={i} />)}

@@ -51,6 +51,19 @@ Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnun
 * **Einkaufsliste**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
 * **Aufgaben & Geburtstage**, **Einstellungen** (Sync, Benachrichtigungen).
 
+## Bedienung und Darstellung
+* **Icons** (Lucide) statt Emojis, einheitliche Farben je Person; **Dunkelmodus** per Schalter oder wie das Handy; die **Kopfzeile trägt die Farbe der Person**, der das Handy gehört.
+* **Personenfilter** („Alle · Sebastian · Betty · Ida · Irma“) für Wochenplan, Jahresplaner und Aufgaben.
+* **Wochenplan** wahlweise als Matrix („Woche“) oder als Tagesstreifen mit Tagesdetails („Tag“).
+* **Bottom-Sheets** mit Griff: nach unten wischen schließt; die Android-Zurück-Taste schließt das oberste Fenster, sonst Startseite, dort App beenden.
+* **Rückgängig** nach Mehrfach-Eingaben, **Vibrationsfeedback** beim Abhaken, weiche Übergänge, Hinweise bei leeren Listen.
+
+## Homescreen-Widget „Heute“
+Natives Android-Widget (4×2, anpassbar): Datum und Feiertag, Betreuungs-Ampel, Status von Sebastian und Betty, Betreuungsbedarf der Kinder, nächste Termine
+(mit „wer kümmert sich?“-Hinweis) und die Einkaufsliste. Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab (bei jeder Änderung und jedem
+Abgleich); das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start. Änderungen des Partners erscheinen, sobald die App
+einmal abgeglichen hat. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.
+
 ## Urlaub korrekt zählen
 Gezählt werden nur Arbeitstage: **ohne Wochenenden und Feiertage**; **24.12. und 31.12. zählen als halber Tag** (sofern Arbeitstag).
 Das gilt für Urlaubskonto, Zeiträume, Brückentage-Kosten und die Vorschau im Planer. Anzeige der Zeiträume von–bis in der App; kein PDF-Export.
@@ -66,5 +79,5 @@ Betreuungslücken 14 und 3 Tage vorher · Aufgaben · Geburtstage. Phase 2: Sofo
 
 ## Etappen
 1. ✅ Kern + Mehrfach-Planer, Urlaubsverwaltung, Wochenmatrix, Startseite, Einkaufsliste: Personen, Woche/Jahr, Anwesenheit + Betreuungs-Ampel, Termine/Aufgaben/Geburtstage, Ferien/Feiertage/Brückentage, Urlaubsübersicht, Sync, lokale Erinnerungen
-2. Sofort-Push (FCM), Änderungsmeldung bei geänderten Ferienterminen, Import von Schul-/Kita-Kalendern (ICS), Homescreen-Widget
+2. Sofort-Push (FCM), Änderungsmeldung bei geänderten Ferienterminen, Import von Schul-/Kita-Kalendern (ICS), Widget mit eigenem Hintergrund-Abgleich
 3. Wiederkehrende Termine, Jahresrückblick
