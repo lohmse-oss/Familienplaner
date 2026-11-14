@@ -124,6 +124,26 @@ npx wrangler deploy
 Free-Tier reicht locker für 2 Handys: 100.000 Worker-Requests/Tag, KV 100k Reads + 1k Writes/Tag.
 Test des Workers lokal (mit gemocktem KV): `node cloudflare/test-worker.mjs`
 
+#### Auto-Deploy des Workers (GitHub ↔ Cloudflare verbunden)
+Zwei Wege, beide ohne manuelles `wrangler deploy`:
+
+**A) GitHub Actions (`.github/workflows/deploy-worker.yml`, deployt bei Push auf `main`)** – einmalig:
+1. Repo → **Settings ▸ Secrets and variables ▸ Actions** → zwei Secrets anlegen:
+   - `CLOUDFLARE_API_TOKEN` – API-Token aus dem Cloudflare-Dashboard (My Profile ▸ API Tokens) mit den Berechtigungen
+     „Workers Scripts: Edit“, „Workers KV Storage: Edit“, „Account Settings: Read“
+   - `CLOUDFLARE_ACCOUNT_ID` – aus dem Cloudflare-Dashboard (rechte Seitenleiste bzw. Workers-Übersicht)
+2. KV-Namespace einmalig anlegen und ID in `cloudflare/wrangler.toml` eintragen:
+   `npx wrangler kv namespace create STATE_KV` (lokal mit `npx wrangler login`) oder direkt im Dashboard.
+3. `SYNC_TOKEN` als Worker-Secret setzen (persistiert, wird nicht bei jedem Deploy neu gesetzt):
+   lokal `npx wrangler secret put SYNC_TOKEN` oder Dashboard → Workers & Pages → `familienplaner-sync` → Settings → Variables → Encrypted.
+   Danach PR #6 auf `main` mergen bzw. auf `main` pushen – der Worker deployt automatisch.
+
+**B) Cloudflare „Workers Builds“ (connected Git)** – im Cloudflare-Dashboard: Workers & Pages → Create →
+Builds → dieses Repo verbinden, Branch `main`, Deploy-Command: `npx wrangler deploy --config cloudflare/wrangler.toml`.
+KV-Namespace-ID und `SYNC_TOKEN` wie oben (Schritte 2–3) setzen.
+
+Das Sync-Token landet so nie im Repo und wird nicht übergeben – es bleibt Worker-seitig als Secret gespeichert.
+
 ## Android-APK
 
 `android/` enthält einen schlanken WebView-Wrapper ohne externe App-Dependencies: Er lädt die gebündelte
