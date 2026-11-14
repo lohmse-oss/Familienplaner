@@ -1,97 +1,116 @@
 import { useMemo, useState } from 'preact/hooks';
 import { findBridges } from '../core/bridges';
-import { fmt, fmtRange, range, WD, dow } from '../core/dates';
-import { entitlementOf, reportText, vacationReport } from '../core/report';
+import { dayOfYear, daysInYear, diff, fmt, fmtDays, fmtRange, MONTHS, range, today, WD, dow } from '../core/dates';
+import { gapRuns } from '../core/gaps';
+import { budget, entitlementOf, vacationReport, workdaysBetween, type VacationPeriod } from '../core/report';
 import { PARENTS, PERSONS, type PersonId } from '../core/types';
-import { newId, saveItem, setEntitlement, useStore } from '../store';
-import { Dot } from './common';
+import { applyToDays, batch, setEntitlement, setPresenceRange, useStore } from '../store';
+import { Dot, Sheet } from './common';
 
-export function Vacation({ year, setYear, goWeek }: { year: number; setYear: (y: number) => void; goWeek: (d: string) => void }) {
-  const { cal, items } = useStore();
-  const [msg, setMsg] = useState('');
-  const bridges = useMemo(() => findBridges(cal, year).sort((a, b) => b.total / b.days - a.total / a.days || a.gapStart.localeCompare(b.gapStart)), [cal, year]);
+interface Props {
+  year: number;
+  setYear: (y: number) => void;
+  goWeek: (d: string) => void;
+  plan: (days?: string[], persons?: PersonId[]) => void;
+}
+
+export function Vacation({ year, setYear, goWeek, plan }: Props) {
+  const { cal, items, hd } = useStore();
+  const t = today();
+  const [edit, setEdit] = useState<{ person: PersonId; period: VacationPeriod } | null>(null);
+
+  const bridges = useMemo(() => findBridges(cal, year).sort((a, b) => b.total / b.cost - a.total / a.cost || a.gapStart.localeCompare(b.gapStart)), [cal, year]);
+  const gaps = useMemo(() => gapRuns(cal, `${year}-01-01`, `${year}-12-31`), [cal, year]);
   const reports = PARENTS.map((p) => vacationReport(cal, p, year));
 
-  const flash = (m: string) => {
-    setMsg(m);
-    setTimeout(() => setMsg(''), 2500);
-  };
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      flash('Kopiert');
-    } catch {
-      flash('Kopieren nicht möglich');
-    }
-  };
-  const share = async (text: string, title: string) => {
-    try {
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform()) {
-        const { Share } = await import('@capacitor/share');
-        await Share.share({ title, text });
-      } else if (navigator.share) await navigator.share({ title, text });
-      else await copy(text);
-    } catch {
-      /* abgebrochen */
-    }
-  };
-
-  const book = (who: PersonId[], start: string, end: string) =>
-    saveItem({ id: newId(), kind: 'presence', mode: 'vacation', persons: who, start, end, title: 'Brückentage' });
   const booked = (p: PersonId, a: string, b: string) => [...range(a, b)].every((d) => cal.day(d).parents[p].status === 'vacation');
+  const book = (who: PersonId[], a: string, b: string) => applyToDays([...range(a, b)], { type: 'presence', persons: who, mode: 'vacation', title: 'Brückentage' });
 
   return (
     <div class="page">
       <div class="nav">
         <button class="icon-btn" onClick={() => setYear(year - 1)} aria-label="Vorjahr">‹</button>
-        <div class="nav-title"><strong>Urlaub {year}</strong><span>Übersicht für den Arbeitgeber</span></div>
+        <div class="nav-title"><strong>Urlaubsverwaltung {year}</strong><span>Konto · Planung · Übersicht für den Arbeitgeber</span></div>
         <button class="icon-btn" onClick={() => setYear(year + 1)} aria-label="Nächstes Jahr">›</button>
       </div>
-      {msg && <div class="toast">{msg}</div>}
 
-      {reports.map((r) => {
-        const text = reportText(r);
+      {/* Urlaubskonto: genommen + geplant + noch frei */}
+      {PARENTS.map((p) => {
+        const b = budget(cal, p, year, t);
+        const ent = b.entitlement;
+        const pct = (n: number) => (ent ? Math.max(0, Math.min(100, (n / ent) * 100)) : 0);
         return (
-          <section key={r.person} class="card vac print-block">
+          <section key={p} class="card budget">
             <header class="card-head">
-              <strong><Dot p={r.person} /> {PERSONS[r.person].name}</strong>
-              <label class="ent no-print">
-                Urlaubstage
-                <input type="number" min="0" inputMode="numeric" value={entitlementOf(items, r.person, year) ?? ''} onChange={(e) => { const v = (e.target as HTMLInputElement).value; setEntitlement(r.person, year, v === '' ? undefined : Number(v)); }} />
+              <strong><Dot p={p} /> {PERSONS[p].name}</strong>
+              <label class="ent">
+                Urlaubstage {year}
+                <input type="number" min="0" step="0.5" inputMode="decimal" value={ent ?? ''} placeholder="z. B. 30" onChange={(e) => { const v = (e.target as HTMLInputElement).value; setEntitlement(p, year, v === '' ? undefined : Number(v)); }} />
               </label>
             </header>
-            {r.periods.length === 0 && <div class="line muted">Noch kein Urlaub geplant. Trage Urlaub im Wochenplan oder über „＋" ein.</div>}
-            {r.periods.map((p) => (
-              <div key={p.start} class="line link-row" onClick={() => goWeek(p.start)}>
-                <b>{fmtRange(p.start, p.end)}</b>
-                <span class="grow">{p.titles.join(', ')}</span>
-                <span>{p.workdays} Tg.</span>
-              </div>
-            ))}
-            <div class="sum">
-              <span>Geplant: <b>{r.used}</b> Arbeitstage</span>
-              {r.entitlement !== undefined && <span>Rest: <b class={r.rest! < 0 ? 'neg' : ''}>{r.rest}</b> von {r.entitlement}</span>}
-            </div>
-            <div class="actions no-print">
-              <button class="btn" onClick={() => copy(text)}>Text kopieren</button>
-              <button class="btn" onClick={() => share(text, `Urlaubsplanung ${year} – ${PERSONS[r.person].name}`)}>Teilen</button>
-            </div>
+            {ent === undefined ? (
+              <div class="line muted">Trage oben die Urlaubstage ein (inkl. Übertrag), dann siehst du, wie viel noch frei ist.</div>
+            ) : (
+              <>
+                <div class="bar" role="img" aria-label={`${fmtDays(b.taken)} genommen, ${fmtDays(b.planned)} geplant, ${fmtDays(b.free!)} frei`}>
+                  <i class="seg seg-taken" style={{ width: `${pct(b.taken)}%` }} />
+                  <i class="seg seg-planned" style={{ width: `${pct(b.planned)}%`, background: PERSONS[p].color }} />
+                </div>
+                <div class="bar-legend">
+                  <span><i class="sw seg-taken" /> genommen <b>{fmtDays(b.taken)}</b></span>
+                  <span><i class="sw" style={{ background: PERSONS[p].color }} /> geplant <b>{fmtDays(b.planned)}</b></span>
+                  <span class={`free ${b.free! < 0 ? 'neg' : ''}`}>noch frei <b>{fmtDays(b.free!)}</b></span>
+                </div>
+              </>
+            )}
+            <button class="btn primary wide" onClick={() => plan(undefined, [p])}>＋ Urlaub für {PERSONS[p].name} planen</button>
           </section>
         );
       })}
-      <div class="actions no-print">
-        <button class="btn primary" onClick={() => window.print()}>Drucken / als PDF speichern</button>
-        <button class="btn" onClick={() => share(reports.map(reportText).join('\n\n'), `Urlaubsplanung ${year}`)}>Beide teilen</button>
-      </div>
 
-      <h3 class="section no-print">Brückentage {year}</h3>
-      <p class="hint no-print">Sortiert nach Ausbeute: freie Tage am Stück pro Urlaubstag.</p>
-      <div class="no-print">
+      <Ribbon year={year} />
+
+      {/* Geplante Zeiträume von–bis */}
+      {reports.map((r) => (
+        <section key={r.person} class="card vac">
+          <header class="card-head">
+            <strong><Dot p={r.person} /> Urlaub {PERSONS[r.person].name} {year}</strong>
+            <span class="muted">{fmtDays(r.used)} {r.used === 1 ? 'Tag' : 'Tage'}</span>
+          </header>
+          {r.periods.length === 0 && <div class="line muted">Noch kein Urlaub geplant.</div>}
+          {r.periods.map((p) => (
+            <div key={p.start} class="line link-row" onClick={() => setEdit({ person: r.person, period: p })}>
+              <span class="grow">
+                <b>{WD[dow(p.start)]} {fmt(p.start)} – {WD[dow(p.end)]} {fmt(p.end)}</b>
+                {p.titles.length > 0 && <><br /><span class="muted">{p.titles.join(', ')}</span></>}
+              </span>
+              <span class="days-badge">{fmtDays(p.workdays)} {p.workdays === 1 ? 'Tag' : 'Tage'}</span>
+              <span class="muted">✎</span>
+            </div>
+          ))}
+          <p class="hint">Gezählt werden nur Arbeitstage: ohne Wochenenden und Feiertage; 24.12. und 31.12. zählen als halber Tag.</p>
+        </section>
+      ))}
+
+      {/* Wo Urlaub gebraucht wird */}
+      <div>
+        <h3 class="section">Betreuung noch offen – Urlaub nötig?</h3>
+        <section class="card">
+          {gaps.length === 0 && <div class="line">Für {year} ist jeder Betreuungstag abgedeckt. 🎉</div>}
+          {gaps.map((g) => (
+            <div key={g.start} class="line link-row" onClick={() => plan([...range(g.start, g.end)].filter((d) => !cal.isFree(d)))}>
+              <span class="grow"><b>{fmtRange(g.start, g.end)}</b> · {g.who} · {g.why}<br /><span class="muted">{g.days} Arbeitstage offen</span></span>
+              <span class="btn small">planen</span>
+            </div>
+          ))}
+        </section>
+
+        <h3 class="section">Brückentage {year}</h3>
+        <p class="hint">Sortiert nach Ausbeute: freie Tage am Stück pro Urlaubstag.</p>
         {bridges.map((b) => (
           <section key={b.gapStart} class="card bridge">
             <header class="card-head" onClick={() => goWeek(b.gapStart)}>
-              <strong>{b.days === 1 ? '1 Urlaubstag' : `${b.days} Urlaubstage`} → {b.total} Tage frei</strong>
+              <strong>{b.cost === 1 ? '1 Urlaubstag' : `${fmtDays(b.cost)} Urlaubstage`} → {b.total} Tage frei</strong>
               <span class="badge badge-holiday">{[...new Set(b.holidays)].join(', ')}</span>
             </header>
             <div class="line col">
@@ -105,14 +124,96 @@ export function Vacation({ year, setYear, goWeek }: { year: number; setYear: (y:
                   <button key={p} class="btn" onClick={() => book([p], b.gapStart, b.gapEnd)}><Dot p={p} /> {PERSONS[p].name}</button>
                 ),
               )}
-              {!PARENTS.every((p) => booked(p, b.gapStart, b.gapEnd)) && (
-                <button class="btn" onClick={() => book(['sebastian', 'betty'], b.gapStart, b.gapEnd)}>Beide</button>
-              )}
+              {!PARENTS.every((p) => booked(p, b.gapStart, b.gapEnd)) && <button class="btn" onClick={() => book([...PARENTS], b.gapStart, b.gapEnd)}>Beide</button>}
             </div>
           </section>
         ))}
         {bridges.length === 0 && <div class="line muted">Keine Brückentage gefunden.</div>}
+        <p class="hint">Ferien und Feiertage: {hd.source}, Stand {fmt(hd.fetchedAt)}.</p>
       </div>
+
+      {edit && <PeriodSheet person={edit.person} period={edit.period} year={year} onClose={() => setEdit(null)} entitlement={entitlementOf(items, edit.person, year)} />}
     </div>
+  );
+}
+
+/** Jahresband: Urlaub beider Eltern und Ferien von Ida in einer Zeitleiste */
+function Ribbon({ year }: { year: number }) {
+  const { cal, hd } = useStore();
+  const n = daysInYear(year);
+  const pos = (a: string, b: string) => {
+    const s = a < `${year}-01-01` ? `${year}-01-01` : a;
+    const e = b > `${year}-12-31` ? `${year}-12-31` : b;
+    return { left: `${((dayOfYear(s) - 1) / n) * 100}%`, width: `${((diff(s, e) + 1) / n) * 100}%` };
+  };
+  const school = hd.school.filter((s) => s.end >= `${year}-01-01` && s.start <= `${year}-12-31`);
+  const holidays = hd.holidays.filter((h) => h.start.startsWith(String(year)));
+  const rows = PARENTS.map((p) => ({ p, periods: vacationReport(cal, p, year).periods }));
+  const trips = PARENTS.map((p) => ({ p, days: [...range(`${year}-01-01`, `${year}-12-31`)].filter((d) => cal.day(d).parents[p].status === 'trip') }));
+
+  return (
+    <section class="card ribbon">
+      <header class="card-head"><strong>Jahresband {year}</strong></header>
+      <div class="rb-months">
+        {MONTHS.map((m, i) => <span key={m} style={{ left: `${((dayOfYear(`${year}-${String(i + 1).padStart(2, '0')}-01`) - 1) / n) * 100}%` }}>{m.slice(0, 1)}</span>)}
+      </div>
+      <div class="rb-row">
+        <span class="rb-label">Ida</span>
+        <div class="rb-track">
+          {school.map((s) => <i key={s.start} class="rb-school" style={pos(s.start, s.end)} title={s.name} />)}
+          {holidays.map((h) => <i key={h.start} class="rb-holiday" style={pos(h.start, h.end)} title={h.name} />)}
+        </div>
+      </div>
+      {rows.map(({ p, periods }) => (
+        <div key={p} class="rb-row">
+          <span class="rb-label"><Dot p={p} />{PERSONS[p].name}</span>
+          <div class="rb-track">
+            {school.map((s) => <i key={s.start} class="rb-school faint" style={pos(s.start, s.end)} />)}
+            {periods.map((x) => <i key={x.start} class="rb-vac" style={{ ...pos(x.start, x.end), background: PERSONS[p].color }} title={`${fmtRange(x.start, x.end)} · ${x.workdays} Tage`} />)}
+            {trips.find((x) => x.p === p)!.days.map((d) => <i key={d} class="rb-trip" style={pos(d, d)} title="Dienstreise" />)}
+          </div>
+        </div>
+      ))}
+      <div class="bar-legend"><span><i class="sw sw-school" /> Schulferien</span><span><i class="sw sw-holiday" /> Feiertag</span><span><i class="sw" style={{ background: 'var(--ink)' }} /> Dienstreise</span></div>
+    </section>
+  );
+}
+
+function PeriodSheet({ person, period, onClose, year, entitlement }: { person: PersonId; period: VacationPeriod; onClose: () => void; year: number; entitlement?: number }) {
+  const { cal } = useStore();
+  const [a, setA] = useState(period.start);
+  const [b, setB] = useState(period.end);
+  const away = !!cal.day(period.start).parents[person].away;
+  const days = a <= b ? workdaysBetween(cal, a, b) : 0;
+  const title = period.titles[0];
+
+  const save = () => {
+    batch(() => {
+      setPresenceRange([person], period.start, period.end, 'office', { onlyMode: 'vacation' });
+      setPresenceRange([person], a, b, 'vacation', { title, away });
+    });
+    onClose();
+  };
+  const remove = () => {
+    setPresenceRange([person], period.start, period.end, 'office', { onlyMode: 'vacation' });
+    onClose();
+  };
+
+  return (
+    <Sheet title={`Urlaub ${PERSONS[person].name}`} onClose={onClose}>
+      <div class="form">
+        <div class="row">
+          <div><label>Von</label><input type="date" value={a} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) { setA(v); if (b < v) setB(v); } }} /></div>
+          <div><label>Bis (einschließlich)</label><input type="date" value={b} min={a} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) setB(v); }} /></div>
+        </div>
+        <p class="hint">{fmtDays(days)} Urlaubstage{entitlement !== undefined ? ` · Konto ${year}: ${fmtDays(entitlement)}` : ''}. Wochenenden und Feiertage zählen nicht mit, 24.12. und 31.12. als halber Tag.</p>
+      </div>
+      <div class="actions sticky">
+        <button class="btn danger" onClick={remove}>Urlaub löschen</button>
+        <span class="grow" />
+        <button class="btn" onClick={onClose}>Abbrechen</button>
+        <button class="btn primary" disabled={a > b} onClick={save}>Speichern</button>
+      </div>
+    </Sheet>
   );
 }

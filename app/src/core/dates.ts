@@ -52,3 +52,20 @@ export const fmtDay = (s: string) => `${WD[dow(s)]}, ${fmtShort(s)}`;
 
 /** Standard-Planungsjahr: immer das Folgejahr. */
 export const planningYear = (t = today()) => Number(t.slice(0, 4)) + 1;
+
+/** Aufeinanderfolgende Tage zu Zeiträumen zusammenfassen: ['05-03','05-04','05-07'] → 03.–04. und 07. */
+export function contiguousRuns(dates: string[]): { start: string; end: string }[] {
+  const out: { start: string; end: string }[] = [];
+  for (const d of [...new Set(dates)].sort()) {
+    const last = out[out.length - 1];
+    if (last && addDays(last.end, 1) === d) last.end = d;
+    else out.push({ start: d, end: d });
+  }
+  return out;
+}
+
+export const dayOfYear = (s: string) => diff(`${s.slice(0, 4)}-01-01`, s) + 1;
+export const daysInYear = (y: number) => (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 366 : 365);
+
+/** 12 → "12", 12.5 → "12,5" */
+export const fmtDays = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');

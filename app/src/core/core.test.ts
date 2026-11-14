@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
 import { buildCalendar } from './calendar';
-import { addDays, dow, isoWeek, planningYear, weekStart } from './dates';
+import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekStart } from './dates';
+import { gapRuns, nextGap } from './gaps';
+import { planPresence } from './presence';
 import { buildNotices } from './notify';
-import { reportText, vacationReport } from './report';
+import { budget, vacationReport } from './report';
 import type { HolidayData, Item, PersonId } from './types';
 
 const data = hd as HolidayData;
@@ -125,7 +127,7 @@ describe('Urlaubsübersicht', () => {
     ]);
     expect(r.used).toBe(8);
     expect(r.rest).toBe(22);
-    expect(reportText(r)).toContain('01.–09.03.2027: 7 Arbeitstage (Skifahren)');
+    expect(r.periods[0].titles).toEqual(['Skifahren']);
   });
   it('Feiertag mitten im Urlaub wird nicht als Urlaubstag gezählt', () => {
     const cal = buildCalendar([vac('sebastian', '2027-05-03', '2027-05-07')], data); // 6.5. Himmelfahrt
@@ -150,5 +152,119 @@ describe('Benachrichtigungen', () => {
     const cal = buildCalendar([], data);
     const notices = buildNotices(cal, day('2027-07-10'), '2027-07-10');
     expect(notices.every((n) => n.at.getTime() > day('2027-07-10').getTime())).toBe(true);
+  });
+});
+
+describe('Mehrfach-Eintrag (planPresence)', () => {
+  let k = 0;
+  const nid = () => `n${k++}`;
+  const apply = (items: Item[], ops: Item[]) => {
+    const m = new Map(items.map((i) => [i.id, i]));
+    for (const o of ops) m.set(o.id, o);
+    return [...m.values()].filter((i) => !i.deleted);
+  };
+  const spans = (items: Item[], p: PersonId) =>
+    items.filter((i) => i.kind === 'presence' && i.persons.includes(p)).map((i) => [i.mode, i.start, i.end]).sort();
+
+  it('trägt Zeitraum ein und teilt bestehende Einträge', () => {
+    const base = [vac('betty', '2027-03-01', '2027-03-12')];
+    const out = apply(base, planPresence(base, ['betty'], '2027-03-04', '2027-03-05', 'homeoffice', {}, nid));
+    expect(spans(out, 'betty')).toEqual([
+      ['homeoffice', '2027-03-04', '2027-03-05'],
+      ['vacation', '2027-03-01', '2027-03-03'],
+      ['vacation', '2027-03-06', '2027-03-12'],
+    ]);
+  });
+  it('mehrere Personen: gemeinsamer Eintrag, andere Person im alten Eintrag bleibt unberührt', () => {
+    const base = [vac('betty', '2027-03-01', '2027-03-05', { persons: ['betty', 'sebastian'] })];
+    const out = apply(base, planPresence(base, ['betty', 'ida'], '2027-03-02', '2027-03-03', 'vacation', { title: 'Ski' }, nid));
+    expect(spans(out, 'sebastian')).toEqual([['vacation', '2027-03-01', '2027-03-05']]); // Sebastian unverändert
+    expect(spans(out, 'betty')).toEqual([
+      ['vacation', '2027-03-01', '2027-03-01'],
+      ['vacation', '2027-03-02', '2027-03-03'],
+      ['vacation', '2027-03-04', '2027-03-05'],
+    ]);
+    expect(out.find((i) => i.persons.includes('ida'))?.persons).toEqual(['betty', 'ida']);
+  });
+  it('„Büro“ setzt zurück; onlyMode lässt andere Arten stehen', () => {
+    const base = [vac('betty', '2027-03-01', '2027-03-05'), item({ kind: 'presence', mode: 'trip', persons: ['betty'], start: '2027-03-03' })];
+    const onlyVac = apply(base, planPresence(base, ['betty'], '2027-03-01', '2027-03-05', 'office', { onlyMode: 'vacation' }, nid));
+    expect(spans(onlyVac, 'betty')).toEqual([['trip', '2027-03-03', '2027-03-03']]);
+    const all = apply(base, planPresence(base, ['betty'], '2027-03-01', '2027-03-05', 'office', {}, nid));
+    expect(spans(all, 'betty')).toEqual([]);
+  });
+  it('Ergebnis wirkt in der Ampel: Urlaub für beide im Sommer → grün', () => {
+    const ops = planPresence([], ['betty'], '2027-07-12', '2027-07-16', 'vacation', {}, nid);
+    const cal = buildCalendar(ops, data);
+    expect(cal.day('2027-07-14').coverage).toBe('ok');
+  });
+  it('fasst Tage zu Zeiträumen zusammen', () => {
+    expect(contiguousRuns(['2027-05-04', '2027-05-03', '2027-05-07', '2027-05-04'])).toEqual([
+      { start: '2027-05-03', end: '2027-05-04' },
+      { start: '2027-05-07', end: '2027-05-07' },
+    ]);
+    expect(dayOfYear('2027-03-01')).toBe(60);
+  });
+});
+
+describe('Betreuungslücken & Urlaubsbudget', () => {
+  it('findet Lücken im Zeitraum und die nächste Lücke', () => {
+    const cal = buildCalendar([], data);
+    const runs = gapRuns(cal, '2027-07-01', '2027-08-31');
+    expect(runs[0]).toMatchObject({ start: '2027-07-12', end: '2027-08-20', who: 'Ida', why: 'Sommerferien' });
+    expect(runs[0].days).toBe(30); // 6 Wochen à 5 Arbeitstage
+    expect(nextGap(cal, '2027-06-01', 60)?.start).toBe('2027-07-12');
+    expect(nextGap(cal, '2027-06-01', 30)).toBeUndefined();
+  });
+  it('Urlaubskonto: genommen + geplant + frei = Anspruch', () => {
+    const cal = buildCalendar(
+      [
+        vac('betty', '2027-03-01', '2027-03-05'),
+        vac('betty', '2027-08-02', '2027-08-06'),
+        item({ kind: 'config', id: 'config:betty:2027', start: '2027-01-01', entitlement: 30 }),
+      ],
+      data,
+    );
+    expect(budget(cal, 'betty', 2027, '2027-06-01')).toEqual({ entitlement: 30, taken: 5, planned: 5, free: 20 });
+    expect(budget(cal, 'sebastian', 2027, '2027-06-01')).toEqual({ entitlement: undefined, taken: 0, planned: 0, free: undefined });
+  });
+});
+
+describe('Urlaubstage korrekt zählen (Feiertage, 24.12./31.12. halb)', () => {
+  const cal0 = buildCalendar([], data);
+  it('Tageswerte: Wochenende/Feiertag 0, Heiligabend und Silvester 0,5 (an Arbeitstagen)', () => {
+    expect(cal0.weight('2027-12-24')).toBe(0.5); // Freitag
+    expect(cal0.weight('2027-12-31')).toBe(0.5); // Freitag
+    expect(cal0.weight('2028-12-24')).toBe(0); // Sonntag
+    expect(cal0.weight('2027-12-25')).toBe(0); // Feiertag (und Samstag)
+    expect(cal0.weight('2026-12-25')).toBe(0); // 1. Weihnachtsfeiertag, Freitag
+    expect(cal0.weight('2027-05-06')).toBe(0); // Christi Himmelfahrt
+    expect(cal0.weight('2027-05-07')).toBe(1);
+  });
+  it('Urlaub über Weihnachten/Silvester: 23.–31.12.2027 = 6 Tage in einem Zeitraum', () => {
+    const cal = buildCalendar([vac('betty', '2027-12-23', '2027-12-31')], data);
+    const r = vacationReport(cal, 'betty', 2027);
+    expect(r.periods).toHaveLength(1);
+    expect(r.periods[0].workdays).toBe(1 + 0.5 + 4 + 0.5); // Do 23., Fr 24. halb, Mo–Do 27.–30., Fr 31. halb
+    expect(r.used).toBe(6);
+  });
+  it('Urlaub mit Feiertag mitten drin: Weihnachten 2026 (25.12. Feiertag, 24.12. halb)', () => {
+    const cal = buildCalendar([vac('sebastian', '2026-12-21', '2026-12-31')], data);
+    // 21.–23. = 3, 24. = 0,5, 25./26. Feiertag/Samstag = 0, 28.–30. = 3, 31. = 0,5
+    expect(vacationReport(cal, 'sebastian', 2026).used).toBe(7);
+  });
+  it('Budget mit halben Tagen', () => {
+    const cal = buildCalendar(
+      [vac('betty', '2027-12-23', '2027-12-24'), item({ kind: 'config', id: 'config:betty:2027', start: '2027-01-01', entitlement: 30 })],
+      data,
+    );
+    expect(budget(cal, 'betty', 2027, '2027-06-01')).toEqual({ entitlement: 30, taken: 0, planned: 1.5, free: 28.5 });
+  });
+  it('Brückentage rund um Weihnachten 2026 kosten 3,5 statt 4 Urlaubstage', () => {
+    const b = findBridges(cal0, 2026);
+    const before = b.find((x) => x.gapStart === '2026-12-21')!;
+    expect(before).toMatchObject({ gapEnd: '2026-12-24', days: 4, cost: 3.5, total: 9 });
+    const after = b.find((x) => x.gapStart === '2026-12-28')!;
+    expect(after).toMatchObject({ gapEnd: '2026-12-31', days: 4, cost: 3.5, total: 10 });
   });
 });

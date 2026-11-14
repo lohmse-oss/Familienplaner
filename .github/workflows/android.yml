@@ -5,6 +5,11 @@ on:
     branches: [main, 'claude/**']
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versionsnummer für einen eigenen Release, z. B. 0.2.0 (leer = nur Build)'
+        required: false
+        default: ''
 
 jobs:
   apk:
@@ -37,7 +42,7 @@ jobs:
         working-directory: app/android
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 0.1.${{ github.run_number }}
+          VERSION_NAME: ${{ inputs.version || format('0.1.{0}', github.run_number) }}
         run: ./gradlew assembleDebug --no-daemon
 
       - name: APK umbenennen
@@ -59,6 +64,15 @@ jobs:
           gh release create latest familienplaner.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Aktuelle APK (Build ${{ github.run_number }})" \
             --notes "Familienplaner, Stand: ${GITHUB_SHA::7}. Datei familienplaner.apk herunterladen und installieren."
+
+      # Versionierter Release auf Knopfdruck: Actions → "Android APK" → Run workflow → Version eintragen.
+      - name: Release mit Version
+        if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ inputs.version }}" familienplaner.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Familienplaner ${{ inputs.version }}" --generate-notes
 
       # Bei einem Versions-Tag (v*) entsteht zusätzlich ein eigener Release.
       - name: Release für Versions-Tag

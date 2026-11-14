@@ -4,7 +4,8 @@ import { addDays, diff, range } from './dates';
 export interface Bridge {
   gapStart: string; // erster Urlaubstag (Brücke)
   gapEnd: string; // letzter Urlaubstag
-  days: number; // benötigte Urlaubstage
+  days: number; // Arbeitstage in der Lücke
+  cost: number; // benötigte Urlaubstage (24.12./31.12. = 0,5)
   start: string; // freier Block gesamt: von …
   end: string; // … bis
   total: number; // freie Tage am Stück
@@ -40,11 +41,16 @@ export function findBridges(cal: Calendar, year: number): Bridge[] {
     const gapEnd = addDays(b.start, -1);
     if (gapEnd < `${year}-01-01` || gapStart > `${year}-12-31`) continue;
     let idaFree = 0;
-    for (const d of range(gapStart, gapEnd)) if (cal.day(d).school.length) idaFree++;
+    let cost = 0;
+    for (const d of range(gapStart, gapEnd)) {
+      cost += cal.weight(d);
+      if (cal.day(d).school.length) idaFree++;
+    }
     out.push({
       gapStart,
       gapEnd,
       days: gap,
+      cost,
       start: a.start,
       end: b.end,
       total: diff(a.start, b.end) + 1,

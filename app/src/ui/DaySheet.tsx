@@ -7,10 +7,10 @@ import { KINDS } from './EditSheet';
 
 const MODES: (Mode | 'office')[] = ['office', 'homeoffice', 'vacation', 'trip'];
 
-export function DaySheet({ date, onClose, edit, add }: { date: string; onClose: () => void; edit: (it: Item) => void; add: (k: Kind, date: string) => void }) {
+export function DaySheet({ date, onClose, edit, add, plan }: { date: string; onClose: () => void; edit: (it: Item) => void; add: (k: Kind, date: string) => void; plan: (d: string) => void }) {
   const { cal } = useStore();
   const d = cal.day(date);
-  const items = cal.items.filter((i) => i.kind !== 'config' && i.kind !== 'birthday' && i.start <= date && i.end >= date);
+  const items = cal.items.filter((i) => i.kind !== 'config' && i.kind !== 'shop' && i.kind !== 'birthday' && i.start <= date && i.end >= date);
 
   return (
     <Sheet title={`${WD_LONG[dow(date)]}, ${fmtDay(date).split(', ')[1]}`} onClose={onClose}>
@@ -52,6 +52,7 @@ export function DaySheet({ date, onClose, edit, add }: { date: string; onClose: 
       {d.warnings.map((w) => <div key={w} class="line warn">⚠ {w}</div>)}
 
       <div class="actions wrap">
+        <button class="btn primary" onClick={() => plan(date)}>🗓️ Mehrere Tage …</button>
         {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
           <button key={k.kind} class="btn" onClick={() => add(k.kind, date)}>{k.icon} {k.label.split(' / ')[0].split(' (')[0]}</button>
         ))}

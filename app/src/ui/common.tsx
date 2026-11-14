@@ -63,10 +63,10 @@ export function Chips<T extends string>(props: {
   );
 }
 
-export function Sheet(props: { title: string; onClose: () => void; children: ComponentChildren }) {
+export function Sheet(props: { title: string; onClose: () => void; children: ComponentChildren; tall?: boolean; footer?: ComponentChildren }) {
   return (
     <div class="backdrop" onClick={props.onClose}>
-      <div class="sheet" onClick={(e) => e.stopPropagation()}>
+      <div class={`sheet ${props.tall ? 'tall' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div class="sheet-head">
           <h2>{props.title}</h2>
           <button class="icon-btn" onClick={props.onClose} aria-label="Schließen">
@@ -74,6 +74,7 @@ export function Sheet(props: { title: string; onClose: () => void; children: Com
           </button>
         </div>
         <div class="sheet-body">{props.children}</div>
+        {props.footer && <div class="sheet-foot">{props.footer}</div>}
       </div>
     </div>
   );

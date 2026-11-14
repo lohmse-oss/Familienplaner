@@ -38,10 +38,20 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
   enthält einen Feiertag. Anzeige „x Urlaubstage → y Tage frei“, Hinweis wenn Ida ohnehin schulfrei hat, Eintragen mit einem Tap.
 
 ## Ansichten
-* **Woche** (Alltag): je Tag Eltern-Status (Tippen zum Ändern), Betreuungsbedarf, Termine inkl. Zuständigkeit, Aufgaben, Warnungen, Ampel-Streifen.
+Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnungen, die nächsten Termine und Kacheln zu allen Bereichen.
+* **Wochenplan**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
+  für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
 * **Jahr** (Forecast): 12 Monate mit Ferien, Feiertagen, Brückentagen, Urlaub/Dienstreise und Ampel; oben die Liste der **offenen Betreuungszeiträume**.
-* **Urlaub**: je Elternteil Zeiträume von–bis mit Arbeitstagen, Urlaubskontingent und Rest; **Text kopieren / teilen / drucken (PDF)** für den Arbeitgeber.
-* **Aufgaben & Geburtstage**, **Mehr** (Einstellungen, Sync, Benachrichtigungen).
+* **Mehrfach-Planer**: Zeitraum per Start-/Endtag oder Einzeltage wählen, dazu Vorschläge (Schulferien, Brückentage). Für Urlaub, Homeoffice, Dienstreise,
+  Büro (zurücksetzen), Schließtage und Betreuung durch Dritte. Zeigt vorab die Wirkung aufs Urlaubskonto („Rest 13 → 7“).
+* **Urlaubsverwaltung**: je Elternteil Urlaubskonto (genommen / geplant / **noch frei**), Jahresband, Zeiträume von–bis mit Urlaubstagen (bearbeiten/löschen),
+  Betreuungslücken mit „planen“, Brückentage mit Ein-Tap-Eintragen.
+* **Einkaufsliste**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
+* **Aufgaben & Geburtstage**, **Einstellungen** (Sync, Benachrichtigungen).
+
+## Urlaub korrekt zählen
+Gezählt werden nur Arbeitstage: **ohne Wochenenden und Feiertage**; **24.12. und 31.12. zählen als halber Tag** (sofern Arbeitstag).
+Das gilt für Urlaubskonto, Zeiträume, Brückentage-Kosten und die Vorschau im Planer. Anzeige der Zeiträume von–bis in der App; kein PDF-Export.
 
 ## Benachrichtigungen (lokal auf dem Handy, auch offline)
 Tagesvorschau 07:00 · Wochenvorschau Sonntag 18:00 · Termine 1 Std. und 1 Tag vorher (mit Warnung „niemand zuständig“) ·
@@ -53,6 +63,6 @@ Betreuungslücken 14 und 3 Tage vorher · Aufgaben · Geburtstage. Phase 2: Sofo
 * **Farben:** Sebastian Marine/Petrol · Betty Beere · Ida Flieder · Irma Koralle.
 
 ## Etappen
-1. ✅ Kern: Personen, Woche/Jahr, Anwesenheit + Betreuungs-Ampel, Termine/Aufgaben/Geburtstage, Ferien/Feiertage/Brückentage, Urlaubsübersicht, Sync, lokale Erinnerungen
+1. ✅ Kern + Mehrfach-Planer, Urlaubsverwaltung, Wochenmatrix, Startseite, Einkaufsliste: Personen, Woche/Jahr, Anwesenheit + Betreuungs-Ampel, Termine/Aufgaben/Geburtstage, Ferien/Feiertage/Brückentage, Urlaubsübersicht, Sync, lokale Erinnerungen
 2. Sofort-Push (FCM), Änderungsmeldung bei geänderten Ferienterminen, Import von Schul-/Kita-Kalendern (ICS), Homescreen-Widget
 3. Wiederkehrende Termine, Jahresrückblick

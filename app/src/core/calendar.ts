@@ -24,6 +24,7 @@ export interface DayInfo {
   parents: Record<string, ParentState>;
   needs: CareNeed[]; // Kinder, die betreut werden müssen
   cover: Item[]; // Betreuung durch Dritte
+  family: PersonId[]; // Kinder, die mit im (Familien-)Urlaub sind
   coverage: Coverage;
   events: Item[];
   info: Item[];
@@ -31,6 +32,9 @@ export interface DayInfo {
   birthdays: Item[];
   warnings: string[];
 }
+
+/** 24.12. und 31.12. zählen als halber Urlaubstag (wenn sie Arbeitstage sind). */
+export const HALF_DAYS = ['12-24', '12-31'];
 
 const RANK: Record<Mode, number> = { homeoffice: 1, vacation: 2, trip: 3 };
 
@@ -41,6 +45,7 @@ export interface Calendar {
   day(date: string): DayInfo;
   holiday(date: string): string | undefined;
   isFree(date: string): boolean; // Wochenende oder Feiertag
+  weight(date: string): number; // Urlaubswert: 0 frei, 0,5 am 24.12./31.12., sonst 1
   items: Item[]; // aktive (nicht gelöschte) Einträge
 }
 
@@ -58,7 +63,7 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
   const byDay = new Map<string, Item[]>();
   const birthdays: Item[] = [];
   for (const it of items) {
-    if (it.kind === 'config') continue;
+    if (it.kind === 'config' || it.kind === 'shop') continue;
     if (it.kind === 'birthday') {
       birthdays.push(it);
       continue;
@@ -138,6 +143,7 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
       parents,
       needs,
       cover,
+      family: [...withFamily],
       coverage,
       events,
       info: of('info'),
@@ -151,6 +157,7 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
     items,
     holiday: (d) => holidays.get(d),
     isFree: (d) => isWeekend(d) || holidays.has(d),
+    weight: (d) => (isWeekend(d) || holidays.has(d) ? 0 : HALF_DAYS.includes(d.slice(5)) ? 0.5 : 1),
     day(date) {
       let d = cache.get(date);
       if (!d) cache.set(date, (d = compute(date)));

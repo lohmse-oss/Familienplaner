@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import bundled from './data/holidays.json';
 import { buildCalendar, type Calendar } from './core/calendar';
-import { addDays } from './core/dates';
+import { contiguousRuns } from './core/dates';
+import { planPresence, type PresenceOptions } from './core/presence';
 import { scheduleNotifications } from './notifications';
 import type { HolidayData, Item, Mode, PersonId } from './core/types';
 
@@ -65,7 +66,27 @@ export function getCalendar(): Calendar {
   return (calendar ??= buildCalendar(items, hd));
 }
 
+let batchDepth = 0;
+let batchPending = false;
+/** Mehrere Änderungen zusammenfassen: einmal speichern/neu zeichnen statt pro Eintrag. */
+export function batch(fn: () => void) {
+  batchDepth++;
+  try {
+    fn();
+  } finally {
+    batchDepth--;
+    if (!batchDepth && batchPending) {
+      batchPending = false;
+      persist();
+    }
+  }
+}
+
 function persist() {
+  if (batchDepth) {
+    batchPending = true;
+    return;
+  }
   write(LS.items, items);
   write(LS.dirty, [...dirty]);
   calendar = null;
@@ -98,20 +119,56 @@ export function setEntitlement(person: PersonId, year: number, days: number | un
 }
 
 /**
- * Tag für eine Person auf einen Status setzen (Büro = Eintrag entfernen).
- * Mehrtägige Einträge werden an dem Tag geteilt, der Rest bleibt erhalten.
+ * Anwesenheit für Personen in einem Zeitraum setzen (Büro = Standard, entfernt nur).
+ * Bestehende Einträge werden geteilt/gekürzt; Reste bleiben erhalten.
  */
+export function setPresenceRange(persons: PersonId[], start: string, end: string, mode: Mode | 'office', opts: PresenceOptions = {}) {
+  batch(() => {
+    for (const it of planPresence(items, persons, start, end, mode, opts, newId)) saveItem(it);
+  });
+}
+
+/** Einzelner Tag (Schnellauswahl in der Wochenansicht) */
 export function setPresence(person: PersonId, date: string, mode: Mode | 'office') {
-  for (const it of items.filter((i) => !i.deleted && i.kind === 'presence' && i.persons.includes(person) && i.start <= date && i.end >= date)) {
-    const others = it.persons.filter((p) => p !== person);
-    // Person aus dem Eintrag herauslösen: Reste vor/nach dem Tag bleiben für die Person bestehen
-    if (others.length) saveItem({ ...it, persons: others });
-    else deleteItem(it.id);
-    const keep = (start: string, end: string) => saveItem({ ...it, id: newId(), persons: [person], start, end });
-    if (it.start < date) keep(it.start, addDays(date, -1));
-    if (it.end > date) keep(addDays(date, 1), it.end);
-  }
-  if (mode !== 'office') saveItem({ id: newId(), kind: 'presence', mode, persons: [person], start: date, end: date });
+  setPresenceRange([person], date, date, mode);
+}
+
+/** Mehrfachauswahl von Tagen: je zusammenhängendem Zeitraum ein Eintrag */
+export function applyToDays(
+  dates: string[],
+  action:
+    | { type: 'presence'; persons: PersonId[]; mode: Mode | 'office'; title?: string; away?: boolean }
+    | { type: 'care' | 'cover'; persons: PersonId[]; title?: string },
+) {
+  batch(() => {
+    for (const r of contiguousRuns(dates)) {
+      if (action.type === 'presence') {
+        setPresenceRange(action.persons, r.start, r.end, action.mode, { title: action.title, away: action.away });
+      } else {
+        saveItem({ id: newId(), kind: action.type, persons: action.persons, title: action.title, start: r.start, end: r.end });
+      }
+    }
+  });
+}
+
+/* ---------- Einkaufsliste ---------- */
+const nowIso = () => new Date().toISOString().slice(0, 10);
+
+export function addShop(title: string): boolean {
+  const t = title.trim();
+  if (!t) return false;
+  if (items.some((i) => i.kind === 'shop' && !i.deleted && !i.done && i.title?.toLowerCase() === t.toLowerCase())) return false;
+  saveItem({ id: newId(), kind: 'shop', title: t, persons: [], start: nowIso(), end: nowIso(), ts: Date.now() });
+  return true;
+}
+export function toggleShop(id: string) {
+  const cur = items.find((i) => i.id === id);
+  if (cur) saveItem({ ...cur, done: !cur.done });
+}
+export function removeShop(ids: string[]) {
+  batch(() => {
+    for (const id of ids) deleteItem(id);
+  });
 }
 
 export function updateSettings(patch: Partial<Settings>) {
