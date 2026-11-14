@@ -52,6 +52,23 @@ export function Settings() {
         <p class={`hint ${st.status === 'error' ? 'neg' : ''}`}>{status}</p>
       </section>
 
+      <h3 class="section">Hinweise vom Partner</h3>
+      <section class="card form">
+        <label class="check"><input type="checkbox" checked={settings.notifyPartner} onChange={(e) => updateSettings({ notifyPartner: (e.target as HTMLInputElement).checked })} /> Hinweis, wenn {settings.me === 'betty' ? 'Sebastian' : 'Betty'} etwas einträgt oder ändert</label>
+        <p class="hint">Bei geöffneter App sofort, sonst über den Hintergrund-Abgleich spätestens nach etwa 15 Minuten. Einkaufsliste und Einstellungen lösen keinen Hinweis aus.</p>
+      </section>
+
+      <h3 class="section">Widget „Heute“</h3>
+      <section class="card form">
+        <label>Hintergrund</label>
+        <Chips<'transparent' | 'glass' | 'dark' | 'light'>
+          options={[{ value: 'transparent', label: 'Transparent' }, { value: 'glass', label: 'Glas' }, { value: 'dark', label: 'Dunkel' }, { value: 'light', label: 'Hell' }]}
+          value={[settings.widgetStyle]}
+          onChange={(v) => updateSettings({ widgetStyle: v[0] })}
+        />
+        <p class="hint">Gestaltet im Stil von Nothing OS: Punktmatrix-Schrift, schwarz-weiß mit roter Warnfarbe. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.</p>
+      </section>
+
       <h3 class="section">Benachrichtigungen</h3>
       <section class="card form">
         <label class="check"><input type="checkbox" checked={settings.notify} onChange={(e) => updateSettings({ notify: (e.target as HTMLInputElement).checked })} /> Erinnerungen, Tages- und Wochenvorschau, Betreuungs-Warnungen</label>

@@ -4,11 +4,16 @@ import { buildCalendar, type Calendar } from './core/calendar';
 import { contiguousRuns } from './core/dates';
 import { planPresence, type PresenceOptions } from './core/presence';
 import type { PersonFilter } from './core/filter';
-import { scheduleNotifications } from './notifications';
+import { scheduleNotifications, showNow } from './notifications';
+import { nativeConfigure, nativeMarkSeen, nativeSeen } from './native';
+import { VERB_TEXT, type Verb } from './core/describe';
+import type { WidgetStyle } from './core/widget';
 import { pushWidget } from './widget';
 import { PERSONS, type HolidayData, type Item, type Mode, type PersonId } from './core/types';
 
 export interface Settings {
+  widgetStyle: WidgetStyle;
+  notifyPartner: boolean; // Hinweis, wenn der Partner etwas einträgt
   theme: 'system' | 'light' | 'dark';
   filter: PersonFilter; // Personenfilter für Woche/Jahr/Aufgaben
   weekView: 'matrix' | 'day';
@@ -48,7 +53,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { theme: 'system', filter: 'all', weekView: 'matrix', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', weekView: 'matrix', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {
@@ -74,7 +79,7 @@ export function useStore() {
     f(); // Änderungen nachholen, die zwischen erstem Rendern und Abonnieren eintrafen
     return () => void listeners.delete(f);
   }, []);
-  return { items, settings, hd, sync: syncState, cal: getCalendar(), undo: undoInfo ? { id: undoInfo.id, label: undoInfo.label } : null };
+  return { items, settings, hd, sync: syncState, cal: getCalendar(), undo: undoInfo ? { id: undoInfo.id, label: undoInfo.label } : null, notice };
 }
 
 export function getCalendar(): Calendar {
@@ -94,6 +99,40 @@ export function batch(fn: () => void) {
       batchPending = false;
       persist();
     }
+  }
+}
+
+/* ---------- Hinweis: Partner hat etwas eingetragen ---------- */
+export interface Notice {
+  id: number;
+  title: string;
+  lines: string[];
+  date?: string; // Tag, zu dem „Anzeigen“ springt
+}
+let notice: Notice | null = null;
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+type Remote = Item & { _rev?: number; _text?: string; _verb?: Verb };
+
+export function dismissNotice() {
+  notice = null;
+  clearTimeout(noticeTimer);
+  emit();
+}
+
+function announce(fresh: Remote[]) {
+  if (!settings.notifyPartner || !fresh.length) return;
+  const by = fresh[0].by!;
+  const name = PERSONS[by].name;
+  const title = fresh.length === 1 ? `${name} ${VERB_TEXT[fresh[0]._verb ?? 'new']}` : `${name}: ${fresh.length} Änderungen`;
+  const lines = fresh.slice(0, 3).map((r) => r._text!);
+  if (fresh.length > 3) lines.push(`… und ${fresh.length - 3} weitere`);
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    notice = { id: Date.now(), title, lines, date: fresh[0].start };
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(dismissNotice, 12000);
+    emit();
+  } else {
+    void showNow(title, lines.join('\n')).catch(() => {});
   }
 }
 
@@ -146,7 +185,9 @@ export const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function saveItem(it: Omit<Item, 'updated' | 'by'> & Partial<Pick<Item, 'updated' | 'by'>>): Item {
-  const full: Item = { ...it, updated: Date.now(), by: settings.me };
+  const cur = items.find((i) => i.id === it.id);
+  // created: erstes Speichern (neu); ältere Einträge ohne Zeitpunkt gelten als „schon länger vorhanden“
+  const full: Item = { ...it, created: it.created ?? cur?.created ?? (cur ? 1 : Date.now()), updated: Date.now(), by: settings.me };
   items = [...items.filter((i) => i.id !== full.id), full];
   dirty.add(full.id);
   persist();
@@ -235,7 +276,7 @@ function scheduleSoon() {
   clearTimeout(schedTimer);
   schedTimer = setTimeout(() => {
     void scheduleNotifications(getCalendar(), settings.notify).catch(() => {});
-    void pushWidget(getCalendar()).catch(() => {});
+    void pushWidget(getCalendar(), settings.widgetStyle).catch(() => {});
   }, 1500);
 }
 
@@ -260,19 +301,35 @@ export async function sync(): Promise<void> {
     const res = await fetch(`${base}/api/sync`, { method: 'POST', headers, body: JSON.stringify({ since: rev, items: push }) });
     if (res.status === 401) throw new Error('Familiencode falsch');
     if (!res.ok) throw new Error(`Server ${res.status}`);
-    const data = (await res.json()) as { rev: number; items: Item[] };
+    const data = (await res.json()) as { rev: number; items: Remote[] };
+    const since = rev;
 
     const sent = new Set(push.map((i) => i.id));
     const sentVersions = new Map(push.map((i) => [i.id, i.updated]));
     const map = new Map(items.map((i) => [i.id, i]));
+    const adopted = new Set<string>();
+    const fresh: Remote[] = [];
     for (const remote of data.items) {
-      const local = map.get(remote.id);
-      if (!local || remote.updated > local.updated) map.set(remote.id, remote);
+      const { _rev, _text, _verb, ...clean } = remote;
+      void _rev;
+      void _text;
+      void _verb;
+      const local = map.get(clean.id);
+      if (!local || clean.updated > local.updated) {
+        map.set(clean.id, clean as Item);
+        adopted.add(clean.id);
+        if (since > 0 && clean.by && clean.by !== settings.me && remote._text) fresh.push(remote);
+      }
     }
     items = [...map.values()];
     // nur als erledigt markieren, was zwischenzeitlich nicht erneut geändert wurde
     for (const id of sent) if (map.get(id)?.updated === sentVersions.get(id)) dirty.delete(id);
-    for (const remote of data.items) if (map.get(remote.id) === remote) dirty.delete(remote.id);
+    for (const id of adopted) dirty.delete(id);
+
+    // Hinweise: nur was der Hintergrund-Abgleich (Android) noch nicht gemeldet hat
+    const seen = await nativeSeen();
+    announce(fresh.filter((r) => (r._rev ?? 0) > seen));
+    void nativeMarkSeen(data.rev);
     rev = data.rev;
     write(LS.rev, rev);
 
@@ -290,6 +347,7 @@ export async function sync(): Promise<void> {
       /* Offline-Stand bleibt */
     }
     syncState = { status: 'idle', last: Date.now() };
+    void nativeConfigure(settings.server, settings.code, settings.me, rev, settings.notifyPartner);
   } catch (e) {
     syncState = { status: 'error', last: syncState.last, msg: e instanceof Error ? e.message : String(e) };
   } finally {

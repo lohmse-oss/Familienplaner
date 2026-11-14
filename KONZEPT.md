@@ -58,11 +58,23 @@ Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnun
 * **Bottom-Sheets** mit Griff: nach unten wischen schließt; die Android-Zurück-Taste schließt das oberste Fenster, sonst Startseite, dort App beenden.
 * **Rückgängig** nach Mehrfach-Eingaben, **Vibrationsfeedback** beim Abhaken, weiche Übergänge, Hinweise bei leeren Listen.
 
-## Homescreen-Widget „Heute“
-Natives Android-Widget (4×2, anpassbar): Datum und Feiertag, Betreuungs-Ampel, Status von Sebastian und Betty, Betreuungsbedarf der Kinder, nächste Termine
-(mit „wer kümmert sich?“-Hinweis) und die Einkaufsliste. Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab (bei jeder Änderung und jedem
-Abgleich); das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start. Änderungen des Partners erscheinen, sobald die App
-einmal abgeglichen hat. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.
+## Homescreen-Widget „Heute“ (Nothing-Stil)
+Natives Android-Widget (4×2, anpassbar) in der Optik von Nothing OS: Punktmatrix-Schrift (Doto, SIL OFL), Schwarz/Weiß, rote Warnfarbe, gepunktete Trenner.
+Inhalt: Datum und Feiertag/Ferien, Betreuungs-Ampel, Status von Sebastian und Betty, Betreuungsbedarf, nächste Termine (mit Ort und „wer kümmert sich?“) und
+Einkaufsliste. **Hintergrund wählbar:** Transparent, Glas (halbtransparent), Dunkel, Hell (Einstellungen → Widget). Tippen öffnet die App.
+Die App legt die Daten für die nächsten 14 Tage ab (bei jeder Änderung und jedem Abgleich); das Widget wählt daraus den heutigen Tag und aktualisiert sich alle
+30 Minuten auch ohne App-Start. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.
+
+## Hinweise, wenn der Partner etwas einträgt
+* Jeder Eintrag trägt, wer ihn zuletzt gespeichert hat. Der Server beschreibt Änderungen lesbar („Sebastian hat eingetragen: Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln“).
+* **App geöffnet:** Hinweis-Banner oben (tippen springt zum Tag). **App im Hintergrund:** natives Android-Hintergrund-Abgleichen (WorkManager, ca. alle 15 Minuten)
+  zeigt eine Benachrichtigung. Beides meldet jede Änderung nur einmal (gemeinsamer „zuletzt gemeldet“-Stand).
+* Nicht gemeldet werden: eigene Änderungen, Einkaufsliste, Einstellungen sowie die technischen Umbauten beim Teilen bestehender Urlaubseinträge. Abschaltbar in den Einstellungen.
+* Startseite: Karte „Neu von Betty/Sebastian“ (letzte 7 Tage). Sofort-Push per FCM wäre die Alternative zur 15-Minuten-Verzögerung im Hintergrund (benötigt ein Firebase-Projekt).
+
+## Ergänzende Infos zu Terminen
+Termine und Infos haben neben Titel, Datum und Uhrzeit: **Uhrzeit bis, Ort** (öffnet Karten), **Kontakt/Telefon** (tippen wählt), **Link** und **Notiz**; Aufgaben haben eine Notiz.
+Die Infos stehen unter dem Eintrag im Wochenplan und im Tagesblatt, in den Hinweisen an den Partner und im Widget (Ort).
 
 ## Urlaub korrekt zählen
 Gezählt werden nur Arbeitstage: **ohne Wochenenden und Feiertage**; **24.12. und 31.12. zählen als halber Tag** (sofern Arbeitstag).

@@ -8,6 +8,7 @@ import { haptic } from '../haptics';
 import { setPresenceRange, updateSettings, useStore } from '../store';
 import { Chips, Dot, PersonFilterBar, PersonTag, Pill, STATUS_LABEL } from './common';
 import { DayContent } from './DayContent';
+import { Details } from './Details';
 import { Ic, StatusIc } from './icons';
 
 interface Props {
@@ -262,10 +263,13 @@ function AgendaDay({ d, c, today: t, openDay, edit }: { d: DayInfo; c: ReturnTyp
       ) : null}
       {c.cover.map((x) => <div key={x.id} class="ag-line cover" onClick={() => edit(x)}><Ic n="hand" size={16} /> Betreuung durch {x.title}</div>)}
       {c.events.map((e) => (
-        <div key={e.id} class="ag-line" onClick={() => edit(e)}>
-          <span class="time">{e.time ?? '·'}</span>
-          <span class="grow">{e.title}{e.persons.map((p) => <Dot key={p} p={p} />)}</span>
-          {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
+        <div key={e.id}>
+          <div class="ag-line" onClick={() => edit(e)}>
+            <span class="time">{e.time ?? '·'}</span>
+            <span class="grow">{e.title}{e.persons.map((p) => <Dot key={p} p={p} />)}</span>
+            {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
+          </div>
+          <Details it={e} />
         </div>
       ))}
       {c.info.map((i) => <div key={i.id} class="ag-line info" onClick={() => edit(i)}><Ic n="info" size={16} /> {i.title}</div>)}

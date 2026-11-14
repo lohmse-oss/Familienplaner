@@ -1,3 +1,6 @@
+import { annotateChanges } from '../../app/src/core/describe';
+import type { Item } from '../../app/src/core/types';
+
 export interface Env {
   DB: D1Database;
   FAMILY_CODE: string;
@@ -71,7 +74,9 @@ async function sync(req: Request, env: Env): Promise<Response> {
 
   const rows = await env.DB.prepare('SELECT data, rev FROM items WHERE rev > ?1 ORDER BY rev').bind(since).all<{ data: string; rev: number }>();
   const top = (await env.DB.prepare('SELECT COALESCE(MAX(rev),0) AS m FROM items').first<{ m: number }>())?.m ?? 0;
-  return json({ rev: Math.max(top, since), items: (rows.results ?? []).map((r) => JSON.parse(r.data)) });
+  // _rev: Server-Revision, _text/_verb: lesbare Beschreibung der Änderung (für Hinweise „Betty hat … eingetragen“)
+  const items = annotateChanges((rows.results ?? []).map((r) => ({ ...(JSON.parse(r.data) as Item), _rev: r.rev })));
+  return json({ rev: Math.max(top, since), items });
 }
 
 /* ---------- Feiertage & Schulferien Sachsen (OpenHolidays API) ---------- */

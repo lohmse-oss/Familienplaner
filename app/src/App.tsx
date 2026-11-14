@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { planningYear, today, weekStart } from './core/dates';
 import type { Item, Kind, PersonId } from './core/types';
 import type { Tab } from './nav';
-import { undoLast, useStore } from './store';
+import { dismissNotice, undoLast, useStore } from './store';
 import { sheetStack } from './ui/common';
 import { DaySheet } from './ui/DaySheet';
 import { EditSheet, KindPicker } from './ui/EditSheet';
@@ -33,7 +33,7 @@ type Sheet =
   | { t: 'edit'; item: Partial<Item> & { kind: Kind } };
 
 export function App() {
-  const { sync, undo } = useStore();
+  const { sync, undo, notice } = useStore();
   const [tab, setTab] = useState<Tab>('home');
   const [weekOf, setWeekOf] = useState(weekStart(today()));
   const [year, setYear] = useState(planningYear());
@@ -110,6 +110,17 @@ export function App() {
       </main>
 
       {showFab && <button class="fab" aria-label="Neuer Eintrag" onClick={() => setSheet({ t: 'pick' })}><Ic n="plus" size={28} sw={2.5} /></button>}
+
+      {notice && (
+        <div class="notice" key={notice.id} onClick={() => { if (notice.date) openDay(notice.date); dismissNotice(); }}>
+          <Ic n="bell" size={18} />
+          <div class="grow">
+            <b>{notice.title}</b>
+            {notice.lines.map((l) => <div key={l}>{l}</div>)}
+          </div>
+          <button aria-label="Schließen" onClick={(e) => { e.stopPropagation(); dismissNotice(); }}><Ic n="x" size={16} /></button>
+        </div>
+      )}
 
       {undo && (
         <div class="snack" key={undo.id}>

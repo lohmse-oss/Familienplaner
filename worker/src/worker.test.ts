@@ -81,4 +81,16 @@ describe('Worker', () => {
     const r3 = await call(e, '/api/holidays', {}, down);
     expect(r3.status).toBe(200); // veralteter Stand statt Fehler
   });
+
+  it('liefert Revision und lesbare Beschreibung der Änderungen mit (für Hinweise)', async () => {
+    const trip = item('t1', 2000, { kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13', end: '2027-07-14', title: 'Messe Köln', by: 'sebastian', created: 1500 });
+    const shop = item('s1', 2100, { kind: 'shop', title: 'Milch', by: 'sebastian' });
+    await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [trip, shop] }) });
+    const r = await (await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [] }) })).json() as { items: { id: string; _rev: number; _text?: string; _verb?: string }[] };
+    const t = r.items.find((x) => x.id === 't1')!;
+    expect(t._verb).toBe('new');
+    expect(t._text).toBe('Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln');
+    expect(typeof t._rev).toBe('number');
+    expect(r.items.find((x) => x.id === 's1')!._text).toBeUndefined(); // Einkauf wird nicht gemeldet
+  });
 });

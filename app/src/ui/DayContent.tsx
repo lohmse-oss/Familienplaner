@@ -4,6 +4,7 @@ import { PARENTS, PERSONS, type Item, type Kind, type Mode } from '../core/types
 import { setPresence, useStore } from '../store';
 import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
 import { KINDS } from './EditSheet';
+import { Details } from './Details';
 import { Ic, StatusIc } from './icons';
 
 const MODES: (Mode | 'office')[] = ['office', 'homeoffice', 'vacation', 'trip'];
@@ -52,10 +53,13 @@ export function DayContent({ date, edit, add, plan }: Props) {
       <h3 class="section">Einträge</h3>
       {items.length === 0 && <div class="line muted">Nichts eingetragen.</div>}
       {items.map((i) => (
-        <div key={i.id} class="line link-row" onClick={() => edit(i)}>
-          <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
-          <span class="grow">{i.time ? i.time + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
-          {i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}
+        <div key={i.id} class="entry">
+          <div class="line link-row" onClick={() => edit(i)}>
+            <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
+            <span class="grow">{i.time ? i.time + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
+            {i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}
+          </div>
+          <Details it={i} />
         </div>
       ))}
       {d.warnings.map((w) => <div key={w} class="line warn"><Ic n="warn" size={16} /> {w}</div>)}

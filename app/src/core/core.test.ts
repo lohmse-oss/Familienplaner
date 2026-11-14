@@ -3,6 +3,7 @@ import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
 import { buildCalendar } from './calendar';
 import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekStart } from './dates';
+import { annotateChanges, describeChange } from './describe';
 import { relevant } from './filter';
 import { buildWidgetData } from './widget';
 import { gapRuns, nextGap } from './gaps';
@@ -303,10 +304,36 @@ describe('Widget-Daten', () => {
     expect(w.shop).toBe('Einkauf (2): Milch, Brot');
     const mo = w.days[0];
     expect(mo).toMatchObject({ date: '2027-07-12', cov: 'maybe', covText: 'nur per Homeoffice', need: 'Ida: Sommerferien' });
-    expect(mo.parents).toBe('Sebastian: Büro  ·  Betty: Homeoffice');
+    expect(mo.parents).toEqual([['Sebastian', 'Büro'], ['Betty', 'Homeoffice']]);
+    expect(mo.label).toBe('Mo 12.07.');
+    expect(mo.sub).toBe('Sommerferien');
+    expect(w.style).toBe('dark');
     expect(mo.next).toEqual(['18:00 Elternabend (Betty)', 'Mi 15:30 Kinderarzt – wer kümmert sich?']);
-    expect(w.days[1].parents).toContain('Sebastian: Dienstreise');
+    expect(w.days[1].parents[0]).toEqual(['Sebastian', 'Dienstreise']);
     expect(w.days[1].next[0]).toBe('Mi 15:30 Kinderarzt – wer kümmert sich?'); // 13.7.: Termin morgen → mit Wochentag
     expect(w.days[2].next[0]).toBe('15:30 Kinderarzt – wer kümmert sich?'); // am Tag selbst ohne Wochentag
+  });
+});
+
+describe('Änderungs-Hinweise', () => {
+  it('beschreibt Einträge lesbar', () => {
+    const trip = item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13', end: '2027-07-14', title: 'Messe Köln', by: 'sebastian', created: 1000, updated: 1500 });
+    expect(describeChange(trip)).toEqual({ verb: 'new', text: 'Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln' });
+    const arzt = item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt U8', persons: ['irma'], start: '2027-07-14', time: '15:30', endTime: '16:00', place: 'Praxis Dr. Müller', created: 1000, updated: 1000 + 600_000 });
+    expect(describeChange(arzt)).toEqual({ verb: 'edit', text: 'Kinderarzt U8 (Irma), Mi 14.07.2027, 15:30–16:00, Praxis Dr. Müller' });
+    expect(describeChange({ ...arzt, deleted: true })?.verb).toBe('del');
+    expect(describeChange(item({ kind: 'shop', title: 'Milch', start: '2027-07-10' }))).toBeNull();
+    expect(describeChange(item({ kind: 'config', start: '2027-01-01' }))).toBeNull();
+  });
+  it('meldet beim Eintragen eines Urlaubs nicht die technischen Umbauten bestehender Einträge', () => {
+    const at = { by: 'sebastian' as PersonId, created: 1000 };
+    const items = [
+      item({ kind: 'presence', mode: 'vacation', persons: ['sebastian'], start: '2027-08-02', end: '2027-08-13', ...at, updated: 1100 }), // neu
+      item({ kind: 'presence', mode: 'vacation', persons: ['sebastian'], start: '2027-08-02', end: '2027-08-03', ...at, created: 1, updated: 5_000_000 }), // gekürzter alter Eintrag
+      item({ kind: 'presence', mode: 'homeoffice', persons: ['sebastian'], start: '2027-08-05', ...at, created: 1, deleted: true, updated: 5_000_000 }), // ersetzt
+      item({ kind: 'event', title: 'Arzt', persons: [], start: '2027-08-04', ...at, updated: 5_000_000 }), // echte Änderung bleibt
+    ];
+    const r = annotateChanges(items);
+    expect(r.map((x) => x._text !== undefined)).toEqual([true, false, false, true]);
   });
 });

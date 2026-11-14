@@ -5,8 +5,17 @@ import { budget } from '../core/report';
 import { PARENTS, PERSONS } from '../core/types';
 import type { Tab } from '../nav';
 import { useStore } from '../store';
+import { describeChange, verbOf } from '../core/describe';
 import { Dot, PersonTag, Pill, STATUS_LABEL } from './common';
 import { Ic, StatusIc, type IconName } from './icons';
+
+const ago = (ms: number) => {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 2) return 'gerade eben';
+  if (m < 60) return `vor ${m} Min.`;
+  if (m < 1440) return `vor ${Math.round(m / 60)} Std.`;
+  return `vor ${Math.round(m / 1440)} Tg.`;
+};
 
 export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: string) => void; add: () => void }) {
   const { cal, settings, items } = useStore();
@@ -18,6 +27,13 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
   // Termine der nächsten 7 Tage (ohne heute)
   const upcoming = [...range(addDays(t, 1), addDays(t, 7))].flatMap((date) => cal.day(date).events.map((e) => ({ date, e }))).slice(0, 5);
   const unowned = [...range(t, addDays(t, 14))].reduce((n, date) => n + cal.day(date).events.filter((e) => needsOwner(e) && !e.owner).length, 0);
+
+  // Neu vom Partner (letzte 7 Tage)
+  const partner = settings.me === 'betty' ? 'sebastian' : 'betty';
+  const recent = items
+    .filter((i) => !i.deleted && i.by === partner && verbOf(i) === 'new' && describeChange(i) && i.updated > Date.now() - 7 * 864e5)
+    .sort((a, b) => b.updated - a.updated)
+    .slice(0, 5);
 
   const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
   const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
@@ -79,6 +95,18 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
               <span class="grow"><Ic n="warn" size={15} /> {unowned} Termin{unowned === 1 ? '' : 'e'} in den nächsten 14 Tagen ohne Zuständigen</span><Ic n="right" size={16} />
             </div>
           )}
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section class="card">
+          <header class="card-head"><strong><Ic n="bell" size={15} /> Neu von {PERSONS[partner].name}</strong></header>
+          {recent.map((i) => (
+            <div key={i.id} class="line link-row" onClick={() => openDay(i.start)}>
+              <span class="grow">{describeChange(i)!.text}</span>
+              <span class="muted small">{ago(i.updated)}</span>
+            </div>
+          ))}
         </section>
       )}
 

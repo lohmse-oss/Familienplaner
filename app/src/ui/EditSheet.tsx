@@ -70,7 +70,14 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   })();
 
   const save = () => {
-    const out: Item = { ...d, title: d.title?.trim() || undefined, end: single ? d.start : d.end };
+    const clean = (v?: string) => v?.trim() || undefined;
+    const out: Item = { ...d, title: clean(d.title), place: clean(d.place), contact: clean(d.contact), link: clean(d.link), end: single ? d.start : d.end };
+    if (k !== 'event') delete out.endTime;
+    if (k !== 'event' && k !== 'info') {
+      delete out.place;
+      delete out.contact;
+      delete out.link;
+    }
     if (k !== 'presence') delete out.mode;
     if (!(k === 'presence' && d.mode === 'vacation')) delete out.away;
     saveItem(out);
@@ -185,11 +192,28 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
               <input type="time" value={d.time ?? ''} onInput={(e) => set({ time: (e.target as HTMLInputElement).value || undefined })} />
             </div>
           )}
+          {k === 'event' && (
+            <div>
+              <label>Bis (Uhr, optional)</label>
+              <input type="time" value={d.endTime ?? ''} onInput={(e) => set({ endTime: (e.target as HTMLInputElement).value || undefined })} />
+            </div>
+          )}
         </div>
 
-        {k !== 'birthday' && k !== 'task' && (
+        {(k === 'event' || k === 'info') && (
           <>
-            <label>Notiz (optional)</label>
+            <label>Ort (optional)</label>
+            <input type="text" placeholder="z. B. Praxis Dr. Müller, Markt 3" value={d.place ?? ''} onInput={(e) => set({ place: (e.target as HTMLInputElement).value })} />
+            <label>Kontakt / Telefon (optional)</label>
+            <input type="text" placeholder="z. B. Frau Meier 0371 123456" value={d.contact ?? ''} onInput={(e) => set({ contact: (e.target as HTMLInputElement).value })} />
+            <label>Link (optional)</label>
+            <input type="text" inputMode="url" placeholder="https://…" value={d.link ?? ''} onInput={(e) => set({ link: (e.target as HTMLInputElement).value })} />
+          </>
+        )}
+
+        {k !== 'birthday' && (
+          <>
+            <label>Notiz / ergänzende Infos (optional)</label>
             <textarea rows={2} value={d.note ?? ''} onInput={(e) => set({ note: (e.target as HTMLTextAreaElement).value || undefined })} />
           </>
         )}
