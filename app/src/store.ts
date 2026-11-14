@@ -41,8 +41,10 @@ let dirty = new Set<string>(read<string[]>(LS.dirty, []));
 let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
-let settings: Settings = { me: 'sebastian', server: '', code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
-let syncState: SyncState = { status: settings.server ? 'idle' : 'off' };
+export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
+let settings: Settings = { me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+const configured = () => !!settings.server && !!settings.code;
+let syncState: SyncState = { status: configured() ? 'idle' : 'off' };
 
 let calendar: Calendar | null = null;
 const listeners = new Set<() => void>();
@@ -115,10 +117,10 @@ export function setPresence(person: PersonId, date: string, mode: Mode | 'office
 export function updateSettings(patch: Partial<Settings>) {
   settings = { ...settings, ...patch };
   write(LS.settings, settings);
-  if ('server' in patch || 'code' in patch) syncState = { status: settings.server ? 'idle' : 'off' };
+  if ('server' in patch || 'code' in patch) syncState = { status: configured() ? 'idle' : 'off' };
   emit();
   scheduleSoon();
-  if (settings.server) void sync();
+  if (configured()) void sync();
 }
 
 /* ---------- Benachrichtigungen (gebündelt) ---------- */

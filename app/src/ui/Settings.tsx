@@ -30,12 +30,12 @@ export function Settings() {
       <h3 class="section">Synchronisierung (Cloudflare)</h3>
       <section class="card form">
         <label>Server-Adresse</label>
-        <input type="url" placeholder="https://familienplaner.<name>.workers.dev" value={server} onInput={(e) => setServer((e.target as HTMLInputElement).value)} autocapitalize="off" />
+        <input type="url" placeholder="https://familienplaner-sync.<konto>.workers.dev" value={server} onInput={(e) => setServer((e.target as HTMLInputElement).value)} autocapitalize="off" />
         <label>Familiencode</label>
         <input type="password" value={code} onInput={(e) => setCode((e.target as HTMLInputElement).value)} autocomplete="off" />
         <div class="actions">
           <button class="btn primary" onClick={() => { updateSettings({ server: server.trim(), code: code.trim() }); }}>Speichern &amp; verbinden</button>
-          <button class="btn" disabled={!settings.server} onClick={() => void sync()}>Jetzt abgleichen</button>
+          <button class="btn" disabled={!settings.server || !settings.code} onClick={() => void sync()}>Jetzt abgleichen</button>
         </div>
         <p class={`hint ${st.status === 'error' ? 'neg' : ''}`}>{status}</p>
       </section>
