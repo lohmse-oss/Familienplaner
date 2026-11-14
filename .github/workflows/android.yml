@@ -9,6 +9,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # nötig, damit bei einem Tag ein Release mit der APK angelegt werden darf
     defaults:
       run:
         working-directory: app
