@@ -150,6 +150,9 @@ Das Sync-Token landet so nie im Repo und wird nicht übergeben – es bleibt Wor
 `index.html` aus den APK-Assets (localStorage bleibt pro Handy erhalten) und ist für den Familien-Sync
 konfiguriert (Server-URL + Token werden in den App-Einstellungen gepflegt, Internetzugriff via
 `INTERNET`-Permission, `usesCleartextTraffic` für LAN-Server im Heimnetz).
+Die Oberfläche ist für Smartphones optimiert (Media Query ≤ 768 px: kompakter Header, einspaltige
+Monatsansicht, Wandkalender mit schmaleren Spalten + horizontalem Scrollen, Modals fast vollflächig,
+16-px-Eingabefelder gegen Fokus-Zoom, Touch ohne Verzögerung).
 
 ```
 cd android

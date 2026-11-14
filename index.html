@@ -137,9 +137,34 @@
   .balken-zelle.b-schulfrei { background: #3b82f6; }
   .balken-zelle.b-termin { background: #a855f7; }
   #balkenInhalt { overflow-x: auto; padding-bottom: .5rem; }
+  button, select, input, textarea, .tag, .tag-zelle, .tag-zeile { touch-action: manipulation; }
+  body { -webkit-tap-highlight-color: transparent; }
   @media (max-width: 768px) {
-    #wandliste { overflow-x: auto; }
-    .wand-kopf, .tag-zeile { min-width: 46rem; }
+    body { padding: .6rem; }
+    h1 { font-size: 1.05rem; margin-right: .4rem; }
+    header { gap: .4rem; }
+    header button, header select, header label { font-size: .9rem; padding: .35rem .55rem; }
+    #gcalStatus, #syncStatus { flex-basis: 100%; margin-left: 0; white-space: normal; }
+    #uebersicht { gap: .5rem; }
+    .karte { flex: 1 1 10rem; min-width: 10rem; padding: .5rem .7rem; }
+    #monate { grid-template-columns: 1fr; }
+    .tag { min-height: 2.8rem; font-size: .7rem; }
+    .wand-bar, .auswahl-bar { gap: .5rem; font-size: .85rem; padding: .45rem .6rem; }
+    .auswahl-bar, .wand-kopf { position: static; }
+    .wand-monat, .tag-zeile { scroll-margin-top: 1rem; }
+    #auswahlKommentar { min-width: 8rem; flex: 1; }
+    #wandliste { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .wand-kopf, .tag-zeile { min-width: 23rem; }
+    .tag-zeile .datum, .wand-kopf .datum { width: 4.8rem; min-width: 4.8rem; }
+    .tag-zeile .kw, .wand-kopf .kw { display: none; }
+    .tag-zelle, .zellkopf { min-width: 4rem; }
+    .zellkopf { flex-wrap: wrap; font-size: .72rem; }
+    .balken-name { width: 5.5rem; min-width: 5.5rem; }
+    .dd-menu { max-width: calc(100vw - 1rem); }
+    .modal { padding: .5rem; }
+    .modal > div { max-width: 100%; max-height: 92vh; padding: .9rem; }
+    .mit-row input[type=text] { min-width: 8rem; }
+    select, input, textarea { font-size: 16px; }
   }
   @media print {
     header button, header select, header label, .dd-menu, .auswahl-bar, .wand-bar, .hint { display: none !important; }

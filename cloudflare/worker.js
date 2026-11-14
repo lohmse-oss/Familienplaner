@@ -32,7 +32,7 @@ const LANDING = `<!doctype html><meta charset="utf-8"><title>Familienplaner Sync
 <h1>Familienplaner Sync läuft ✅</h1>
 <p>Dieser Worker hält den gemeinsamen Planungsstand für die Familienplaner-App
 (GET/PUT <code>/state</code> mit Bearer-Token).</p>
-<p>App: APK (<code>dist/familienplaner-1.0.apk</code>) installieren und in
+<p>App: APK (<code>dist/familienplaner-1.1.apk</code>) installieren und in
 <strong>Extras ▸ Einstellungen ▸ Familien-Sync</strong> diese URL + das Sync-Token eintragen.</p>
 </body>`;
 
