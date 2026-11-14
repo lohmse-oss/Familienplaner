@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
 <title>Familien-Jahresplaner Sachsen</title>
 <style>
   :root {
@@ -105,6 +106,9 @@
   .wand-kopf .kw { width: 4rem; min-width: 4rem; color: #6b7280; font-size: .75rem; }
   .wand-kopf .badges { flex: 1; min-width: 0; }
   .zellkopf { flex: 1; min-width: 6.5rem; display: flex; align-items: center; gap: .3rem; border-left: 3px solid transparent; padding-left: 3px; }
+  .zellkopf { min-width: 0; overflow: hidden; }
+  .zellkopf strong { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zellkopf .modus-select { flex: 1 1 0; min-width: 0; margin-left: 0; text-overflow: ellipsis; }
   .modus-switch { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 400; cursor: pointer; margin-left: auto; }
   .modus-switch input { accent-color: #2563eb; margin: 0; }
   .tag-zeile:hover { outline: 1px solid #93c5fd; }
@@ -137,11 +141,12 @@
   .balken-zelle.b-schulfrei { background: #3b82f6; }
   .balken-zelle.b-termin { background: #a855f7; }
   #balkenInhalt { overflow-x: auto; padding-bottom: .5rem; }
-  @media (max-width: 768px) {
-    #wandliste { overflow-x: auto; }
-    .wand-kopf, .tag-zeile { min-width: 46rem; }
-  }
+  .modus-leiste, .hint-touch { display: none; }
+  .btn-schnell { font-size: .8rem; padding: .25rem .6rem; }
+  button, select, .tag, .tag-zelle, .tag-zeile .datum, .chip-e { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
   @media print {
+    .modus-leiste, .hint-touch { display: none !important; }
     header button, header select, header label, .dd-menu, .auswahl-bar, .wand-bar, .hint { display: none !important; }
     body { background: #fff; }
     .monat, .liste-karte, .tag-zeile { break-inside: avoid; }
@@ -181,14 +186,123 @@
   .dd-sep { height: 1px; background: var(--border); margin: 5px 2px; }
   .dd-cap { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; padding: .25rem .5rem; }
   footer { margin-top: 1.5rem; font-size: .8rem; color: #6b7280; }
+  /* ---------- Handy / schmale Bildschirme ---------- */
+  @media screen and (max-width: 768px) {
+    body { padding: .6rem; padding-left: max(.6rem, env(safe-area-inset-left)); padding-right: max(.6rem, env(safe-area-inset-right)); }
+    /* Kopfzeile: Titel + Neu, darunter Jahr/Person, darunter drei Menüs */
+    header { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-bottom: .6rem; }
+    h1 { grid-column: 1 / 3; grid-row: 1; font-size: 1.1rem; margin: 0; align-self: center; }
+    #btnNeu { grid-column: 3; grid-row: 1; }
+    header label.hl { display: block; min-width: 0; grid-row: 2; }
+    header label.hl:nth-of-type(1) { grid-column: 1; }
+    header label.hl:nth-of-type(2) { grid-column: 2 / 4; }
+    .dd { grid-row: 3; }
+    .lbl { display: none; }
+    header select { width: 100%; }
+    #gcalStatus { grid-column: 1 / -1; margin: 0; }
+    button, select { min-height: 2.75rem; }
+    input, select, textarea { font-size: 16px; } /* verhindert Auto-Zoom in iOS */
+    /* Menüs als Bottom-Sheet statt abgeschnittener Dropdowns */
+    .dd { position: static; }
+    .dd > button { width: 100%; padding-left: .3rem; padding-right: .3rem; }
+    .dd-menu {
+      position: fixed; left: .5rem; right: .5rem; top: auto;
+      bottom: calc(.5rem + env(safe-area-inset-bottom)); min-width: 0; z-index: 90;
+      max-height: 80dvh; overflow: auto;
+    }
+    .dd-list button { min-height: 2.9rem; font-size: 1rem; }
+    /* Übersicht kompakt in 2 Spalten */
+    #uebersicht { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .6rem; }
+    .karte { min-width: 0; padding: .45rem .6rem; font-size: .78rem; line-height: 1.25; }
+    .karte .zahl { font-size: 1.15rem; }
+    #legende { gap: .2rem .8rem; font-size: .72rem; margin-bottom: .6rem; }
+    #legende .l-chip { display: none; }
+    /* Monatsansicht */
+    #monate { grid-template-columns: 1fr; gap: .6rem; }
+    .tag { min-height: 2.9rem; }
+    .tag .ft { display: none; }
+    /* Wandkalender: keine horizontale Scrollleiste mehr, Spaltenkopf klebt oben */
+    .wand-bar { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; padding: .4rem; }
+    .wand-bar label { display: flex; align-items: center; gap: .3rem; min-width: 0; }
+    .wand-bar label select, .wand-bar label input { flex: 1; min-width: 0; width: 100% !important; }
+    .wand-bar > label:nth-child(1) { grid-area: 1 / 1; }
+    #btnJumpHeute { grid-area: 1 / 2; }
+    .wand-bar > label:nth-child(2) { grid-area: 2 / 1; }
+    .wand-bar > label:nth-child(3) { grid-area: 2 / 2; }
+    #btnJumpKW, #btnJumpDatum { display: none; } /* Sprung passiert direkt bei Eingabe */
+    .hint-desktop { display: none; }
+    .hint-touch { display: block; }
+    .modus-leiste { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .5rem; }
+    .modus-item { display: flex; flex-direction: column; gap: .15rem; font-size: .8rem; background: #fff; border: 1px solid var(--border); border-left: 4px solid transparent; border-radius: .4rem; padding: .3rem .5rem; min-width: 0; }
+    .modus-item .modus-select { margin: 0; width: 100%; font-size: 16px; padding: .2rem .3rem; }
+    .wand-kopf { top: 0; min-width: 0; gap: .25rem; padding: .3rem .2rem; font-size: .75rem; }
+    .wand-kopf .datum { width: 4.9rem; min-width: 4.9rem; }
+    .wand-kopf .kw, .wand-kopf .badges, .wand-kopf .modus-select { display: none; }
+    .zellkopf { min-width: 0; overflow: hidden; }
+    .zellkopf strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-zeile { flex-wrap: wrap; row-gap: 0; gap: .25rem; padding: .1rem .2rem; font-size: .8rem; scroll-margin-top: 3.6rem; min-width: 0; align-items: stretch; }
+    .tag-zeile .datum { width: 4.9rem; min-width: 4.9rem; align-self: center; font-size: .8rem; -webkit-user-select: none; user-select: none; }
+    .tag-zeile .kw { display: none; }
+    .tag-zeile.mo { margin-top: .3rem; }
+    .tag-zeile.mo .kw { display: block; order: -1; flex: 0 0 100%; width: 100%; font-size: .65rem; font-weight: 700; color: #475569; border-top: 1px solid #cbd5e1; padding-top: .15rem; }
+    .tag-zeile .zellen { order: 1; flex: 1; gap: 2px; }
+    .tag-zeile .badges { order: 2; flex: 0 0 100%; padding: 0 0 .1rem 5.15rem; }
+    .tag-zeile .badges:empty { display: none; }
+    .badge.ferien-b { display: none; }
+    .badge.ferien-b.erst { display: inline-block; }
+    .tag-zelle { min-width: 0; min-height: 2.5rem; padding: 2px 3px; overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .tag-zelle .chip-e { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 0 1px; padding: 0 .2rem; font-size: .68rem; line-height: 1.25; }
+    .tag-zelle .chip-e .ct { display: none; }
+    .wand-monat { scroll-margin-top: 3.6rem; font-size: 1rem; margin-top: .8rem; }
+    /* Auswahlleiste unten fixiert (Daumenzone), nur wenn etwas gewählt ist */
+    .auswahl-bar {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; z-index: 20; margin: 0;
+      border-radius: 1rem 1rem 0 0; border-width: 1px 0 0; gap: .4rem .6rem;
+      padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom));
+      box-shadow: 0 -4px 14px rgba(15,23,42,.18);
+    }
+    .auswahl-bar.leer { display: none; }
+    .auswahl-bar .lang { display: none; }
+    .auswahl-bar #auswahlInfo { order: 1; flex: 1 1 100%; min-width: 0; font-size: .82rem; }
+    .auswahl-bar #auswahlKommentar { order: 2; flex: 1 1 9rem; min-width: 9rem !important; padding: .4rem .5rem; border: 1px solid #cbd5e1; border-radius: .5rem; }
+    .auswahl-bar #btnMarkieren { order: 3; }
+    .auswahl-bar label { order: 4; display: flex; align-items: center; gap: .3rem; min-height: 2.4rem; font-size: .8rem; }
+    .auswahl-bar #btnAuswahlClear { order: 5; margin-left: auto; min-height: 2.4rem; padding: .2rem .7rem; font-size: .85rem; }
+    .auswahl-bar input[type=checkbox] { width: 1.25rem; height: 1.25rem; }
+    .modus-item .modus-select { min-height: 2.4rem; }
+    body.mit-auswahl { padding-bottom: 11rem; }
+    /* Listen, Balken, Tipps */
+    .liste-karte { padding: .6rem .7rem; margin-bottom: .6rem; }
+    .liste-zeile { gap: .2rem .6rem; }
+    .liste-zeile > span:last-child .btn-schnell { margin-bottom: .2rem; }
+    .btn-schnell { min-height: 2.5rem; }
+    .balken-name { width: 5rem; min-width: 5rem; position: sticky; left: 0; z-index: 1; background: #f8fafc; }
+    .balken-zelle { width: 1.4rem; min-width: 1.4rem; height: 1.6rem; line-height: 1.6rem; font-size: .55rem; }
+    /* Dialoge als Bottom-Sheet */
+    .modal { align-items: flex-end; padding: 0; }
+    .modal > div { max-width: none; border-radius: 1rem 1rem 0 0; max-height: 92dvh; padding: 1rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+    .modal > div { position: relative; }
+    .schliessen { float: none; position: absolute; top: .6rem; right: .6rem; min-width: 2.75rem; }
+    .modal h3 { padding-right: 3.2rem; min-height: 2.75rem; display: flex; align-items: center; margin-bottom: .5rem; }
+    .eintrag-zeile { flex-direction: column; }
+    .eintrag-zeile > span { display: flex; gap: .5rem; }
+    .eintrag-zeile > span button { flex: 1; }
+    #tagNeuBtn, #eintragSpeichern { width: 100%; }
+    .mit-row { gap: .4rem; }
+    .mit-row input[type=color] { width: 2.75rem; height: 2.75rem; padding: 2px; }
+    .mit-row input[type=text] { min-height: 2.75rem; }
+    .mit-row input[type=number] { min-height: 2.75rem; }
+    .form-row input, .form-row select, .form-row textarea { min-height: 2.75rem; }
+    footer { margin-bottom: 1rem; }
+  }
 </style>
 </head>
 <body>
 <header>
   <h1> 🗓️ Familien-Jahresplaner</h1>
-  <label>Jahr: <select id="jahrSelect"></select></label>
+  <label class="hl"><span class="lbl">Jahr:</span> <select id="jahrSelect" aria-label="Jahr"></select></label>
   <button class="prim" id="btnNeu">+ Eintrag</button>
-  <label>Anzeige: <select id="filterMitglied"></select></label>
+  <label class="hl"><span class="lbl">Anzeige:</span> <select id="filterMitglied" aria-label="Anzeige: Person"></select></label>
   <div class="dd" id="ddAnsicht">
     <button type="button" id="btnAnsicht" aria-haspopup="menu" aria-expanded="false" aria-controls="menuAnsicht">Ansicht ▾</button>
     <div class="dd-menu dd-list" id="menuAnsicht" role="menu" aria-label="Ansicht">
@@ -244,12 +358,14 @@
   </div>
   <div class="auswahl-bar" id="auswahlBar">
     <span id="auswahlInfo">0 Zellen ausgewählt</span>
-    <input type="text" id="auswahlKommentar" placeholder="Titel / Kurznotiz (z. B. Ostsee, Oma)" style="min-width:12rem">
-    <button class="prim" id="btnMarkieren">Ausgewählte markieren</button>
+    <input type="text" id="auswahlKommentar" placeholder="Titel / Notiz (z. B. Ostsee)" style="min-width:12rem">
+    <button class="prim" id="btnMarkieren"><span class="lang">Ausgewählte </span>markieren</button>
     <label title="Bereich wird in reine Arbeitstage (Werktage ohne Feiertag) aufgeteilt – Wochenenden und Feiertage bleiben unmarkiert. 24.12./31.12. zählen als halbe Tage."><input type="checkbox" id="nurArbeitstage"> nur Arbeitstage</label>
-    <button id="btnAuswahlClear">Auswahl aufheben</button>
+    <label title="Jeder weitere Tipp wählt den ganzen Zeitraum vom zuerst gewählten Tag bis zum getippten Tag (am Computer: Shift+Klick)."><input type="checkbox" id="bereichModus"> Bereich<span class="lang"> wählen</span></label>
+    <button id="btnAuswahlClear"><span class="lang">Auswahl </span>aufheben</button>
   </div>
-  <p class="hint">Alle Personen nebeneinander · Klick auf eine Personen-Zelle = Tag auswählen, Shift+Klick = Bereich, Doppelklick = Details/Löschen. Pro Person oben der Schalter Urlaub/Abwesenheit; Kommentar landet an den markierten Einträgen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
+  <p class="hint hint-desktop">Alle Personen nebeneinander · Klick auf eine Personen-Zelle = Tag auswählen, Shift+Klick = Bereich, Doppelklick = Details/Löschen. Pro Person oben der Schalter Urlaub/Abwesenheit; Kommentar landet an den markierten Einträgen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
+  <p class="hint hint-touch">Tippen = Tag wählen · „Bereich wählen“ + weiterer Tipp = Zeitraum · Lange drücken = Details/Löschen · Tipp auf das Datum wählt alle Personen. Modus je Person oben festlegen.</p>
   <div id="wandliste"></div>
 </div>
 
@@ -366,7 +482,10 @@ const TYP_LABEL = {
   abwesenheit: 'Abwesenheit'
 };
 
-const TYP_ICON = { urlaub: '🏖️', schulfrei: '🎒', betreuung: '🏡', termin: '📌', abwesenheit: '🚗' };
+// Kurzlabels für die schmalen Modus-Auswahlfelder je Person
+const TYP_KURZ = { urlaub: 'Urlaub', schulfrei: 'Schulfrei', betreuung: 'Betreuung', termin: 'Termin', abwesenheit: 'Abwesenheit' };
+
+const TYP_ICON ={ urlaub: '🏖️', schulfrei: '🎒', betreuung: '🏡', termin: '📌', abwesenheit: '🚗' };
 
 const MODUS_OPTIONEN = {
   elternteil: ['urlaub', 'abwesenheit', 'termin'],
@@ -817,6 +936,21 @@ function renderKalender() {
 let auswahl = new Set();
 let auswahlAnker = null;
 
+function bereichAn() {
+  const cb = document.getElementById('bereichModus');
+  return !!(cb && cb.checked);
+}
+
+function resetBereich() {
+  const cb = document.getElementById('bereichModus');
+  if (cb) cb.checked = false;
+}
+
+// Bereichsauswahl: Shift+Klick (Maus) oder eingeschalteter Schalter „Bereich wählen“ (Touch)
+function istBereich(ev) {
+  return !!ev.shiftKey || (ev.bereich !== false && bereichAn());
+}
+
 function toggleAuswahl(mitgliedId, key, ev) {
   const apply = (k, force) => {
     const zz = mitgliedId + '|' + k;
@@ -825,7 +959,7 @@ function toggleAuswahl(mitgliedId, key, ev) {
     const cell = document.querySelector(`.tag-zelle[data-mitglied="${mitgliedId}"][data-key="${k}"]`);
     if (cell) cell.classList.toggle('ausgewaehlt', next);
   };
-  if (ev.shiftKey && auswahlAnker && auswahlAnker.mitgliedId === mitgliedId) {
+  if (istBereich(ev) && auswahlAnker && auswahlAnker.mitgliedId === mitgliedId) {
     const [s, e] = auswahlAnker.key <= key ? [auswahlAnker.key, key] : [key, auswahlAnker.key];
     for (let k = s; k <= e; k = addDaysKey(k, 1)) apply(k, true);
   } else {
@@ -838,6 +972,9 @@ function toggleAuswahl(mitgliedId, key, ev) {
 function updateAuswahlBar() {
   const info = document.getElementById('auswahlInfo');
   if (!info) return;
+  const bar = document.getElementById('auswahlBar');
+  if (bar) bar.classList.toggle('leer', auswahl.size === 0); // am Handy nur bei Auswahl sichtbar
+  document.body.classList.toggle('mit-auswahl', state.ansicht === 'wand' && auswahl.size > 0);
   let txt = `${auswahl.size} Zell${auswahl.size === 1 ? 'e' : 'en'} ausgewählt`;
   const jahr = state.jahr;
   const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
@@ -895,6 +1032,7 @@ function markiereAuswahl() {
   }
   auswahl.clear();
   auswahlAnker = null;
+  resetBereich();
   const k = document.getElementById('auswahlKommentar');
   if (k) k.value = '';
   save();
@@ -906,16 +1044,19 @@ function renderWandkalender() {
   const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
   const mitglieder = state.mitglieder;
   const wrap = document.getElementById('wandliste');
-  let html = `<div class="wand-kopf"><span class="datum">Datum</span><span class="kw">KW</span><span class="badges"></span>`;
+  let html = `<div class="wand-kopf"><span class="datum">Datum</span><span class="kw">KW</span><span class="badges"></span><span class="zellen">`;
+  let leiste = '<div class="modus-leiste">'; // Handy: Modus-Auswahl je Person ausserhalb der schmalen Spalten
   for (const m of mitglieder) {
     const akt = state.wandModus?.[m.id] || (m.rolle === 'kind' ? 'schulfrei' : 'urlaub');
     const optionen = (MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil)
-      .map(v => `<option value="${v}" ${v === akt ? 'selected' : ''}>${esc(TYP_LABEL[v])}</option>`).join('');
+      .map(v => `<option value="${v}" title="${esc(TYP_LABEL[v])}" ${v === akt ? 'selected' : ''}>${esc(TYP_KURZ[v])}</option>`).join('');
     html += `<span class="zellkopf" style="border-left-color:${m.farbe}"><strong>${esc(m.name)}</strong>
-      <select class="modus-select" data-modus="${m.id}" title="Markier-Modus für ${esc(m.name)}">${optionen}</select>
+      <select class="modus-select" data-modus="${m.id}" title="Markier-Modus für ${esc(m.name)}" aria-label="Markier-Modus für ${esc(m.name)}">${optionen}</select>
     </span>`;
+    leiste += `<label class="modus-item" style="border-left-color:${m.farbe}"><strong>${esc(m.name)}</strong>
+      <select class="modus-select" data-modus="${m.id}" aria-label="Markier-Modus für ${esc(m.name)}">${optionen}</select></label>`;
   }
-  html += '</div>';
+  html = leiste + '</div>' + html + '</span></div>';
   for (let monat = 0; monat < 12; monat++) {
     html += `<h3 class="wand-monat" id="monat-${monat + 1}">${MONATSNAMEN[monat]} ${jahr}</h3>`;
     const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
@@ -932,16 +1073,19 @@ function renderWandkalender() {
       if (feiertag) cls += ' feiertag';
       if (ferien.length) cls += ' ferien';
       if (halb) cls += ' halbtag';
+      if (dow === 0) cls += ' mo';
       if (key === toKey(new Date()) && jahr === new Date().getFullYear()) cls += ' heute';
       let badges = '';
       if (feiertag) badges += `<span class="badge feiertag-b">${esc(feiertag)}</span>`;
-      for (const f of ferien) badges += `<span class="badge ferien-b">${esc(f)}</span>`;
+      const vortag = addDaysKey(key, -1);
+      const vortagFerien = ferienAm(vortag);
+      for (const f of ferien) badges += `<span class="badge ferien-b${vortagFerien.includes(f) ? '' : ' erst'}">${esc(f)}</span>`;
       if (halb) badges += `<span class="badge halb-b" title="Halber Arbeitstag (zählt als 0,5 Urlaubstag)">½</span>`;
       let zellen = '';
       for (const m of mitglieder) {
         const entries = eintraegeAm(key).filter(e => e.mitgliedId === m.id);
         let chips = '';
-        for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" draggable="true" data-id="${e.id}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : '') + (e.notiz ? ' – ' + e.notiz : '') + ' – zum Verschieben auf einen anderen Tag ziehen')}">${TYP_ICON[e.typ] || ''} ${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ': ' + esc(e.titel) : ''}</span>`;
+        for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" draggable="true" data-id="${e.id}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : '') + (e.notiz ? ' – ' + e.notiz : '') + ' – zum Verschieben auf einen anderen Tag ziehen')}"><span class="ic">${TYP_ICON[e.typ] || ''}</span> <span class="ct">${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ': ' : ''}</span><span class="ti">${e.titel ? esc(e.titel) : ''}</span></span>`;
         const sel = auswahl.has(m.id + '|' + key) ? ' ausgewaehlt' : '';
         zellen += `<span class="tag-zelle${sel}" data-mitglied="${m.id}" data-key="${key}" style="border-left-color:${m.farbe}" title="${esc(m.name)} – Klick: auswählen · Shift+Klick: Bereich · Doppelklick: Details">${chips}</span>`;
       }
@@ -959,16 +1103,30 @@ function renderWandkalender() {
     if (datum) datum.addEventListener('click', (ev) => {
       ev.stopPropagation();
       const key = row.dataset.key;
-      if (ev.shiftKey && auswahlAnker) {
+      if (istBereich(ev) && auswahlAnker) {
         const [s, e] = auswahlAnker.key <= key ? [auswahlAnker.key, key] : [key, auswahlAnker.key];
         for (const m of mitglieder) for (let k = s; k <= e; k = addDaysKey(k, 1)) toggleAuswahl(m.id, k, { shiftKey: true });
       } else {
-        for (const m of mitglieder) toggleAuswahl(m.id, key, { shiftKey: false });
+        for (const m of mitglieder) toggleAuswahl(m.id, key, { shiftKey: false, bereich: false });
       }
     });
   });
   wrap.querySelectorAll('.tag-zelle').forEach(el => {
+    // Touch: langes Drücken öffnet die Tag-Details (Ersatz für Doppelklick)
+    let lpTimer = null, lpFired = false;
+    el.addEventListener('touchstart', () => {
+      lpFired = false;
+      clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => {
+        lpFired = true;
+        if (navigator.vibrate) navigator.vibrate(15);
+        openTagModal(el.dataset.key);
+      }, 550);
+    }, { passive: true });
+    for (const t of ['touchend', 'touchmove', 'touchcancel']) el.addEventListener(t, () => clearTimeout(lpTimer), { passive: true });
+    el.addEventListener('contextmenu', (ev) => ev.preventDefault()); // verhindert Android-Kontextmenü beim langen Drücken
     el.addEventListener('click', (ev) => {
+      if (lpFired) { lpFired = false; ev.preventDefault(); return; }
       if (ev.target.closest('.chip-e')) { openTagModal(el.dataset.key); return; }
       toggleAuswahl(el.dataset.mitglied, el.dataset.key, ev);
     });
@@ -1001,6 +1159,7 @@ function renderWandkalender() {
   wrap.querySelectorAll('select[data-modus]').forEach(sel => {
     sel.addEventListener('change', () => {
       state.wandModus[sel.dataset.modus] = sel.value;
+      wrap.querySelectorAll(`select[data-modus="${sel.dataset.modus}"]`).forEach(s => { s.value = sel.value; });
       save();
       updateAuswahlBar();
     });
@@ -1206,6 +1365,7 @@ function render() {
     const el = document.getElementById(id);
     if (el) el.style.display = state.ansicht === key ? (key === 'monate' ? 'grid' : 'block') : 'none';
   }
+  if (state.ansicht !== 'wand') document.body.classList.remove('mit-auswahl');
   if (state.ansicht === 'wand') renderWandkalender();
   else if (state.ansicht === 'liste') renderUrlaubsliste();
   else if (state.ansicht === 'balken') renderBalken();
@@ -1574,7 +1734,7 @@ function init() {
   });
   document.getElementById('btnMarkieren').addEventListener('click', () => markiereAuswahl());
   document.getElementById('btnAuswahlClear').addEventListener('click', () => {
-    auswahl.clear(); auswahlAnker = null; renderWandkalender();
+    auswahl.clear(); auswahlAnker = null; resetBereich(); renderWandkalender();
   });
   const jm = document.getElementById('jumpMonat');
   if (jm) {
@@ -1583,6 +1743,9 @@ function init() {
   }
   document.getElementById('btnJumpKW').addEventListener('click', () => jumpKW(document.getElementById('jumpKW').value));
   document.getElementById('btnJumpDatum').addEventListener('click', () => jumpDatum(document.getElementById('jumpDatum').value));
+  // Am Handy gibt es keine Springen-Buttons: Sprung direkt bei Eingabe/Enter
+  document.getElementById('jumpKW').addEventListener('change', (ev) => jumpKW(ev.target.value));
+  document.getElementById('jumpDatum').addEventListener('change', (ev) => jumpDatum(ev.target.value));
   document.getElementById('btnJumpHeute').addEventListener('click', () => {
     const heute = new Date();
     if (heute.getFullYear() !== state.jahr) { alert(`Heute liegt nicht im gewählten Jahr ${state.jahr}.`); return; }
@@ -1598,6 +1761,7 @@ function init() {
     if (state.ansicht === 'wand' && auswahl.size) {
       auswahl.clear();
       auswahlAnker = null;
+      resetBereich();
       document.querySelectorAll('.tag-zelle.ausgewaehlt').forEach(c => c.classList.remove('ausgewaehlt'));
       updateAuswahlBar();
     }

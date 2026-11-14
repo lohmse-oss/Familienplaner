@@ -35,6 +35,11 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
   frei). Sprung zu Monat, Kalenderwoche (KW) oder Datum. Doppelklick auf eine Zelle öffnet die Detailansicht.
   Die übrigen Funktionen (Ansichten, Datei-Ex/Import, Drucken, Einstellungen, Google-Sync) liegen
   in den Header-Submenüs „Ansicht ▾“, „Datei ▾“ und „Extras ▾“.
+- **Handy-Bedienung** (Breite ≤ 768 px): Wandkalender ohne seitliches Scrollen mit klebendem Spaltenkopf,
+  Modus-Auswahl je Person oberhalb der Liste, Menüs und Dialoge als Bottom-Sheet, Auswahlleiste unten
+  (erscheint nur bei Auswahl). Touch-Gesten: Tippen = Tag wählen, Schalter „Bereich“ + weiterer Tipp = Zeitraum,
+  langes Drücken = Tag-Details (Ersatz für Doppelklick). Drag & Drop von Einträgen geht nur am Computer;
+  am Handy über „Bearbeiten“ im Tag-Dialog.
 - **Halbe Tage**: 24.12. und 31.12. gelten als halbe Arbeitstage (½ Urlaubstag) und sind
   markiert (½).
 - **Urlaubslisten-Ansicht** („Urlaubsliste“-Button): zusammenhängende Urlaubsblöcke je Elternteil.
