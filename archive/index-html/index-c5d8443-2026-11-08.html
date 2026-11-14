@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Familien-Jahresplaner Sachsen</title>
+<style>
+  :root {
+    --ferien: #ffedd5;
+    --feiertag: #fee2e2;
+    --schulfrei: #dbeafe;
+    --text: #1f2937;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 1rem; background: #f8fafc; color: var(--text);
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+    margin-bottom: 1rem;
+  }
+  h1 { font-size: 1.3rem; margin: 0 1rem 0 0; }
+  button, select {
+    font: inherit; padding: .4rem .8rem; border: 1px solid #cbd5e1;
+    border-radius: .5rem; background: #fff; cursor: pointer;
+  }
+  button:hover { background: #f1f5f9; }
+  button.prim { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.prim:hover { background: #1d4ed8; }
+  #uebersicht { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+  .karte {
+    background: #fff; border: 1px solid var(--border); border-radius: .6rem;
+    padding: .6rem .9rem; min-width: 220px; font-size: .9rem;
+  }
+  .karte.warn { background: #fef2f2; border-color: #fca5a5; }
+  .karte .zahl { font-size: 1.4rem; font-weight: 700; }
+  #legende { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; margin-bottom: 1rem; }
+  #legende span::before {
+    content: ""; display: inline-block; width: .8rem; height: .8rem;
+    border-radius: .2rem; margin-right: .3rem; vertical-align: -2px;
+  }
+  .l-ferien::before { background: var(--ferien); border: 1px solid #fdba74; }
+  .l-feiertag::before { background: var(--feiertag); border: 1px solid #f87171; }
+  .l-schulfrei::before { background: var(--schulfrei); border: 1px solid #60a5fa; }
+  .l-chip::before { background: #6b7280; border-radius: 50%; }
+  #monate {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .monat { background: #fff; border: 1px solid var(--border); border-radius: .6rem; padding: .6rem; }
+  .monat h3 { margin: 0 0 .4rem; font-size: 1rem; }
+  .wochentage, .tage { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .wochentage span { font-size: .7rem; text-align: center; color: #6b7280; }
+  .tag {
+    min-height: 3.2rem; padding: 2px; font-size: .75rem; cursor: pointer;
+    border-radius: .25rem; position: relative; overflow: hidden;
+  }
+  .tag:hover { outline: 2px solid #93c5fd; }
+  .tag.leer { background: transparent; cursor: default; }
+  .tag.leer:hover { outline: none; }
+  .tag .nr { font-weight: 600; }
+  .tag.ferien { background: var(--ferien); }
+  .tag.feiertag { background: var(--feiertag); }
+  .tag.feiertag .nr { color: #b91c1c; }
+  .tag.schulfrei { box-shadow: inset 0 0 0 2px #60a5fa; }
+  .tag .ft { display: block; font-size: .62rem; color: #b91c1c; line-height: 1.1; }
+  .chip { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin: 1px; }
+  .tag.halbtag .nr::after { content: " ½"; color: #7c3aed; font-size: .65rem; }
+  .wand-bar, .auswahl-bar {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+    background: #fff; border: 1px solid var(--border); border-radius: .6rem;
+    padding: .5rem .8rem; margin-bottom: .6rem; font-size: .9rem;
+  }
+  .auswahl-bar { position: sticky; top: 0; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+  .auswahl-bar #auswahlInfo { font-weight: 700; min-width: 9rem; }
+  .hint { font-size: .8rem; color: #6b7280; margin: .2rem 0 .6rem; }
+  .wand-monat {
+    margin: 1rem 0 .3rem; font-size: 1.05rem; color: #374151;
+    border-bottom: 2px solid #cbd5e1; padding-bottom: .2rem;
+    scroll-margin-top: 7rem;
+  }
+  .tag-zeile {
+    display: grid; grid-template-columns: 6.5rem 4rem 1fr auto; gap: .5rem;
+    align-items: center; padding: .15rem .5rem; font-size: .85rem;
+    border-radius: .25rem; cursor: pointer; scroll-margin-top: 7rem;
+  }
+  .tag-zeile:hover { outline: 1px solid #93c5fd; }
+  .tag-zeile.wochenende { background: #f1f5f9; color: #475569; }
+  .tag-zeile.feiertag { background: var(--feiertag); }
+  .tag-zeile.feiertag .datum { color: #b91c1c; font-weight: 700; }
+  .tag-zeile.ferien { background: var(--ferien); }
+  .tag-zeile.halbtag .datum::after { content: " ½"; color: #7c3aed; font-weight: 700; }
+  .tag-zeile.ausgewaehlt { outline: 2px solid #2563eb; background: #dbeafe; }
+  .tag-zeile .kw { color: #6b7280; font-size: .75rem; }
+  .badge { display: inline-block; font-size: .72rem; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; }
+  .badge.feiertag-b { background: #fecaca; color: #991b1b; }
+  .badge.ferien-b { background: #fed7aa; color: #9a3412; }
+  .badge.halb-b { background: #ede9fe; color: #6d28d9; font-weight: 700; }
+  .chip-e { color: #fff; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; font-size: .75rem; }
+  .liste-karte { background: #fff; border: 1px solid var(--border); border-radius: .6rem; padding: .8rem 1rem; margin-bottom: 1rem; }
+  .liste-karte h3 { margin: 0 0 .3rem; font-size: 1rem; }
+  .liste-summe { font-size: .9rem; color: #374151; margin-bottom: .5rem; }
+  .liste-zeile {
+    display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
+    border-bottom: 1px dashed var(--border); padding: .3rem 0; font-size: .9rem;
+  }
+  .balken-zeile { display: flex; align-items: center; gap: 1px; margin-bottom: 2px; }
+  .balken-name { width: 9rem; min-width: 9rem; font-size: .8rem; padding-left: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .balken-zelle { width: 1.1rem; height: 1.1rem; min-width: 1.1rem; border-radius: .15rem; background: #f1f5f9; cursor: pointer; font-size: .5rem; text-align: center; color: #94a3b8; line-height: 1.1rem; }
+  .balken-zelle.kopf { cursor: default; background: transparent; }
+  .balken-zelle.b-ferien { background: #fdba74; }
+  .balken-zelle.b-urlaub { background: #16a34a; }
+  .balken-zelle.b-schulfrei { background: #3b82f6; }
+  .balken-zelle.b-termin { background: #a855f7; }
+  @media print {
+    header button, header select, header label, .dd-menu, .auswahl-bar, .wand-bar, .hint { display: none !important; }
+    body { background: #fff; }
+    .monat, .liste-karte, .tag-zeile { break-inside: avoid; }
+  }
+  .modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    align-items: center; justify-content: center; z-index: 10; padding: 1rem;
+  }
+  .modal.offen { display: flex; }
+  .modal > div {
+    background: #fff; border-radius: .8rem; padding: 1.2rem;
+    max-width: 640px; width: 100%; max-height: 85vh; overflow: auto;
+  }
+  .modal h3 { margin-top: 0; }
+  .schliessen { float: right; }
+  .form-row { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .7rem; }
+  .form-row label { font-size: .85rem; font-weight: 600; }
+  .form-row input, .form-row select, .form-row textarea {
+    font: inherit; padding: .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; width: 100%;
+  }
+  .eintrag-zeile {
+    display: flex; justify-content: space-between; gap: .5rem;
+    border: 1px solid var(--border); border-radius: .4rem;
+    padding: .5rem .7rem; margin-bottom: .5rem; font-size: .9rem;
+  }
+  .mit-row { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .5rem; }
+  .mit-row input[type=text] { flex: 1; min-width: 140px; padding: .35rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
+  .ferien-text { color: #c2410c; font-weight: 600; }
+  .feiertag-text { color: #b91c1c; font-weight: 600; }
+  #gcalStatus { font-size: .85rem; color: #475569; margin-left: .5rem; }
+  .dd { position: relative; }
+  .dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 90; background: #fff; border: 1px solid var(--border); border-radius: .5rem; box-shadow: 0 10px 28px rgba(15,23,42,.2); padding: 6px; min-width: 240px; }
+  .dd.open .dd-menu { display: block; }
+  .dd-list button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: .4rem; padding: .45rem .6rem; font-size: .9rem; }
+  .dd-list button:hover { background: #f1f5f9; }
+  .dd-list button[aria-pressed="true"] { font-weight: 700; background: #dbeafe; }
+  .dd-sep { height: 1px; background: var(--border); margin: 5px 2px; }
+  .dd-cap { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; padding: .25rem .5rem; }
+  footer { margin-top: 1.5rem; font-size: .8rem; color: #6b7280; }
+</style>
+</head>
+<body>
+<header>
+  <h1> 🗓️ Familien-Jahresplaner</h1>
+  <label>Jahr: <select id="jahrSelect"></select></label>
+  <button class="prim" id="btnNeu">+ Eintrag</button>
+  <label>Anzeige: <select id="filterMitglied"></select></label>
+  <div class="dd" id="ddAnsicht">
+    <button type="button" id="btnAnsicht" aria-haspopup="menu" aria-expanded="false" aria-controls="menuAnsicht">Ansicht ▾</button>
+    <div class="dd-menu dd-list" id="menuAnsicht" role="menu" aria-label="Ansicht">
+      <button type="button" role="menuitem" id="btnAnsichtWand" data-ansicht="wand" aria-pressed="true">Wandkalender (alle Tage)</button>
+      <button type="button" role="menuitem" id="btnAnsichtMonate" data-ansicht="monate" aria-pressed="false">Monatsansicht</button>
+      <button type="button" role="menuitem" id="btnAnsichtListe" data-ansicht="liste" aria-pressed="false">Urlaubsliste</button>
+      <button type="button" role="menuitem" id="btnAnsichtBalken" data-ansicht="balken" aria-pressed="false">Jahresbalken</button>
+      <button type="button" role="menuitem" id="btnAnsichtAlle" data-ansicht="alle" aria-pressed="false">Alle Einträge</button>
+      <button type="button" role="menuitem" id="btnAnsichtTipps" data-ansicht="tipps" aria-pressed="false">Betreuung &amp; Brückentage</button>
+    </div>
+  </div>
+  <div class="dd" id="ddDatei">
+    <button type="button" id="btnDatei" aria-haspopup="menu" aria-expanded="false" aria-controls="menuDatei">Datei ▾</button>
+    <div class="dd-menu dd-list" id="menuDatei" role="menu" aria-label="Datei">
+      <div class="dd-cap">Exportieren</div>
+      <button type="button" role="menuitem" id="btnExport">JSON exportieren</button>
+      <button type="button" role="menuitem" id="btnIcs">ICS exportieren</button>
+      <div class="dd-sep" role="separator"></div>
+      <div class="dd-cap">Importieren</div>
+      <button type="button" role="menuitem" id="btnImport">JSON importieren</button>
+      <div class="dd-sep" role="separator"></div>
+      <button type="button" role="menuitem" id="btnDrucken">Drucken</button>
+    </div>
+  </div>
+  <div class="dd" id="ddExtras">
+    <button type="button" id="btnExtras" aria-haspopup="menu" aria-expanded="false" aria-controls="menuExtras">Extras ▾</button>
+    <div class="dd-menu dd-list" id="menuExtras" role="menu" aria-label="Extras">
+      <button type="button" role="menuitem" id="btnEinstellungen">Einstellungen</button>
+      <button type="button" role="menuitem" id="btnGcal">Mit Google Kalender verbinden &amp; syncen</button>
+    </div>
+  </div>
+  <input type="file" id="importFile" accept="application/json" hidden>
+  <span id="gcalStatus"></span>
+</header>
+
+<div id="uebersicht"></div>
+
+<div id="legende">
+  <span class="l-ferien">Schulferien Sachsen</span>
+  <span class="l-feiertag">Feiertag Sachsen</span>
+  <span class="l-schulfrei">Schulfrei (Kind, z. B. beweglicher Ferientag)</span>
+  <span class="l-chip">Eintrag (Farbe = Person, Klick auf Tag für Details)</span>
+</div>
+
+<div id="monate"></div>
+
+<div id="wandkalender" style="display:none">
+  <div class="wand-bar">
+    <label>Person: <select id="selectWandMitglied"></select></label>
+    <label>Monat: <select id="jumpMonat"></select></label>
+    <label>KW: <input type="number" id="jumpKW" min="1" max="53" style="width:4.5rem"> <button id="btnJumpKW">Springen</button></label>
+    <label>Datum: <input type="date" id="jumpDatum"> <button id="btnJumpDatum">Springen</button></label>
+  </div>
+  <div class="auswahl-bar" id="auswahlBar">
+    <span id="auswahlInfo">0 Tage ausgewählt</span>
+    <button class="prim" id="markUrlaub">Als Urlaub markieren</button>
+    <button id="markTermin">Als Termin/Abwesenheit</button>
+    <button id="markSchulfrei">Als schulfrei (Kind)</button>
+    <label title="Bereich wird in reine Arbeitstage (Werktage ohne Feiertag) aufgeteilt – Wochenenden und Feiertage bleiben unmarkiert. 24.12./31.12. zählen als halbe Tage."><input type="checkbox" id="nurArbeitstage"> nur Arbeitstage</label>
+    <button id="btnAuswahlClear">Auswahl aufheben</button>
+  </div>
+  <p class="hint">Tage ansteigend von oben nach unten · Klick = Tag auswählen, Shift+Klick = Bereich auswählen, Doppelklick = Details/Löschen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
+  <div id="wandliste"></div>
+</div>
+
+<div id="urlaubsliste" style="display:none">
+  <div id="listeInhalt"></div>
+</div>
+
+<div id="balkenansicht" style="display:none">
+  <div id="balkenInhalt"></div>
+</div>
+
+<div id="alleEintraege" style="display:none">
+  <div id="alleInhalt"></div>
+</div>
+
+<div id="tippsansicht" style="display:none">
+  <div id="tippsInhalt"></div>
+</div>
+
+<footer>
+  Schulferien Sachsen 2027–2030 (offizielle Termine, SMK/KMK). Für 2030 (Herbst/Weihnachten) und 2031 noch nicht
+  veröffentlicht – in den Einstellungen manuell ergänzbar. Feiertage werden pro Jahr berechnet
+  (inkl. Buß- und Bettag, Reformationstag). Daten liegen im Browser (localStorage) und als JSON-Datei.
+</footer>
+
+<div class="modal" id="tagModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <div id="tagModalBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="eintragModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <h3>Neuer Eintrag</h3>
+    <div class="form-row">
+      <label for="eMitglied">Person</label>
+      <select id="eMitglied"></select>
+    </div>
+    <div class="form-row">
+      <label for="eTyp">Art</label>
+      <select id="eTyp"></select>
+    </div>
+    <div class="form-row">
+      <label for="eVon">Von</label>
+      <input type="date" id="eVon">
+    </div>
+    <div class="form-row">
+      <label for="eBis">Bis (einschließlich)</label>
+      <input type="date" id="eBis">
+    </div>
+    <div class="form-row">
+      <label for="eTitel">Titel (z. B. „Sommerurlaub Italien“, „Festival WGT“, „Oma besuchen“)</label>
+      <input type="text" id="eTitel">
+    </div>
+    <div class="form-row">
+      <label for="eNotiz">Notiz</label>
+      <textarea id="eNotiz" rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <label><input type="checkbox" id="eJaehrlich"> Jährlich wiederkehrend (z. B. Geburtstag – Monat/Tag aus „Von“)</label>
+    </div>
+    <button class="prim" id="eintragSpeichern">Speichern</button>
+  </div>
+</div>
+
+<div class="modal" id="einstellModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <h3>Einstellungen</h3>
+    <div id="einstellungenListe"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

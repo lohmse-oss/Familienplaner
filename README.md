@@ -7,6 +7,12 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 ## Dateien
 - `index.html` – komplette App als eine Datei (Markup, CSS, JS und unveränderliche Basisdaten:
   Schulferien/Feiertage Sachsen, Personen Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
+- `server/sync-server.js` – optionaler Sync-Server für Self-Hosting (siehe unten)
+- `cloudflare/worker.js` + `wrangler.toml` – gleicher Sync-Server als Cloudflare Worker (kostenlos, HTTPS, siehe unten)
+- `server/test-sync.mjs` – Test für den Sync-Server (zero dependencies)
+- `android/` – WebView-Wrapper, baut die App als APK (siehe unten)
+- `test/` – App-seitige Sync-Tests (happy-dom, `cd test && npm install && npm test`)
+- `dist/` – fertige, signierte APK aus dem jeweiligen Branch
 
 ## Lokal starten
 `index.html` direkt per Doppelklick öffnen (file://) – die Basisdaten sind in `app.js` integriert,
@@ -107,6 +113,102 @@ und braucht deshalb eine einmalige Einrichtung (ein Google-Dienst ohne eigene OA
   Feiertage (z. B. Betriebsferien, Brückentage) anlegen, bearbeiten und löschen sowie Fronleichnam (sorbische
   Gemeinden) zuschalten. Eigene Feiertage zählen wie gesetzliche (kein Urlaubstag, schulfrei). Die Pflegedaten stehen im
   JSON-Export; der Online-Cache nicht (er wird neu abgerufen).
+
+## Familien-Sync: gemeinsame Nutzung auf mehreren Handys (Multi-User)
+
+Die App kann ihren kompletten Stand (Einträge, Personen, eigene Ferien, Einstellungen) mit einem kleinen
+Server abgleichen, den du selbst hostest (z. B. Raspberry Pi / NAS zuhause oder ein kleiner VPS).
+Du und deine Partnerin installiert die App jeweils auf dem eigenen Handy und tragt dieselbe
+Server-URL + dasselbe Token ein – danach arbeiten beide auf demselben Datenstand.
+
+### Server starten (Node.js >= 18 auf dem Server-Rechner)
+```
+node server/sync-server.js                                  # Port 8080, Daten in server/data/
+PORT=8080 SYNC_TOKEN=<geheimes-passwort> node server/sync-server.js
+```
+Beim ersten Start ohne `SYNC_TOKEN` wird ein zufälliges Token generiert, in `server/data/token.txt`
+abgelegt (Datei nur für den Server lesbar) und in der Konsole ausgegeben.
+Der Server liefert außerdem die App selbst aus: `http://<server>:8080/`.
+
+- `GET /state` / `PUT /state` mit `Authorization: Bearer <token>`; gespeichert wird immer der Stand mit dem
+  neueren `updatedAt` (last-write-wins). Ohne gültiges Token: 401.
+- Test (startet den Server nur auf 127.0.0.1 und simuliert zwei Clients): `node server/test-sync.mjs`
+
+### In der App einrichten (pro Handy)
+**Extras ▸ Einstellungen ▸ Familien-Sync**: Server-URL (z. B. `http://192.168.1.50:8080` im Heimnetz oder
+`https://planer.example.de` von unterwegs), Sync-Token und ein Gerätename (z. B. „Bettys Handy“).
+Danach synchronisiert die App automatisch: jede Änderung wird ca. 1 Sek. nach dem Speichern gepusht,
+alle 20 Sek. wird der Serverstand gepullt (zusätzlich beim Sichtbarwerden der App); der Status steht
+oben im Header („aktuell (vor 2 Min. · Sebastians Handy)“). Button „Jetzt synchronisieren“ in den
+Einstellungen erzwingt einen Abgleich.
+
+- Konflikte: zuletzt schreibend gewinnt (einfaches last-write-wins auf dem Gesamtstand) – bei
+  gleichzeitigem Bearbeiten auf beiden Geräten gewinnt der neuere Stand.
+- Das Sync-Token wird **nicht** im JSON-Export mit ausgegeben und beim JSON-Import nicht überschrieben.
+- Zugriff von unterwegs nur über HTTPS (z. B. Reverse Proxy mit DynDNS); im Heimnetz reicht http.
+
+### Alternative: kostenlos bei Cloudflare (Workers + KV, immer HTTPS)
+Wenn du einen Cloudflare-Account hast, läuft derselbe Sync-Server ohne eigenen Rechner als Worker
+(gleiche API, die App braucht keine Änderung – nur die Worker-URL in den Einstellungen eintragen):
+```
+cd cloudflare
+npx wrangler login                                   # einmalig im Browser autorisieren
+npx wrangler kv namespace create STATE_KV            # ausgegebene ID in wrangler.toml eintragen
+npx wrangler secret put SYNC_TOKEN                   # gemeinsames Token (Secret, nicht in wrangler.toml!)
+npx wrangler deploy
+# danach erreichbar unter: https://familienplaner-sync.<deine-subdomain>.workers.dev
+```
+Free-Tier reicht locker für 2 Handys: 100.000 Worker-Requests/Tag, KV 100k Reads + 1k Writes/Tag.
+Test des Workers lokal (mit gemocktem KV): `node cloudflare/test-worker.mjs`
+
+#### Auto-Deploy des Workers (GitHub ↔ Cloudflare verbunden)
+Zwei Wege, beide ohne manuelles `wrangler deploy`:
+
+**A) GitHub Actions (`.github/workflows/deploy-worker.yml`, deployt bei Push auf `main`)** – einmalig:
+1. Repo → **Settings ▸ Secrets and variables ▸ Actions** → zwei Secrets anlegen:
+   - `CLOUDFLARE_API_TOKEN` – API-Token aus dem Cloudflare-Dashboard (My Profile ▸ API Tokens) mit den Berechtigungen
+     „Workers Scripts: Edit“, „Workers KV Storage: Edit“, „Account Settings: Read“
+   - `CLOUDFLARE_ACCOUNT_ID` – aus dem Cloudflare-Dashboard (rechte Seitenleiste bzw. Workers-Übersicht)
+2. KV-Namespace einmalig anlegen und ID in `cloudflare/wrangler.toml` eintragen:
+   `npx wrangler kv namespace create STATE_KV` (lokal mit `npx wrangler login`) oder direkt im Dashboard.
+3. `SYNC_TOKEN` als Worker-Secret setzen (persistiert, wird nicht bei jedem Deploy neu gesetzt):
+   lokal `npx wrangler secret put SYNC_TOKEN` oder Dashboard → Workers & Pages → `familienplaner-sync` → Settings → Variables → Encrypted.
+   Danach PR #6 auf `main` mergen bzw. auf `main` pushen – der Worker deployt automatisch.
+
+**B) Cloudflare „Workers Builds“ (connected Git)** – im Cloudflare-Dashboard: Workers & Pages → Create →
+Builds → dieses Repo verbinden, Branch `main`, Deploy-Command: `npx wrangler deploy --config cloudflare/wrangler.toml`.
+KV-Namespace-ID und `SYNC_TOKEN` wie oben (Schritte 2–3) setzen.
+
+Das Sync-Token landet so nie im Repo und wird nicht übergeben – es bleibt Worker-seitig als Secret gespeichert.
+
+## Android-APK
+
+`android/` enthält einen schlanken WebView-Wrapper ohne externe App-Dependencies: Er lädt die gebündelte
+`index.html` aus den APK-Assets (localStorage bleibt pro Handy erhalten) und ist für den Familien-Sync
+konfiguriert (Server-URL + Token werden in den App-Einstellungen gepflegt, Internetzugriff via
+`INTERNET`-Permission, `usesCleartextTraffic` für LAN-Server im Heimnetz).
+Die Oberfläche ist für Smartphones optimiert (Media Query ≤ 768 px: kompakter Header, einspaltige
+Monatsansicht, Wandkalender mit schmaleren Spalten + horizontalem Scrollen, Modals fast vollflächig,
+16-px-Eingabefelder gegen Fokus-Zoom, Touch ohne Verzögerung).
+
+```
+cd android
+cp keystore.properties.example keystore.properties   # Keystore-Pfad/Passwörter anpassen
+# Keystore erzeugen: keytool -genkeypair -keystore familienplaner.keystore -alias familienplaner \
+#   -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Familienplaner"
+./gradlew :app:assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
+```
+Voraussetzungen: JDK 17 und Android SDK (compileSdk 34). Die Web-App (`../index.html`) wird vor jedem
+Build automatisch als Asset in die APK kopiert (`copyWebApp`).
+Ohne `keystore.properties` wird eine unsignierte APK gebaut.
+
+## Tests
+- `node server/test-sync.mjs` – Sync-Server (Loopback, zwei simulierte Clients: Auth, LWW, CORS, Static)
+- `node cloudflare/test-worker.mjs` – Cloudflare-Worker (in Node aufgerufen, KV gemockt: Auth, LWW, CORS)
+- `cd test && npm install && npm test` – App-Sync-Logik (Push/Pull, last-write-wins, Token nicht im Export,
+  Import überschreibt Sync-Konfig nicht, Server-Daten werden beim Pull wie ein Import validiert, Gerätename/Sync-Zugang
+  bleiben lokal, `updatedAt` übersteht einen Neustart) gegen einen lokalen Test-Server
 
 ## Datenquellen
 Schulferien: eingebaute Termine 2027–2030 (Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender, mit der

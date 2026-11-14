@@ -1,0 +1,27 @@
+name: Deploy Sync-Worker (Cloudflare)
+
+# Deployt cloudflare/worker.js als Worker, sobald auf main gepusht wird
+# (oder manuell über Actions -> "Run workflow").
+# Voraussetzung (einmalig, siehe README "Auto-Deploy des Workers"):
+#   - Repo-Secrets CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+#   - KV-Namespace-ID in cloudflare/wrangler.toml eingetragen
+#   - SYNC_TOKEN als Worker-Secret gesetzt (Dashboard oder `wrangler secret put`)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config cloudflare/wrangler.toml

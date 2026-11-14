@@ -1,0 +1,11 @@
+{
+  "name": "familienplaner-app-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node app-sync.test.mjs"
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.4"
+  }
+}

@@ -1,0 +1,2452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<title>Familien-Jahresplaner Sachsen</title>
+<style>
+  :root {
+    --ferien: #ffedd5;
+    --feiertag: #fee2e2;
+    --schulfrei: #dbeafe;
+    --text: #1f2937;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 1rem; background: #f8fafc; color: var(--text);
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+    margin-bottom: 1rem;
+  }
+  h1 { font-size: 1.3rem; margin: 0 1rem 0 0; }
+  button, select {
+    font: inherit; padding: .4rem .8rem; border: 1px solid #cbd5e1;
+    border-radius: .5rem; background: #fff; cursor: pointer;
+  }
+  button:hover { background: #f1f5f9; }
+  button.prim { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.prim:hover { background: #1d4ed8; }
+  #uebersicht { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+  .karte {
+    background: #fff; border: 1px solid var(--border); border-radius: .6rem;
+    padding: .6rem .9rem; min-width: 220px; font-size: .9rem;
+  }
+  .karte.warn { background: #fef2f2; border-color: #fca5a5; }
+  .karte .zahl { font-size: 1.4rem; font-weight: 700; }
+  #legende { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; margin-bottom: 1rem; }
+  #legende span::before {
+    content: ""; display: inline-block; width: .8rem; height: .8rem;
+    border-radius: .2rem; margin-right: .3rem; vertical-align: -2px;
+  }
+  .l-ferien::before { background: var(--ferien); border: 1px solid #fdba74; }
+  .l-feiertag::before { background: var(--feiertag); border: 1px solid #f87171; }
+  .l-schulfrei::before { background: var(--schulfrei); border: 1px solid #60a5fa; }
+  .l-chip::before { background: #6b7280; border-radius: 50%; }
+  #monate {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .monat { background: #fff; border: 1px solid var(--border); border-radius: .6rem; padding: .6rem; }
+  .monat h3 { margin: 0 0 .4rem; font-size: 1rem; }
+  .wochentage, .tage { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .wochentage span { font-size: .7rem; text-align: center; color: #6b7280; }
+  .tag {
+    min-height: 3.2rem; padding: 2px; font-size: .75rem; cursor: pointer;
+    border-radius: .25rem; position: relative; overflow: hidden;
+  }
+  .tag:hover { outline: 2px solid #93c5fd; }
+  .tag.leer { background: transparent; cursor: default; }
+  .tag.leer:hover { outline: none; }
+  .tag .nr { font-weight: 600; }
+  .tag.ferien { background: var(--ferien); }
+  .tag.feiertag { background: var(--feiertag); }
+  .tag.feiertag .nr { color: #b91c1c; }
+  .tag.schulfrei { box-shadow: inset 0 0 0 2px #60a5fa; }
+  .tag .ft { display: block; font-size: .62rem; color: #b91c1c; line-height: 1.1; }
+  .chip { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin: 1px; }
+  .tag.halbtag .nr::after { content: " ½"; color: #7c3aed; font-size: .65rem; }
+  .wand-bar, .auswahl-bar {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+    background: #fff; border: 1px solid var(--border); border-radius: .6rem;
+    padding: .5rem .8rem; margin-bottom: .6rem; font-size: .9rem;
+  }
+  .auswahl-bar { position: sticky; top: 0; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+  .auswahl-bar #auswahlInfo { font-weight: 700; min-width: 9rem; }
+  .hint { font-size: .8rem; color: #6b7280; margin: .2rem 0 .6rem; }
+  .wand-monat {
+    margin: 1rem 0 .3rem; font-size: 1.05rem; color: #374151;
+    border-bottom: 2px solid #cbd5e1; padding-bottom: .2rem;
+    scroll-margin-top: 7rem;
+  }
+  .tag-zeile {
+    display: flex; gap: .5rem;
+    align-items: center; padding: .15rem .5rem; font-size: .85rem;
+    border-radius: .25rem; scroll-margin-top: 7rem;
+  }
+  .tag-zeile .datum { width: 6.5rem; min-width: 6.5rem; }
+  .tag-zeile .badges { flex: 1; min-width: 0; }
+  .zellen { display: flex; flex: 1; gap: 2px; min-width: 0; }
+  .tag-zelle {
+    flex: 1; min-width: 6.5rem; min-height: 1.7rem; padding: 1px 3px;
+    border-left: 3px solid transparent; border-radius: .25rem; cursor: pointer;
+  }
+  .tag-zelle:hover { outline: 1px solid #93c5fd; }
+  .tag-zelle.ausgewaehlt { outline: 2px solid #2563eb; background: #dbeafe; }
+  .wand-kopf {
+    display: flex; gap: .5rem; align-items: center; padding: .3rem .5rem;
+    font-size: .8rem; border-bottom: 2px solid #cbd5e1; margin-bottom: .2rem;
+    position: sticky; top: 3.1rem; z-index: 4; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .modus-select { font-size: .72rem; margin-left: auto; padding: .1rem .2rem; }
+  .wand-kopf .datum { width: 6.5rem; min-width: 6.5rem; }
+  .wand-kopf .kw { width: 4rem; min-width: 4rem; color: #6b7280; font-size: .75rem; }
+  .wand-kopf .badges { flex: 1; min-width: 0; }
+  .zellkopf { flex: 1; min-width: 6.5rem; display: flex; align-items: center; gap: .3rem; border-left: 3px solid transparent; padding-left: 3px; }
+  .zellkopf { min-width: 0; overflow: hidden; }
+  .zellkopf strong { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zellkopf .modus-select { flex: 1 1 0; min-width: 0; margin-left: 0; text-overflow: ellipsis; }
+  .modus-switch { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 400; cursor: pointer; margin-left: auto; }
+  .modus-switch input { accent-color: #2563eb; margin: 0; }
+  .tag-zeile:hover { outline: 1px solid #93c5fd; }
+  .tag-zeile.wochenende { background: #f1f5f9; color: #475569; }
+  .tag-zeile.ferien { background: var(--ferien); }
+  .tag-zeile.feiertag { background: var(--feiertag); }
+  .tag-zeile.feiertag .datum { color: #b91c1c; font-weight: 700; }
+  .tag-zeile.halbtag .datum::after { content: " ½"; color: #7c3aed; font-weight: 700; }
+  .tag-zeile.heute { box-shadow: inset 4px 0 0 #2563eb; }
+  .tag-zeile .datum { cursor: pointer; }
+  .tag-zeile .kw { color: #6b7280; font-size: .75rem; width: 4rem; min-width: 4rem; }
+  .badge { display: inline-block; font-size: .72rem; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; }
+  .badge.feiertag-b { background: #fecaca; color: #991b1b; }
+  .badge.ferien-b { background: #fed7aa; color: #9a3412; }
+  .badge.halb-b { background: #ede9fe; color: #6d28d9; font-weight: 700; }
+  .chip-e { color: #fff; border-radius: .3rem; padding: 0 .35rem; margin-right: .25rem; font-size: .75rem; }
+  .liste-karte { background: #fff; border: 1px solid var(--border); border-radius: .6rem; padding: .8rem 1rem; margin-bottom: 1rem; }
+  .liste-karte h3 { margin: 0 0 .3rem; font-size: 1rem; }
+  .liste-summe { font-size: .9rem; color: #374151; margin-bottom: .5rem; }
+  .liste-zeile {
+    display: flex; flex-wrap: wrap; gap: .8rem; align-items: center;
+    border-bottom: 1px dashed var(--border); padding: .3rem 0; font-size: .9rem;
+  }
+  .balken-zeile { display: flex; align-items: center; gap: 1px; margin-bottom: 2px; }
+  .balken-name { width: 9rem; min-width: 9rem; font-size: .8rem; padding-left: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .balken-zelle { width: 1.1rem; height: 1.1rem; min-width: 1.1rem; border-radius: .15rem; background: #f1f5f9; cursor: pointer; font-size: .5rem; text-align: center; color: #94a3b8; line-height: 1.1rem; }
+  .balken-zelle.kopf { cursor: default; background: transparent; }
+  .balken-zelle.b-ferien { background: #fdba74; }
+  .balken-zelle.b-urlaub { background: #16a34a; }
+  .balken-zelle.b-schulfrei { background: #3b82f6; }
+  .balken-zelle.b-termin { background: #a855f7; }
+  #balkenInhalt { overflow-x: auto; padding-bottom: .5rem; }
+  .modus-leiste, .hint-touch { display: none; }
+  .btn-schnell { font-size: .8rem; padding: .25rem .6rem; }
+  button, select, .tag, .tag-zelle, .tag-zeile .datum, .chip-e { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+  @media print {
+    .modus-leiste, .hint-touch, #pflegeModal { display: none !important; }
+    header button, header select, header label, .dd-menu, .auswahl-bar, .wand-bar, .hint { display: none !important; }
+    body { background: #fff; }
+    .monat, .liste-karte, .tag-zeile { break-inside: avoid; }
+  }
+  .modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    align-items: center; justify-content: center; z-index: 10; padding: 1rem;
+  }
+  .modal.offen { display: flex; }
+  .modal > div {
+    background: #fff; border-radius: .8rem; padding: 1.2rem;
+    max-width: 640px; width: 100%; max-height: 85vh; overflow: auto;
+  }
+  .modal h3 { margin-top: 0; }
+  .schliessen { float: right; }
+  .form-row { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .7rem; }
+  .form-row label { font-size: .85rem; font-weight: 600; }
+  .form-row input, .form-row select, .form-row textarea {
+    font: inherit; padding: .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; width: 100%;
+  }
+  .eintrag-zeile {
+    display: flex; justify-content: space-between; gap: .5rem;
+    border: 1px solid var(--border); border-radius: .4rem;
+    padding: .5rem .7rem; margin-bottom: .5rem; font-size: .9rem;
+  }
+  .mit-row { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .5rem; }
+  .mit-row input[type=text] { flex: 1; min-width: 140px; padding: .35rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
+  .ferien-text { color: #c2410c; font-weight: 600; }
+  .feiertag-text { color: #b91c1c; font-weight: 600; }
+  #gcalStatus { font-size: .85rem; color: #475569; margin-left: .5rem; }
+  .dd { position: relative; }
+  .dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 90; background: #fff; border: 1px solid var(--border); border-radius: .5rem; box-shadow: 0 10px 28px rgba(15,23,42,.2); padding: 6px; min-width: 240px; }
+  .dd.open .dd-menu { display: block; }
+  .dd-list button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: .4rem; padding: .45rem .6rem; font-size: .9rem; }
+  .dd-list button:hover { background: #f1f5f9; }
+  .dd-list button[aria-pressed="true"] { font-weight: 700; background: #dbeafe; }
+  .dd-sep { height: 1px; background: var(--border); margin: 5px 2px; }
+  .dd-cap { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; padding: .25rem .5rem; }
+  a.btn-link { display: inline-block; font-size: .85rem; padding: .35rem .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: #fff; color: inherit; text-decoration: none; text-align: center; }
+  a.btn-link:hover { background: #f1f5f9; }
+  #pflegeModal > div { max-width: 760px; }
+  .pf-box { background: #f1f5f9; border-radius: .5rem; padding: .6rem .8rem; margin-bottom: .8rem; font-size: .9rem; }
+  .pf-box > * + * { margin-top: .4rem; }
+  .pf-aktionen { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .pf-status { font-size: .85rem; color: #475569; min-height: 1.1em; }
+  .pf-status.fehler { color: #b91c1c; }
+  .pf-zeile { display: flex; align-items: center; gap: .6rem; border-bottom: 1px dashed var(--border); padding: .4rem 0; }
+  .pf-zeile .pf-text { flex: 1; min-width: 0; }
+  .pf-zeile.pf-aus .pf-text { opacity: .5; text-decoration: line-through; }
+  .pf-zeile input[type=checkbox] { width: 1.1rem; height: 1.1rem; }
+  .pf-badge { font-size: .7rem; border-radius: .3rem; padding: 0 .4rem; white-space: nowrap; }
+  .pf-badge.eingebaut { background: #e5e7eb; color: #374151; }
+  .pf-badge.online { background: #dbeafe; color: #1e40af; }
+  .pf-badge.berechnet { background: #e5e7eb; color: #374151; }
+  .pf-badge.eigen { background: #ede9fe; color: #6d28d9; }
+  .pf-form { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 1rem; align-items: center; }
+  .pf-form input[type=text] { flex: 1 1 10rem; min-width: 0; padding: .35rem; border: 1px solid #cbd5e1; border-radius: .4rem; font: inherit; }
+  .pf-form input[type=date] { font: inherit; padding: .3rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
+  .pf-hinweis { font-size: .8rem; color: #475569; margin: .3rem 0 .5rem; }
+  .pf-hinweis.warn { color: #b45309; }
+  #pflegeInhalt h4 { margin: 1rem 0 .3rem; }
+  footer { margin-top: 1.5rem; font-size: .8rem; color: #6b7280; }
+  /* ---------- Handy / schmale Bildschirme ---------- */
+  @media screen and (max-width: 768px) {
+    body { padding: .6rem; padding-left: max(.6rem, env(safe-area-inset-left)); padding-right: max(.6rem, env(safe-area-inset-right)); }
+    /* Kopfzeile: Titel + Neu, darunter Jahr/Person, darunter drei Menüs */
+    header { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-bottom: .6rem; }
+    h1 { grid-column: 1 / 3; grid-row: 1; font-size: 1.1rem; margin: 0; align-self: center; }
+    #btnNeu { grid-column: 3; grid-row: 1; }
+    header label.hl { display: block; min-width: 0; grid-row: 2; }
+    header label.hl:nth-of-type(1) { grid-column: 1; }
+    header label.hl:nth-of-type(2) { grid-column: 2 / 4; }
+    .dd { grid-row: 3; }
+    .lbl { display: none; }
+    header select { width: 100%; }
+    #gcalStatus { grid-column: 1 / -1; margin: 0; }
+    button, select { min-height: 2.75rem; }
+    input, select, textarea { font-size: 16px; } /* verhindert Auto-Zoom in iOS */
+    /* Menüs als Bottom-Sheet statt abgeschnittener Dropdowns */
+    .dd { position: static; }
+    .dd > button { width: 100%; padding-left: .3rem; padding-right: .3rem; }
+    .dd-menu {
+      position: fixed; left: .5rem; right: .5rem; top: auto;
+      bottom: calc(.5rem + env(safe-area-inset-bottom)); min-width: 0; z-index: 90;
+      max-height: 80dvh; overflow: auto;
+    }
+    .dd-list button { min-height: 2.9rem; font-size: 1rem; }
+    /* Übersicht kompakt in 2 Spalten */
+    #uebersicht { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .6rem; }
+    .karte { min-width: 0; padding: .45rem .6rem; font-size: .78rem; line-height: 1.25; }
+    .karte .zahl { font-size: 1.15rem; }
+    #legende { gap: .2rem .8rem; font-size: .72rem; margin-bottom: .6rem; }
+    #legende .l-chip { display: none; }
+    /* Monatsansicht */
+    #monate { grid-template-columns: 1fr; gap: .6rem; }
+    .tag { min-height: 2.9rem; }
+    .tag .ft { display: none; }
+    /* Wandkalender: keine horizontale Scrollleiste mehr, Spaltenkopf klebt oben */
+    .wand-bar { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; padding: .4rem; }
+    .wand-bar label { display: flex; align-items: center; gap: .3rem; min-width: 0; }
+    .wand-bar label select, .wand-bar label input { flex: 1; min-width: 0; width: 100% !important; }
+    .wand-bar > label:nth-child(1) { grid-area: 1 / 1; }
+    #btnJumpHeute { grid-area: 1 / 2; }
+    .wand-bar > label:nth-child(2) { grid-area: 2 / 1; }
+    .wand-bar > label:nth-child(3) { grid-area: 2 / 2; }
+    #btnJumpKW, #btnJumpDatum { display: none; } /* Sprung passiert direkt bei Eingabe */
+    .hint-desktop { display: none; }
+    .hint-touch { display: block; }
+    .modus-leiste { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .5rem; }
+    .modus-item { display: flex; flex-direction: column; gap: .15rem; font-size: .8rem; background: #fff; border: 1px solid var(--border); border-left: 4px solid transparent; border-radius: .4rem; padding: .3rem .5rem; min-width: 0; }
+    .modus-item .modus-select { margin: 0; width: 100%; font-size: 16px; padding: .2rem .3rem; }
+    .wand-kopf { top: 0; min-width: 0; gap: .25rem; padding: .3rem .2rem; font-size: .75rem; }
+    .wand-kopf .datum { width: 4.9rem; min-width: 4.9rem; }
+    .wand-kopf .kw, .wand-kopf .badges, .wand-kopf .modus-select { display: none; }
+    .zellkopf { min-width: 0; overflow: hidden; }
+    .zellkopf strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-zeile { flex-wrap: wrap; row-gap: 0; gap: .25rem; padding: .1rem .2rem; font-size: .8rem; scroll-margin-top: 3.6rem; min-width: 0; align-items: stretch; }
+    .tag-zeile .datum { width: 4.9rem; min-width: 4.9rem; align-self: center; font-size: .8rem; -webkit-user-select: none; user-select: none; }
+    .tag-zeile .kw { display: none; }
+    .tag-zeile.mo { margin-top: .3rem; }
+    .tag-zeile.mo .kw { display: block; order: -1; flex: 0 0 100%; width: 100%; font-size: .65rem; font-weight: 700; color: #475569; border-top: 1px solid #cbd5e1; padding-top: .15rem; }
+    .tag-zeile .zellen { order: 1; flex: 1; gap: 2px; }
+    .tag-zeile .badges { order: 2; flex: 0 0 100%; padding: 0 0 .1rem 5.15rem; }
+    .tag-zeile .badges:empty { display: none; }
+    .badge.ferien-b { display: none; }
+    .badge.ferien-b.erst { display: inline-block; }
+    .tag-zelle { min-width: 0; min-height: 2.5rem; padding: 2px 3px; overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .tag-zelle .chip-e { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 0 1px; padding: 0 .2rem; font-size: .68rem; line-height: 1.25; }
+    .tag-zelle .chip-e .ct { display: none; }
+    .wand-monat { scroll-margin-top: 3.6rem; font-size: 1rem; margin-top: .8rem; }
+    /* Auswahlleiste unten fixiert (Daumenzone), nur wenn etwas gewählt ist */
+    .auswahl-bar {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; z-index: 20; margin: 0;
+      border-radius: 1rem 1rem 0 0; border-width: 1px 0 0; gap: .4rem .6rem;
+      padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom));
+      box-shadow: 0 -4px 14px rgba(15,23,42,.18);
+    }
+    .auswahl-bar.leer { display: none; }
+    .auswahl-bar .lang { display: none; }
+    .auswahl-bar #auswahlInfo { order: 1; flex: 1 1 100%; min-width: 0; font-size: .82rem; }
+    .auswahl-bar #auswahlKommentar { order: 2; flex: 1 1 9rem; min-width: 9rem !important; padding: .4rem .5rem; border: 1px solid #cbd5e1; border-radius: .5rem; }
+    .auswahl-bar #btnMarkieren { order: 3; }
+    .auswahl-bar label { order: 4; display: flex; align-items: center; gap: .3rem; min-height: 2.4rem; font-size: .8rem; }
+    .auswahl-bar #btnAuswahlClear { order: 5; margin-left: auto; min-height: 2.4rem; padding: .2rem .7rem; font-size: .85rem; }
+    .auswahl-bar input[type=checkbox] { width: 1.25rem; height: 1.25rem; }
+    .modus-item .modus-select { min-height: 2.4rem; }
+    body.mit-auswahl { padding-bottom: 11rem; }
+    /* Listen, Balken, Tipps */
+    .liste-karte { padding: .6rem .7rem; margin-bottom: .6rem; }
+    .liste-zeile { gap: .2rem .6rem; }
+    .liste-zeile > span:last-child .btn-schnell { margin-bottom: .2rem; }
+    .btn-schnell { min-height: 2.5rem; }
+    .balken-name { width: 5rem; min-width: 5rem; position: sticky; left: 0; z-index: 1; background: #f8fafc; }
+    .balken-zelle { width: 1.4rem; min-width: 1.4rem; height: 1.6rem; line-height: 1.6rem; font-size: .55rem; }
+    /* Dialoge als Bottom-Sheet */
+    .modal { align-items: flex-end; padding: 0; }
+    .modal > div { max-width: none; border-radius: 1rem 1rem 0 0; max-height: 92dvh; padding: 1rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+    .modal > div { position: relative; }
+    .schliessen { float: none; position: absolute; top: .6rem; right: .6rem; min-width: 2.75rem; }
+    .modal h3 { padding-right: 3.2rem; min-height: 2.75rem; display: flex; align-items: center; margin-bottom: .5rem; }
+    .eintrag-zeile { flex-direction: column; }
+    .eintrag-zeile > span { display: flex; gap: .5rem; }
+    .eintrag-zeile > span { flex-wrap: wrap; }
+    .eintrag-zeile > span button { flex: 1; }
+    .eintrag-zeile > span a.btn-link { flex: 1 1 100%; padding: .7rem; font-size: .9rem; }
+    #tagNeuBtn, #eintragSpeichern { width: 100%; }
+    .mit-row { gap: .4rem; }
+    .pf-zeile input[type=checkbox] { width: 1.4rem; height: 1.4rem; }
+    .pf-form input[type=date], .pf-form input[type=text] { min-height: 2.75rem; }
+    .pf-form button { flex: 1 1 auto; }
+    .mit-row input[type=color] { width: 2.75rem; height: 2.75rem; padding: 2px; }
+    .mit-row input[type=text] { min-height: 2.75rem; }
+    .mit-row input[type=number] { min-height: 2.75rem; }
+    .form-row input, .form-row select, .form-row textarea { min-height: 2.75rem; }
+    footer { margin-bottom: 1rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1> 🗓️ Familien-Jahresplaner</h1>
+  <label class="hl"><span class="lbl">Jahr:</span> <select id="jahrSelect" aria-label="Jahr"></select></label>
+  <button class="prim" id="btnNeu">+ Eintrag</button>
+  <label class="hl"><span class="lbl">Anzeige:</span> <select id="filterMitglied" aria-label="Anzeige: Person"></select></label>
+  <div class="dd" id="ddAnsicht">
+    <button type="button" id="btnAnsicht" aria-haspopup="menu" aria-expanded="false" aria-controls="menuAnsicht">Ansicht ▾</button>
+    <div class="dd-menu dd-list" id="menuAnsicht" role="menu" aria-label="Ansicht">
+      <button type="button" role="menuitem" id="btnAnsichtWand" data-ansicht="wand" aria-pressed="true">Wandkalender (alle Tage)</button>
+      <button type="button" role="menuitem" id="btnAnsichtMonate" data-ansicht="monate" aria-pressed="false">Monatsansicht</button>
+      <button type="button" role="menuitem" id="btnAnsichtListe" data-ansicht="liste" aria-pressed="false">Urlaubsliste</button>
+      <button type="button" role="menuitem" id="btnAnsichtBalken" data-ansicht="balken" aria-pressed="false">Jahresbalken</button>
+      <button type="button" role="menuitem" id="btnAnsichtAlle" data-ansicht="alle" aria-pressed="false">Alle Einträge</button>
+      <button type="button" role="menuitem" id="btnAnsichtTipps" data-ansicht="tipps" aria-pressed="false">Betreuung &amp; Brückentage</button>
+    </div>
+  </div>
+  <div class="dd" id="ddDatei">
+    <button type="button" id="btnDatei" aria-haspopup="menu" aria-expanded="false" aria-controls="menuDatei">Datei ▾</button>
+    <div class="dd-menu dd-list" id="menuDatei" role="menu" aria-label="Datei">
+      <div class="dd-cap">Exportieren</div>
+      <button type="button" role="menuitem" id="btnExport">JSON exportieren</button>
+      <button type="button" role="menuitem" id="btnIcs">ICS exportieren</button>
+      <div class="dd-sep" role="separator"></div>
+      <div class="dd-cap">Importieren</div>
+      <button type="button" role="menuitem" id="btnImport">JSON importieren</button>
+      <div class="dd-sep" role="separator"></div>
+      <button type="button" role="menuitem" id="btnDrucken">Drucken</button>
+    </div>
+  </div>
+  <div class="dd" id="ddExtras">
+    <button type="button" id="btnExtras" aria-haspopup="menu" aria-expanded="false" aria-controls="menuExtras">Extras ▾</button>
+    <div class="dd-menu dd-list" id="menuExtras" role="menu" aria-label="Extras">
+      <button type="button" role="menuitem" id="btnPflege">Ferien &amp; Feiertage pflegen</button>
+      <button type="button" role="menuitem" id="btnEinstellungen">Einstellungen</button>
+      <button type="button" role="menuitem" id="btnGcal">Mit Google Kalender verbinden &amp; syncen</button>
+    </div>
+  </div>
+  <input type="file" id="importFile" accept="application/json" hidden>
+  <span id="gcalStatus"></span>
+</header>
+
+<div id="uebersicht"></div>
+
+<div id="legende">
+  <span class="l-ferien">Schulferien Sachsen</span>
+  <span class="l-feiertag">Feiertag Sachsen</span>
+  <span class="l-schulfrei">Schulfrei (Kind, z. B. beweglicher Ferientag)</span>
+  <span class="l-chip">Eintrag (Farbe = Person, Klick auf Tag für Details)</span>
+</div>
+
+<div id="monate" style="display:none"></div>
+
+<div id="wandkalender">
+  <div class="wand-bar">
+    <label>Monat: <select id="jumpMonat"></select></label>
+    <label>KW: <input type="number" id="jumpKW" min="1" max="53" style="width:4.5rem"> <button id="btnJumpKW">Springen</button></label>
+    <label>Datum: <input type="date" id="jumpDatum"> <button id="btnJumpDatum">Springen</button></label>
+    <button id="btnJumpHeute">Heute</button>
+  </div>
+  <div class="auswahl-bar" id="auswahlBar">
+    <span id="auswahlInfo">0 Zellen ausgewählt</span>
+    <input type="text" id="auswahlKommentar" placeholder="Titel / Notiz (z. B. Ostsee)" style="min-width:12rem">
+    <button class="prim" id="btnMarkieren"><span class="lang">Ausgewählte </span>markieren</button>
+    <label title="Bereich wird in reine Arbeitstage (Werktage ohne Feiertag) aufgeteilt – Wochenenden und Feiertage bleiben unmarkiert. 24.12./31.12. zählen als halbe Tage."><input type="checkbox" id="nurArbeitstage"> nur Arbeitstage</label>
+    <label title="Jeder weitere Tipp wählt den ganzen Zeitraum vom zuerst gewählten Tag bis zum getippten Tag (am Computer: Shift+Klick)."><input type="checkbox" id="bereichModus"> Bereich<span class="lang"> wählen</span></label>
+    <button id="btnAuswahlClear"><span class="lang">Auswahl </span>aufheben</button>
+  </div>
+  <p class="hint hint-desktop">Alle Personen nebeneinander · Klick auf eine Personen-Zelle = Tag auswählen, Shift+Klick = Bereich, Doppelklick = Details/Löschen. Pro Person oben der Schalter Urlaub/Abwesenheit; Kommentar landet an den markierten Einträgen. Wochenenden, Feiertage und Ferien sind farblich hervorgehoben; ½ = halber Tag.</p>
+  <p class="hint hint-touch">Tippen = Tag wählen · „Bereich wählen“ + weiterer Tipp = Zeitraum · Lange drücken = Details/Löschen · Tipp auf das Datum wählt alle Personen. Modus je Person oben festlegen.</p>
+  <div id="wandliste"></div>
+</div>
+
+<div id="urlaubsliste" style="display:none">
+  <div id="listeInhalt"></div>
+</div>
+
+<div id="balkenansicht" style="display:none">
+  <div id="balkenInhalt"></div>
+</div>
+
+<div id="alleEintraege" style="display:none">
+  <div id="alleInhalt"></div>
+</div>
+
+<div id="tippsansicht" style="display:none">
+  <div id="tippsInhalt"></div>
+</div>
+
+<footer>
+  Schulferien und Feiertage Sachsen: eingebaute Termine (2027–2030) werden – wenn aktiviert – mit der freien
+  OpenHolidays-API abgeglichen. Fehlende oder geänderte Termine lassen sich unter Extras ▸ „Ferien &amp; Feiertage
+  pflegen“ prüfen, ausblenden und ergänzen. Feiertage ohne Online-Daten werden nach Gesetz berechnet. Daten liegen im
+  Browser (localStorage) und als JSON-Datei.
+</footer>
+
+<div class="modal" id="tagModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <div id="tagModalBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="eintragModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <h3 id="eintragModalTitel">Neuer Eintrag</h3>
+    <div class="form-row">
+      <label for="eMitglied">Person</label>
+      <select id="eMitglied"></select>
+    </div>
+    <div class="form-row">
+      <label for="eTyp">Art</label>
+      <select id="eTyp"></select>
+    </div>
+    <div class="form-row">
+      <label for="eVon">Von</label>
+      <input type="date" id="eVon">
+    </div>
+    <div class="form-row">
+      <label for="eBis">Bis (einschließlich)</label>
+      <input type="date" id="eBis">
+    </div>
+    <div class="form-row">
+      <label for="eTitel">Titel (z. B. „Sommerurlaub Italien“, „Festival WGT“, „Oma besuchen“)</label>
+      <input type="text" id="eTitel">
+    </div>
+    <div class="form-row">
+      <label for="eNotiz">Notiz</label>
+      <textarea id="eNotiz" rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <label><input type="checkbox" id="eJaehrlich"> Jährlich wiederkehrend (z. B. Geburtstag – Monat/Tag aus „Von“)</label>
+    </div>
+    <button class="prim" id="eintragSpeichern">Speichern</button>
+  </div>
+</div>
+
+<div class="modal" id="pflegeModal">
+  <div>
+    <button class="schliessen" aria-label="Schließen">✕</button>
+    <h3>Ferien &amp; Feiertage pflegen</h3>
+    <div id="pflegeInhalt"></div>
+  </div>
+</div>
+
+<div class="modal" id="einstellModal">
+  <div>
+    <button class="schliessen">✕</button>
+    <h3>Einstellungen</h3>
+    <div id="einstellungenListe"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const FERIEN_SACHSEN = [
+  { name: 'Weihnachtsferien 2026/27', von: '2026-12-23', bis: '2027-01-02' },
+  { name: 'Winterferien 2027', von: '2027-02-08', bis: '2027-02-19' },
+  { name: 'Osterferien 2027', von: '2027-03-26', bis: '2027-04-02' },
+  { name: 'Unterrichtsfreier Tag 2027', von: '2027-05-07', bis: '2027-05-07' },
+  { name: 'Pfingstferien 2027', von: '2027-05-15', bis: '2027-05-18' },
+  { name: 'Sommerferien 2027', von: '2027-07-10', bis: '2027-08-20' },
+  { name: 'Herbstferien 2027', von: '2027-10-11', bis: '2027-10-23' },
+  { name: 'Weihnachtsferien 2027/28', von: '2027-12-23', bis: '2028-01-01' },
+  { name: 'Winterferien 2028', von: '2028-02-14', bis: '2028-02-26' },
+  { name: 'Osterferien 2028', von: '2028-04-14', bis: '2028-04-22' },
+  { name: 'Unterrichtsfreier Tag 2028', von: '2028-05-26', bis: '2028-05-26' },
+  { name: 'Sommerferien 2028', von: '2028-07-22', bis: '2028-09-01' },
+  { name: 'Herbstferien 2028', von: '2028-10-23', bis: '2028-11-03' },
+  { name: 'Weihnachtsferien 2028/29', von: '2028-12-23', bis: '2029-01-03' },
+  { name: 'Winterferien 2029', von: '2029-02-05', bis: '2029-02-16' },
+  { name: 'Osterferien 2029', von: '2029-03-29', bis: '2029-04-06' },
+  { name: 'Unterrichtsfreier Tag 2029', von: '2029-05-11', bis: '2029-05-11' },
+  { name: 'Pfingstferien 2029', von: '2029-05-19', bis: '2029-05-22' },
+  { name: 'Sommerferien 2029', von: '2029-07-21', bis: '2029-08-31' },
+  { name: 'Herbstferien 2029', von: '2029-10-22', bis: '2029-11-02' },
+  { name: 'Weihnachtsferien 2029/30', von: '2029-12-22', bis: '2030-01-04' },
+  { name: 'Winterferien 2030', von: '2030-02-18', bis: '2030-03-01' },
+  { name: 'Osterferien 2030', von: '2030-04-19', bis: '2030-04-26' },
+  { name: 'Pfingstferien 2030', von: '2030-06-08', bis: '2030-06-11' },
+  { name: 'Unterrichtsfreier Tag 2030', von: '2030-05-31', bis: '2030-05-31' },
+  { name: 'Sommerferien 2030', von: '2030-07-13', bis: '2030-08-23' }
+];
+
+const JAHR_MIN = 2027;
+const JAHR_MAX = 2031;
+
+const TYP_LABEL = {
+  urlaub: 'Urlaub',
+  schulfrei: 'Schulfrei (flexibel)',
+  betreuung: 'Betreuung / Ferienlager (Kind)',
+  termin: 'Besonderer Tag / Termin',
+  abwesenheit: 'Abwesenheit'
+};
+
+// Kurzlabels für die schmalen Modus-Auswahlfelder je Person
+const TYP_KURZ = { urlaub: 'Urlaub', schulfrei: 'Schulfrei', betreuung: 'Betreuung', termin: 'Termin', abwesenheit: 'Abwesenheit' };
+
+const TYP_ICON ={ urlaub: '🏖️', schulfrei: '🎒', betreuung: '🏡', termin: '📌', abwesenheit: '🚗' };
+
+const MODUS_OPTIONEN = {
+  elternteil: ['urlaub', 'abwesenheit', 'termin'],
+  kind: ['schulfrei', 'betreuung', 'abwesenheit', 'termin']
+};
+
+const MONATSNAMEN = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const WOCHENTAG_KURZ = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+const STORAGE_KEY = 'familienplaner.v1';
+
+let state = null;
+let gcalToken = null;
+let gcalTokenBis = 0; // Ablaufzeit des Tokens (ms)
+let gcalCalendarId = null;
+let gcalSkriptPromise = null;
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function toKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+
+function fromKey(k) {
+  const [y, m, d] = k.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDaysKey(k, n) {
+  const d = fromKey(k);
+  d.setDate(d.getDate() + n);
+  return toKey(d);
+}
+
+function daysBetween(a, b) {
+  return Math.round((fromKey(b) - fromKey(a)) / 86400000) + 1;
+}
+
+function isWerktag(k) {
+  const dow = fromKey(k).getDay();
+  return dow >= 1 && dow <= 5;
+}
+
+function ostern(jahr) {
+  const a = jahr % 19;
+  const b = Math.floor(jahr / 100);
+  const c = jahr % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const monat = Math.floor((h + l - 7 * m + 114) / 31);
+  const tag = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(jahr, monat - 1, tag);
+}
+
+function bussUndBettag(jahr) {
+  for (let tag = 16; tag <= 22; tag++) {
+    const d = new Date(jahr, 10, tag);
+    if (d.getDay() === 3) return d;
+  }
+  return null;
+}
+
+function feiertageSachsen(jahr, mitFronleichnam) {
+  const e = ostern(jahr);
+  const liste = [];
+  const push = (d, name) => liste.push({ key: toKey(d), name });
+  push(new Date(jahr, 0, 1), 'Neujahr');
+  push(new Date(e.getFullYear(), e.getMonth(), e.getDate() - 2), 'Karfreitag');
+  push(new Date(e.getFullYear(), e.getMonth(), e.getDate() + 1), 'Ostermontag');
+  push(new Date(jahr, 4, 1), 'Tag der Arbeit');
+  push(new Date(e.getFullYear(), e.getMonth(), e.getDate() + 39), 'Christi Himmelfahrt');
+  push(new Date(e.getFullYear(), e.getMonth(), e.getDate() + 50), 'Pfingstmontag');
+  if (mitFronleichnam) push(new Date(e.getFullYear(), e.getMonth(), e.getDate() + 60), 'Fronleichnam (regional, sorbische Gemeinden)');
+  push(new Date(jahr, 9, 3), 'Tag der Deutschen Einheit');
+  push(new Date(jahr, 9, 31), 'Reformationstag');
+  const bb = bussUndBettag(jahr);
+  if (bb) push(bb, 'Buß- und Bettag');
+  push(new Date(jahr, 11, 25), '1. Weihnachtstag');
+  push(new Date(jahr, 11, 26), '2. Weihnachtstag');
+  return liste;
+}
+
+// Zusammengeführte Daten (eingebaut + online + eigene, abzüglich ausgeblendeter) werden pro Render-Durchlauf
+// zwischengespeichert; render() leert den Cache, damit Änderungen sofort greifen.
+let datenCache = { ferien: null, feiertage: {} };
+function datenCacheLeeren() { datenCache = { ferien: null, feiertage: {} }; }
+
+const FERIEN_TYPEN = ['weihnacht', 'winter', 'ostern', 'pfingst', 'sommer', 'herbst', 'unterrichtsfrei'];
+function ferienTyp(name) {
+  const n = String(name).toLowerCase();
+  return FERIEN_TYPEN.find(t => n.includes(t)) || n;
+}
+function ferienKey(f) { return f.von + '|' + f.bis; }
+
+// Alle Ferien mit Quelle ('eingebaut' | 'online' | 'eigen') und aus-Flag (vom Nutzer ausgeblendet).
+// Online-Daten haben Vorrang: eingebaute Ferien gleicher Art im selben Jahr (oder mit gleichem Zeitraum) entfallen.
+function ferienListeVoll() {
+  const online = (state.ferienOnline && state.ferienOnline.eintraege) || [];
+  const onKeys = new Set(online.map(ferienKey));
+  const onTypJahr = new Set(online.map(f => ferienTyp(f.name) + '|' + f.von.slice(0, 4)));
+  const out = [];
+  for (const f of FERIEN_SACHSEN) {
+    if (onKeys.has(ferienKey(f)) || onTypJahr.has(ferienTyp(f.name) + '|' + f.von.slice(0, 4))) continue;
+    out.push({ name: f.name, von: f.von, bis: f.bis, quelle: 'eingebaut' });
+  }
+  for (const f of online) out.push({ name: f.name, von: f.von, bis: f.bis, quelle: 'online' });
+  (state.eigeneFerien || []).forEach((f, i) => out.push({ name: f.name, von: f.von, bis: f.bis, quelle: 'eigen', idx: i }));
+  const aus = new Set(state.ferienAus || []);
+  for (const f of out) f.aus = aus.has(ferienKey(f));
+  return out.sort((x, y) => x.von < y.von ? -1 : x.von > y.von ? 1 : (x.bis < y.bis ? -1 : 1));
+}
+
+function alleFerien() {
+  if (!datenCache.ferien) datenCache.ferien = ferienListeVoll().filter(f => !f.aus);
+  return datenCache.ferien;
+}
+
+// Feiertage eines Jahres: Online-Daten (falls für dieses Jahr vorhanden) sonst gesetzliche Berechnung,
+// dazu eigene Feiertage; vom Nutzer deaktivierte entfallen (mitAus=true liefert sie mit aus-Flag).
+function feiertageEffektiv(jahr, mitFronleichnam, mitAus) {
+  const onlineJahr = state.feiertageOnline && state.feiertageOnline.daten && state.feiertageOnline.daten[jahr];
+  let basis;
+  if (Array.isArray(onlineJahr) && onlineJahr.length) {
+    basis = onlineJahr.map(x => ({ key: x.key, name: x.name, quelle: 'online' }));
+    if (mitFronleichnam) for (const f of feiertageSachsen(jahr, true)) if (f.name.startsWith('Fronleichnam')) basis.push({ key: f.key, name: f.name, quelle: 'berechnet' });
+  } else {
+    basis = feiertageSachsen(jahr, mitFronleichnam).map(f => ({ key: f.key, name: f.name, quelle: 'berechnet' }));
+  }
+  const gesehen = new Set(basis.map(f => f.key));
+  for (const f of state.feiertageExtra || []) {
+    if (f.key.slice(0, 4) === String(jahr) && !gesehen.has(f.key)) { basis.push({ key: f.key, name: f.name, quelle: 'eigen' }); gesehen.add(f.key); }
+  }
+  const aus = new Set(state.feiertageAus || []);
+  for (const f of basis) f.aus = aus.has(f.key);
+  basis.sort((x, y) => x.key < y.key ? -1 : 1);
+  return mitAus ? basis : basis.filter(f => !f.aus);
+}
+
+function feiertagMap(jahr, mitFronleichnam) {
+  const ck = jahr + '|' + !!mitFronleichnam;
+  if (!datenCache.feiertage[ck]) {
+    const map = {};
+    for (const f of feiertageEffektiv(jahr, mitFronleichnam)) map[f.key] = f.name;
+    datenCache.feiertage[ck] = map;
+  }
+  return datenCache.feiertage[ck];
+}
+
+function hatWerktagZwischen(a, b, fmap) {
+  for (let k = addDaysKey(a, 1); k < b; k = addDaysKey(k, 1)) {
+    if (isWerktag(k) && !fmap[k]) return true;
+  }
+  return false;
+}
+
+function mergeBloecke(ranges, fmap) {
+  const sortiert = ranges.slice().sort((x, y) => x.von < y.von ? -1 : 1);
+  const merged = [];
+  for (const r of sortiert) {
+    const last = merged[merged.length - 1];
+    if (last && !hatWerktagZwischen(last.bis, r.von, fmap)) {
+      if (r.bis > last.bis) last.bis = r.bis;
+    } else {
+      merged.push({ von: r.von, bis: r.bis });
+    }
+  }
+  return merged;
+}
+
+function bloeckeFor(mitgliedId, typ, jahr) {
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const jahrStart = `${jahr}-01-01`;
+  const jahrEnde = `${jahr}-12-31`;
+  const ranges = eintraegeImJahr(jahr)
+    .filter(e => e.mitgliedId === mitgliedId && e.typ === typ && e.von <= jahrEnde && e.bis >= jahrStart)
+    .map(e => ({ von: e.von < jahrStart ? jahrStart : e.von, bis: e.bis > jahrEnde ? jahrEnde : e.bis }));
+  return mergeBloecke(ranges, fmap).map(b => ({
+    ...b,
+    kalendertage: daysBetween(b.von, b.bis),
+    urlaubstage: urlaubstageImJahr(b, jahr, fmap),
+    ferien: ferienIn(b.von, b.bis)
+  }));
+}
+
+function ferienIn(von, bis) {
+  const namen = [];
+  for (const f of alleFerien()) {
+    if (f.bis >= von && f.von <= bis && !namen.includes(f.name)) namen.push(f.name);
+  }
+  return namen;
+}
+
+function renderUrlaubsliste() {
+  const jahr = state.jahr;
+  const box = document.getElementById('listeInhalt');
+  let html = `<p class="hint">Zusammenhängende Blöcke: Zeiträume, zwischen denen kein Arbeitstag liegt (nur Wochenende/Feiertage dazwischen), werden zu einem Urlaubsblock zusammengefasst. 24.12./31.12. zählen als ½ Tag.</p>`;
+  for (const m of state.mitglieder) {
+    if (m.rolle === 'elternteil') {
+      const bloecke = bloeckeFor(m.id, 'urlaub', jahr);
+      const gesamt = bloecke.reduce((s, b) => s + b.urlaubstage, 0);
+      const verfuegbar = (Number(m.urlaubstage) || 0) + (Number(m.resturlaubVorjahr) || 0);
+      html += `<div class="liste-karte" style="border-top:4px solid ${m.farbe}">
+        <h3>${esc(m.name)} – Urlaub ${jahr}</h3>
+        <div class="liste-summe">${gesamt} von ${verfuegbar} Urlaubstagen verbraucht (${verfuegbar - gesamt} übrig)</div>`;
+      if (!bloecke.length) html += '<p>Noch kein Urlaub eingetragen.</p>';
+      for (const b of bloecke) {
+        html += `<div class="liste-zeile">
+          <strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong>
+          <span>${b.kalendertage} Kalendertage · <strong>${b.urlaubstage} Urlaubstage</strong></span>
+          ${b.ferien.length ? `<span class="badge ferien-b">${esc(b.ferien.join(', '))}</span>` : ''}
+        </div>`;
+      }
+      html += '</div>';
+    } else {
+      const bloecke = bloeckeFor(m.id, 'schulfrei', jahr);
+      if (!bloecke.length) continue;
+      html += `<div class="liste-karte" style="border-top:4px solid ${m.farbe}">
+        <h3>${esc(m.name)} – flexible schulfreie Tage ${jahr}</h3>`;
+      for (const b of bloecke) {
+        html += `<div class="liste-zeile"><strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong> <span>${b.kalendertage} Kalendertage</span></div>`;
+      }
+      html += '</div>';
+    }
+  }
+  box.innerHTML = html;
+}
+
+function istHalbtag(key, jahr) {
+  return key === `${jahr}-12-24` || key === `${jahr}-12-31`;
+}
+
+function urlaubstageImJahr(e, jahr, fmap) {
+  const jahrStart = `${jahr}-01-01`;
+  const jahrEnde = `${jahr}-12-31`;
+  const von = e.von < jahrStart ? jahrStart : e.von;
+  const bis = e.bis > jahrEnde ? jahrEnde : e.bis;
+  let count = 0;
+  for (let k = von; k <= bis; k = addDaysKey(k, 1)) {
+    if (isWerktag(k) && !fmap[k]) count += istHalbtag(k, jahr) ? 0.5 : 1;
+  }
+  return count;
+}
+
+function isoKW(key) {
+  const d = fromKey(key);
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const fd = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - fd + 3);
+  return 1 + Math.round((date - firstThursday) / (7 * 86400000));
+}
+
+function isoKWJahr(key) {
+  const d = fromKey(key);
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  return date.getUTCFullYear();
+}
+
+function ferienAm(key) {
+  const namen = [];
+  for (const f of alleFerien()) {
+    if (key >= f.von && key <= f.bis) namen.push(f.name);
+  }
+  return namen;
+}
+
+function istFerienTag(key) { return ferienAm(key).length > 0; }
+
+function urlaubVerbraucht(mitgliedId, jahr) {
+  return bloeckeFor(mitgliedId, 'urlaub', jahr).reduce((s, b) => s + b.urlaubstage, 0);
+}
+
+function schulfreieTageKind(mitgliedId, jahr) {
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const tage = new Set();
+  const jahrStart = `${jahr}-01-01`;
+  const jahrEnde = `${jahr}-12-31`;
+  for (const f of alleFerien()) {
+    const von = f.von < jahrStart ? jahrStart : f.von;
+    const bis = f.bis > jahrEnde ? jahrEnde : f.bis;
+    for (let k = von; k <= bis; k = addDaysKey(k, 1)) if (isWerktag(k)) tage.add(k);
+  }
+  for (const k in fmap) {
+    if (k >= jahrStart && k <= jahrEnde && isWerktag(k)) tage.add(k);
+  }
+  for (const e of eintraegeImJahr(jahr)) {
+    if (e.mitgliedId === mitgliedId && e.typ === 'schulfrei') {
+      const von = e.von < jahrStart ? jahrStart : e.von;
+      const bis = e.bis > jahrEnde ? jahrEnde : e.bis;
+      for (let k = von; k <= bis; k = addDaysKey(k, 1)) if (isWerktag(k)) tage.add(k);
+    }
+  }
+  return tage.size;
+}
+
+function eintraegeImJahr(jahr) {
+  const out = [];
+  for (const e of state.eintraege) {
+    if (e.jaehrlich && e.monat && e.tag) {
+      const mo = Number(e.monat);
+      let tag = Number(e.tag);
+      const tageImMonat = new Date(jahr, mo, 0).getDate();
+      if (tag > tageImMonat) tag = tageImMonat;
+      const key = `${jahr}-${pad(mo)}-${pad(tag)}`;
+      out.push(Object.assign({}, e, { von: key, bis: key }));
+    } else {
+      out.push(e);
+    }
+  }
+  return out;
+}
+
+function eintraegeAm(key) {
+  const jahr = Number(key.slice(0, 4));
+  return eintraegeImJahr(jahr).filter(e => key >= e.von && key <= e.bis);
+}
+
+function eintraegeGefiltert(key) {
+  const alle = eintraegeAm(key);
+  if (state.filterMitglied && state.filterMitglied !== 'alle') return alle.filter(e => e.mitgliedId === state.filterMitglied);
+  return alle;
+}
+
+function mitgliedById(id) {
+  return state.mitglieder.find(m => m.id === id);
+}
+
+function defaultState() {
+  return {
+    version: 1,
+    ansicht: 'wand',
+    wandModus: {},
+    jahr: Math.min(Math.max(new Date().getFullYear(), JAHR_MIN), JAHR_MAX),
+    mitglieder: [
+      { id: 'm1', name: 'Betty', rolle: 'elternteil', farbe: '#2563eb', urlaubstage: 30, resturlaubVorjahr: 0 },
+      { id: 'm2', name: 'Sebastian', rolle: 'elternteil', farbe: '#db2777', urlaubstage: 30, resturlaubVorjahr: 0 },
+      { id: 'm3', name: 'Ida', rolle: 'kind', farbe: '#16a34a' },
+      { id: 'm4', name: 'Irma', rolle: 'kind', farbe: '#d97706' }
+    ],
+    eintraege: [],
+    eigeneFerien: [],
+    ferienAus: [],
+    feiertageAus: [],
+    feiertageExtra: [],
+    ferienOnline: null,
+    feiertageOnline: null,
+    einstellungen: { fronleichnamRegional: false, gcalClientId: '', autoLaden: true }
+  };
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.warn('Speichern im Browser fehlgeschlagen', err);
+  }
+}
+
+const ANSICHTEN = ['wand', 'monate', 'liste', 'balken', 'alle', 'tipps'];
+
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const FARBE_RE = /^#[0-9a-fA-F]{6}$/;
+const DATUM_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function istDatum(k) {
+  return typeof k === 'string' && DATUM_RE.test(k) && toKey(fromKey(k)) === k;
+}
+
+function kurzText(v, max) {
+  return typeof v === 'string' ? v.slice(0, max) : '';
+}
+
+function zahl(v, min, max, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+function saniereFerienOnline(d) {
+  if (!d || typeof d !== 'object' || !Number.isFinite(d.abgerufen) || !Array.isArray(d.eintraege)) return null;
+  const eintraege = d.eintraege
+    .filter(f => f && typeof f === 'object' && istDatum(f.von) && istDatum(f.bis) && f.bis >= f.von && typeof f.name === 'string')
+    .map(f => ({ name: kurzText(f.name, 80), von: f.von, bis: f.bis })).slice(0, 300);
+  return eintraege.length ? { abgerufen: d.abgerufen, eintraege } : null;
+}
+
+function saniereFeiertageOnline(d) {
+  if (!d || typeof d !== 'object' || !Number.isFinite(d.abgerufen) || !d.daten || typeof d.daten !== 'object') return null;
+  const daten = {};
+  for (const jahr of Object.keys(d.daten)) {
+    if (!/^\d{4}$/.test(jahr) || !Array.isArray(d.daten[jahr])) continue;
+    const liste = d.daten[jahr].filter(f => f && istDatum(f.key) && f.key.slice(0, 4) === jahr && typeof f.name === 'string')
+      .map(f => ({ key: f.key, name: kurzText(f.name, 80) })).slice(0, 40);
+    if (liste.length) daten[jahr] = liste;
+  }
+  return Object.keys(daten).length ? { abgerufen: d.abgerufen, daten } : null;
+}
+
+// Prueft und bereinigt Planungsdaten aus JSON-Import und localStorage. Alles, was spaeter
+// ungeescaped in HTML-Attribute geschrieben wird (id, farbe, Datum), wird hier auf
+// ein sicheres Format eingeschraenkt; ungueltige Eintraege werden verworfen.
+function sanitizePlan(data) {
+  const standard = defaultState();
+  const out = { verworfen: 0 };
+  const ids = new Set();
+  const mitglieder = [];
+  for (const m of Array.isArray(data.mitglieder) ? data.mitglieder : []) {
+    if (!m || typeof m !== 'object' || (m.rolle !== 'elternteil' && m.rolle !== 'kind') || !ID_RE.test(String(m.id)) || ids.has(String(m.id))) { out.verworfen++; continue; }
+    ids.add(String(m.id));
+    const neu = {
+      id: String(m.id),
+      name: kurzText(m.name, 60) || 'Person',
+      rolle: m.rolle,
+      farbe: FARBE_RE.test(m.farbe) ? m.farbe : '#6b7280'
+    };
+    if (m.rolle === 'elternteil') {
+      neu.urlaubstage = zahl(m.urlaubstage, 0, 366, 30);
+      neu.resturlaubVorjahr = zahl(m.resturlaubVorjahr, 0, 366, 0);
+    }
+    mitglieder.push(neu);
+  }
+  out.mitglieder = mitglieder.length ? mitglieder : standard.mitglieder;
+  const bekannt = new Set(out.mitglieder.map(m => m.id));
+  const eintragIds = new Set();
+  out.eintraege = [];
+  for (const e of Array.isArray(data.eintraege) ? data.eintraege : []) {
+    if (!e || typeof e !== 'object' || !bekannt.has(e.mitgliedId) || !Object.prototype.hasOwnProperty.call(TYP_LABEL, e.typ)
+      || !istDatum(e.von) || !istDatum(e.bis) || e.bis < e.von) { out.verworfen++; continue; }
+    let id = ID_RE.test(String(e.id)) && !eintragIds.has(String(e.id)) ? String(e.id) : uid();
+    eintragIds.add(id);
+    const neu = { id, mitgliedId: e.mitgliedId, typ: e.typ, von: e.von, bis: e.bis, titel: kurzText(e.titel, 200), notiz: kurzText(e.notiz, 1000) };
+    if (e.jaehrlich === true) {
+      neu.jaehrlich = true;
+      neu.monat = Number(e.von.slice(5, 7));
+      neu.tag = Number(e.von.slice(8, 10));
+      neu.bis = neu.von;
+    }
+    if (typeof e.gcalId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(e.gcalId)) neu.gcalId = e.gcalId;
+    out.eintraege.push(neu);
+  }
+  out.eigeneFerien = [];
+  for (const f of Array.isArray(data.eigeneFerien) ? data.eigeneFerien : []) {
+    if (!f || typeof f !== 'object' || !istDatum(f.von) || !istDatum(f.bis) || f.bis < f.von) { out.verworfen++; continue; }
+    out.eigeneFerien.push({ name: kurzText(f.name, 80) || 'Ferien', von: f.von, bis: f.bis });
+  }
+  const ferienKeyRe = /^\d{4}-\d{2}-\d{2}\|\d{4}-\d{2}-\d{2}$/;
+  out.ferienAus = (Array.isArray(data.ferienAus) ? data.ferienAus : []).filter(k => typeof k === 'string' && ferienKeyRe.test(k)).slice(0, 500);
+  out.feiertageAus = (Array.isArray(data.feiertageAus) ? data.feiertageAus : []).filter(istDatum).slice(0, 500);
+  const extraKeys = new Set();
+  out.feiertageExtra = [];
+  for (const f of Array.isArray(data.feiertageExtra) ? data.feiertageExtra : []) {
+    if (!f || typeof f !== 'object' || !istDatum(f.key) || extraKeys.has(f.key)) { out.verworfen++; continue; }
+    extraKeys.add(f.key);
+    out.feiertageExtra.push({ key: f.key, name: kurzText(f.name, 80) || 'Feiertag' });
+  }
+  out.ferienOnline = saniereFerienOnline(data.ferienOnline);
+  out.feiertageOnline = saniereFeiertageOnline(data.feiertageOnline);
+  const ein = data.einstellungen && typeof data.einstellungen === 'object' ? data.einstellungen : {};
+  out.einstellungen = {
+    fronleichnamRegional: ein.fronleichnamRegional === true,
+    gcalClientId: kurzText(ein.gcalClientId, 200).trim(),
+    autoLaden: ein.autoLaden !== false
+  };
+  out.jahr = Number.isInteger(data.jahr) && data.jahr >= JAHR_MIN && data.jahr <= JAHR_MAX ? data.jahr : standard.jahr;
+  return out;
+}
+
+function normalizeState() {
+  state.ansicht = ANSICHTEN.includes(state.ansicht) ? state.ansicht : 'wand';
+  state.filterMitglied = state.filterMitglied || 'alle';
+  if (state.filterMitglied !== 'alle' && !mitgliedById(state.filterMitglied)) state.filterMitglied = 'alle';
+  state.wandModus = state.wandModus && typeof state.wandModus === 'object' ? state.wandModus : {};
+  for (const m of state.mitglieder || []) {
+    const erlaubt = MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil;
+    if (!erlaubt.includes(state.wandModus[m.id])) state.wandModus[m.id] = m.rolle === 'kind' ? 'schulfrei' : 'urlaub';
+    if (m.rolle === 'elternteil') {
+      m.urlaubstage = Number.isFinite(Number(m.urlaubstage)) && m.urlaubstage !== undefined && m.urlaubstage !== null ? Number(m.urlaubstage) : 30;
+      m.resturlaubVorjahr = Number(m.resturlaubVorjahr) || 0;
+    }
+  }
+  state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '', autoLaden: true };
+  if (state.einstellungen.autoLaden === undefined) state.einstellungen.autoLaden = true;
+  state.eigeneFerien = state.eigeneFerien || [];
+  state.ferienAus = state.ferienAus || [];
+  state.feiertageAus = state.feiertageAus || [];
+  state.feiertageExtra = state.feiertageExtra || [];
+}
+
+function leseSpeicher() {
+  try { return localStorage.getItem(STORAGE_KEY); } catch (err) { return null; }
+}
+
+function load() {
+  const stored = leseSpeicher();
+  if (stored) {
+    try {
+      const roh = JSON.parse(stored);
+      if (!roh || typeof roh !== 'object' || Array.isArray(roh)) throw new Error('ungueltig');
+      const plan = sanitizePlan(roh);
+      state = Object.assign(defaultState(), {
+        ansicht: roh.ansicht, filterMitglied: roh.filterMitglied, wandModus: roh.wandModus,
+        jahr: plan.jahr, mitglieder: plan.mitglieder, eintraege: plan.eintraege,
+        eigeneFerien: plan.eigeneFerien, einstellungen: plan.einstellungen,
+        ferienAus: plan.ferienAus, feiertageAus: plan.feiertageAus, feiertageExtra: plan.feiertageExtra,
+        ferienOnline: plan.ferienOnline, feiertageOnline: plan.feiertageOnline
+      });
+      normalizeState();
+      return;
+    } catch (err) {
+      // gespeicherter Stand ungueltig – Default verwenden
+    }
+  }
+  state = defaultState();
+  normalizeState();
+  save();
+}
+
+function uid() {
+  return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function fmtDeutsch(k) {
+  const d = fromKey(k);
+  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderUebersicht() {
+  const jahr = state.jahr;
+  const box = document.getElementById('uebersicht');
+  let html = '';
+  for (const m of state.mitglieder) {
+    if (m.rolle === 'elternteil') {
+      const verbraucht = urlaubVerbraucht(m.id, jahr);
+      const verfuegbar = (Number(m.urlaubstage) || 0) + (Number(m.resturlaubVorjahr) || 0);
+      const rest = verfuegbar - verbraucht;
+      const klasse = rest < 0 ? 'warn' : '';
+      const restVorjahr = Number(m.resturlaubVorjahr) || 0;
+      let warn = '';
+      if (restVorjahr > 0) {
+        const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+        let q1 = 0;
+        for (const b of bloeckeFor(m.id, 'urlaub', jahr)) {
+          const von = b.von < `${jahr}-01-01` ? `${jahr}-01-01` : b.von;
+          const bis = b.bis > `${jahr}-03-31` ? `${jahr}-03-31` : b.bis;
+          if (von <= bis) q1 += urlaubstageImJahr({ von, bis }, jahr, fmap);
+        }
+        const offen = restVorjahr - q1;
+        if (offen > 0) warn = `<br><small>⚠️ ${offen} Resturlaubstage bis 31.03. offen</small>`;
+      }
+      html += `<div class="karte ${klasse}" style="border-top:4px solid ${m.farbe}">
+        <strong>${esc(m.name)}</strong> (Urlaub)${restVorjahr ? ` <small>+${restVorjahr} Rest-VJ</small>` : ''}<br>
+        <span class="zahl">${verbraucht}</span> von ${verfuegbar} Tagen verbraucht –
+        <strong>${rest >= 0 ? rest + ' übrig' : Math.abs(rest) + ' zu viel'}</strong>${warn}
+      </div>`;
+    } else {
+      const frei = schulfreieTageKind(m.id, jahr);
+      html += `<div class="karte" style="border-top:4px solid ${m.farbe}">
+        <strong>${esc(m.name)}</strong> (schulfrei)<br>
+        <span class="zahl">${frei}</span> schulfreie Tage in ${jahr}
+      </div>`;
+    }
+  }
+  box.innerHTML = html;
+}
+
+function renderJahrSelect() {
+  const sel = document.getElementById('jahrSelect');
+  let html = '';
+  for (let j = JAHR_MIN; j <= JAHR_MAX; j++) {
+    html += `<option value="${j}" ${j === state.jahr ? 'selected' : ''}>${j}</option>`;
+  }
+  sel.innerHTML = html;
+}
+
+function renderKalender() {
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const grid = document.getElementById('monate');
+  let html = '';
+  for (let monat = 0; monat < 12; monat++) {
+    const erster = new Date(jahr, monat, 1);
+    const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
+    let tage = '';
+    const startDow = (erster.getDay() + 6) % 7;
+    for (let i = 0; i < startDow; i++) tage += '<div class="tag leer"></div>';
+    for (let tag = 1; tag <= tageImMonat; tag++) {
+      const key = `${jahr}-${pad(monat + 1)}-${pad(tag)}`;
+      const ferien = ferienAm(key);
+      const feiertag = fmap[key];
+      const eintraege = eintraegeGefiltert(key);
+      const schulfrei = eintraege.some(e => e.typ === 'schulfrei');
+      let cls = 'tag';
+      if (ferien.length) cls += ' ferien';
+      if (feiertag) cls += ' feiertag';
+      if (schulfrei) cls += ' schulfrei';
+      if (istHalbtag(key, jahr)) cls += ' halbtag';
+      let titel = [];
+      if (ferien.length) titel.push('Ferien: ' + ferien.join(', '));
+      if (feiertag) titel.push('Feiertag: ' + feiertag);
+      if (istHalbtag(key, jahr)) titel.push('Halber Tag (½ Urlaubstag)');
+      for (const e of eintraege) {
+        const m = mitgliedById(e.mitgliedId);
+        titel.push(`${m ? m.name : '?'}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`);
+      }
+      let chips = '';
+      for (const e of eintraege) {
+        const m = mitgliedById(e.mitgliedId);
+        chips += `<span class="chip typ-${e.typ}" style="background:${m ? m.farbe : '#666'}" title="${esc(titel.filter(t => t.includes(TYP_LABEL[e.typ])).join('\n'))}"></span>`;
+      }
+      tage += `<div class="${cls}" data-key="${key}" title="${esc(titel.join('\n'))}"><span class="nr">${tag}</span>${feiertag ? `<span class="ft">${esc(feiertag)}</span>` : ''}${chips}</div>`;
+    }
+    html += `<div class="monat"><h3>${MONATSNAMEN[monat]} ${jahr}</h3>
+      <div class="wochentage">${WOCHENTAG_KURZ.map(w => `<span>${w}</span>`).join('')}</div>
+      <div class="tage">${tage}</div></div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.tag[data-key]').forEach(el => {
+    el.addEventListener('click', () => openTagModal(el.dataset.key));
+  });
+}
+
+let auswahl = new Set();
+let auswahlAnker = null;
+let dragQuelleKey = null; // Tag, von dem ein Eintrag gerade gezogen wird
+
+function bereichAn() {
+  const cb = document.getElementById('bereichModus');
+  return !!(cb && cb.checked);
+}
+
+function resetBereich() {
+  const cb = document.getElementById('bereichModus');
+  if (cb) cb.checked = false;
+}
+
+// Bereichsauswahl: Shift+Klick (Maus) oder eingeschalteter Schalter „Bereich wählen“ (Touch)
+function istBereich(ev) {
+  return !!ev.shiftKey || (ev.bereich !== false && bereichAn());
+}
+
+function toggleAuswahl(mitgliedId, key, ev) {
+  const apply = (k, force) => {
+    const zz = mitgliedId + '|' + k;
+    const next = force === undefined ? !auswahl.has(zz) : force;
+    if (next) auswahl.add(zz); else auswahl.delete(zz);
+    const cell = document.querySelector(`.tag-zelle[data-mitglied="${mitgliedId}"][data-key="${k}"]`);
+    if (cell) cell.classList.toggle('ausgewaehlt', next);
+  };
+  if (istBereich(ev) && auswahlAnker && auswahlAnker.mitgliedId === mitgliedId) {
+    const [s, e] = auswahlAnker.key <= key ? [auswahlAnker.key, key] : [key, auswahlAnker.key];
+    for (let k = s; k <= e; k = addDaysKey(k, 1)) apply(k, true);
+  } else {
+    apply(key);
+    auswahlAnker = { mitgliedId, key };
+  }
+  updateAuswahlBar();
+}
+
+function updateAuswahlBar() {
+  const info = document.getElementById('auswahlInfo');
+  if (!info) return;
+  const bar = document.getElementById('auswahlBar');
+  if (bar) bar.classList.toggle('leer', auswahl.size === 0); // am Handy nur bei Auswahl sichtbar
+  document.body.classList.toggle('mit-auswahl', state.ansicht === 'wand' && auswahl.size > 0);
+  let txt = `${auswahl.size} Zell${auswahl.size === 1 ? 'e' : 'en'} ausgewählt`;
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const nurArbeitstage = document.getElementById('nurArbeitstage') && document.getElementById('nurArbeitstage').checked;
+  const proMitglied = {};
+  for (const z of auswahl) {
+    const [mid, key] = z.split('|');
+    (proMitglied[mid] = proMitglied[mid] || new Set()).add(key);
+  }
+  const teile = [];
+  for (const [mid, set] of Object.entries(proMitglied)) {
+    const m = mitgliedById(mid);
+    if (!m || m.rolle !== 'elternteil') continue;
+    if ((state.wandModus?.[mid] || 'urlaub') !== 'urlaub') continue;
+    let netto = 0;
+    for (const k of set) {
+      if (nurArbeitstage && (!isWerktag(k) || fmap[k])) continue;
+      if (isWerktag(k) && !fmap[k]) netto += istHalbtag(k, jahr) ? 0.5 : 1;
+    }
+    teile.push(`${m.name} ${netto} UT`);
+  }
+  if (teile.length) txt += ' · Netto: ' + teile.join(', ');
+  info.textContent = txt;
+}
+
+function markiereAuswahl() {
+  if (!auswahl.size) { alert('Bitte zuerst Tage auswählen (Klick = einzelner Tag, Shift+Klick = Bereich).'); return; }
+  const kommentar = (document.getElementById('auswahlKommentar')?.value || '').trim();
+  const nurArbeitstage = document.getElementById('nurArbeitstage') && document.getElementById('nurArbeitstage').checked;
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const proMitglied = {};
+  for (const z of auswahl) {
+    const [mid, key] = z.split('|');
+    (proMitglied[mid] = proMitglied[mid] || []).push(key);
+  }
+  for (const [mid, keys] of Object.entries(proMitglied)) {
+    if (!mitgliedById(mid)) continue;
+    const typ = state.wandModus?.[mid] || (mitgliedById(mid).rolle === 'kind' ? 'schulfrei' : 'urlaub');
+    keys.sort();
+    const segmente = [];
+    let segStart = null, prev = null;
+    const flush = () => { if (segStart) segmente.push({ von: segStart, bis: prev }); segStart = null; };
+    for (const k of keys) {
+      if (typ === 'urlaub' && nurArbeitstage && (!isWerktag(k) || fmap[k])) { flush(); continue; }
+      if (segStart && addDaysKey(prev, 1) === k) prev = k;
+      else { flush(); segStart = k; prev = k; }
+    }
+    flush();
+    for (const seg of segmente) {
+      const e = { id: uid(), mitgliedId: mid, typ, von: seg.von, bis: seg.bis, titel: kommentar, notiz: '' };
+      state.eintraege.push(e);
+      gcalAutoUpsert(e);
+    }
+  }
+  auswahl.clear();
+  auswahlAnker = null;
+  resetBereich();
+  const k = document.getElementById('auswahlKommentar');
+  if (k) k.value = '';
+  save();
+  render();
+}
+
+function renderWandkalender() {
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const mitglieder = state.mitglieder;
+  const wrap = document.getElementById('wandliste');
+  let html = `<div class="wand-kopf"><span class="datum">Datum</span><span class="kw">KW</span><span class="badges"></span><span class="zellen">`;
+  let leiste = '<div class="modus-leiste">'; // Handy: Modus-Auswahl je Person ausserhalb der schmalen Spalten
+  for (const m of mitglieder) {
+    const akt = state.wandModus?.[m.id] || (m.rolle === 'kind' ? 'schulfrei' : 'urlaub');
+    const optionen = (MODUS_OPTIONEN[m.rolle] || MODUS_OPTIONEN.elternteil)
+      .map(v => `<option value="${v}" title="${esc(TYP_LABEL[v])}" ${v === akt ? 'selected' : ''}>${esc(TYP_KURZ[v])}</option>`).join('');
+    html += `<span class="zellkopf" style="border-left-color:${m.farbe}"><strong>${esc(m.name)}</strong>
+      <select class="modus-select" data-modus="${m.id}" title="Markier-Modus für ${esc(m.name)}" aria-label="Markier-Modus für ${esc(m.name)}">${optionen}</select>
+    </span>`;
+    leiste += `<label class="modus-item" style="border-left-color:${m.farbe}"><strong>${esc(m.name)}</strong>
+      <select class="modus-select" data-modus="${m.id}" aria-label="Markier-Modus für ${esc(m.name)}">${optionen}</select></label>`;
+  }
+  html = leiste + '</div>' + html + '</span></div>';
+  for (let monat = 0; monat < 12; monat++) {
+    html += `<h3 class="wand-monat" id="monat-${monat + 1}">${MONATSNAMEN[monat]} ${jahr}</h3>`;
+    const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
+    for (let tag = 1; tag <= tageImMonat; tag++) {
+      const key = `${jahr}-${pad(monat + 1)}-${pad(tag)}`;
+      const d = fromKey(key);
+      const dow = (d.getDay() + 6) % 7;
+      const feiertag = fmap[key];
+      const ferien = ferienAm(key);
+      const wochenende = dow >= 5;
+      const halb = istHalbtag(key, jahr);
+      let cls = 'tag-zeile';
+      if (wochenende) cls += ' wochenende';
+      if (feiertag) cls += ' feiertag';
+      if (ferien.length) cls += ' ferien';
+      if (halb) cls += ' halbtag';
+      if (dow === 0) cls += ' mo';
+      if (key === toKey(new Date()) && jahr === new Date().getFullYear()) cls += ' heute';
+      let badges = '';
+      if (feiertag) badges += `<span class="badge feiertag-b">${esc(feiertag)}</span>`;
+      const vortag = addDaysKey(key, -1);
+      const vortagFerien = ferienAm(vortag);
+      for (const f of ferien) badges += `<span class="badge ferien-b${vortagFerien.includes(f) ? '' : ' erst'}">${esc(f)}</span>`;
+      if (halb) badges += `<span class="badge halb-b" title="Halber Arbeitstag (zählt als 0,5 Urlaubstag)">½</span>`;
+      let zellen = '';
+      for (const m of mitglieder) {
+        const entries = eintraegeAm(key).filter(e => e.mitgliedId === m.id);
+        let chips = '';
+        for (const e of entries) chips += `<span class="chip-e typ-${e.typ}" draggable="true" data-id="${e.id}" style="background:${m.farbe}" title="${esc(TYP_LABEL[e.typ] + (e.titel ? ' – ' + e.titel : '') + (e.notiz ? ' – ' + e.notiz : '') + ' – zum Verschieben auf einen anderen Tag ziehen')}"><span class="ic">${TYP_ICON[e.typ] || ''}</span> <span class="ct">${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ': ' : ''}</span><span class="ti">${e.titel ? esc(e.titel) : ''}</span></span>`;
+        const sel = auswahl.has(m.id + '|' + key) ? ' ausgewaehlt' : '';
+        zellen += `<span class="tag-zelle${sel}" data-mitglied="${m.id}" data-key="${key}" style="border-left-color:${m.farbe}" title="${esc(m.name)} – Klick: auswählen · Shift+Klick: Bereich · Doppelklick: Details">${chips}</span>`;
+      }
+      html += `<div class="${cls}" id="tag-${key}" data-key="${key}" title="Doppelklick: Details">
+        <span class="datum">${WOCHENTAG_KURZ[dow]} ${pad(tag)}.${pad(monat + 1)}.</span>
+        <span class="kw">KW ${isoKW(key)}</span>
+        <span class="badges">${badges}</span>
+        <span class="zellen">${zellen}</span>
+      </div>`;
+    }
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.tag-zeile').forEach(row => {
+    const datum = row.querySelector('.datum');
+    if (datum) datum.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const key = row.dataset.key;
+      if (istBereich(ev) && auswahlAnker) {
+        const [s, e] = auswahlAnker.key <= key ? [auswahlAnker.key, key] : [key, auswahlAnker.key];
+        for (const m of mitglieder) for (let k = s; k <= e; k = addDaysKey(k, 1)) toggleAuswahl(m.id, k, { shiftKey: true });
+      } else {
+        for (const m of mitglieder) toggleAuswahl(m.id, key, { shiftKey: false, bereich: false });
+      }
+    });
+  });
+  wrap.querySelectorAll('.tag-zelle').forEach(el => {
+    // Touch: langes Drücken öffnet die Tag-Details (Ersatz für Doppelklick)
+    let lpTimer = null, lpFired = false;
+    el.addEventListener('touchstart', () => {
+      lpFired = false;
+      clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => {
+        lpFired = true;
+        if (navigator.vibrate) navigator.vibrate(15);
+        openTagModal(el.dataset.key);
+      }, 550);
+    }, { passive: true });
+    for (const t of ['touchend', 'touchmove', 'touchcancel']) el.addEventListener(t, () => clearTimeout(lpTimer), { passive: true });
+    el.addEventListener('contextmenu', (ev) => ev.preventDefault()); // verhindert Android-Kontextmenü beim langen Drücken
+    el.addEventListener('click', (ev) => {
+      if (lpFired) { lpFired = false; ev.preventDefault(); return; }
+      if (ev.target.closest('.chip-e')) { openTagModal(el.dataset.key); return; }
+      toggleAuswahl(el.dataset.mitglied, el.dataset.key, ev);
+    });
+    el.addEventListener('dblclick', () => openTagModal(el.dataset.key));
+    el.addEventListener('dragover', (ev) => { if (ev.target.closest('.tag-zelle')) ev.preventDefault(); });
+    el.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      const id = ev.dataTransfer.getData('text/plain');
+      const ziel = el.dataset.key;
+      const e = state.eintraege.find(x => x.id === id);
+      const quelle = dragQuelleKey || (e && e.von);
+      dragQuelleKey = null;
+      if (!e || !quelle || quelle === ziel) return;
+      // Verschiebung = Abstand zwischen gezogenem Tag und Zieltag (bei mehrtägigen Einträgen nicht zum Starttag)
+      const delta = Math.round((fromKey(ziel) - fromKey(quelle)) / 86400000);
+      if (e.jaehrlich) {
+        const p = ziel.split('-').map(Number);
+        e.von = ziel;
+        e.bis = ziel;
+        e.monat = p[1];
+        e.tag = p[2];
+      } else {
+        e.von = addDaysKey(e.von, delta);
+        e.bis = addDaysKey(e.bis, delta);
+      }
+      save(); render();
+      gcalAutoUpsert(e);
+    });
+  });
+  wrap.querySelectorAll('.chip-e[draggable]').forEach(chip => {
+    chip.addEventListener('dragstart', (ev) => {
+      ev.dataTransfer.setData('text/plain', chip.dataset.id);
+      ev.dataTransfer.effectAllowed = 'move';
+      const zelle = chip.closest('.tag-zelle');
+      dragQuelleKey = zelle ? zelle.dataset.key : null;
+    });
+  });
+  wrap.querySelectorAll('select[data-modus]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      state.wandModus[sel.dataset.modus] = sel.value;
+      wrap.querySelectorAll(`select[data-modus="${sel.dataset.modus}"]`).forEach(s => { s.value = sel.value; });
+      save();
+      updateAuswahlBar();
+    });
+  });
+  updateAuswahlBar();
+}
+
+function jumpMonat(monat) {
+  const el = document.getElementById('monat-' + monat);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpKW(kw) {
+  const jahr = state.jahr;
+  const ziel = Number(kw);
+  if (!ziel) return;
+  for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
+    if (isoKW(k) === ziel) {
+      const el = document.getElementById('tag-' + k);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+  alert(`KW ${ziel} nicht in ${jahr} gefunden.`);
+}
+
+function jumpDatum(d) {
+  if (!d) return;
+  const el = document.getElementById('tag-' + d);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else alert('Datum liegt nicht im gewählten Jahr.');
+}
+
+function renderFilterSelect() {
+  const sel = document.getElementById('filterMitglied');
+  if (!sel) return;
+  const aktuell = state.filterMitglied || 'alle';
+  sel.innerHTML = `<option value="alle" ${aktuell === 'alle' ? 'selected' : ''}>alle Personen</option>` +
+    state.mitglieder.map(m => `<option value="${m.id}" ${aktuell === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+}
+
+function renderBalken() {
+  const jahr = state.jahr;
+  const kws = [];
+  const seen = new Set();
+  for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
+    const id = isoKWJahr(k) + '-' + isoKW(k);
+    if (!seen.has(id)) { seen.add(id); kws.push({ id, nr: isoKW(k), start: k }); }
+  }
+  const tageProKW = {};
+  for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
+    const id = isoKWJahr(k) + '-' + isoKW(k);
+    (tageProKW[id] = tageProKW[id] || []).push(k);
+  }
+  let html = '<p class="hint">Jahresbalken pro Person (KW-Spalten). Klick auf eine KW springt in den Wandkalender.</p>';
+  html += '<div class="balken-zeile balken-kopf"><span class="balken-name"></span>' +
+    kws.map(x => `<span class="balken-zelle kopf" data-kw="${x.nr}" data-start="${x.start}" title="KW ${x.nr}">${x.nr}</span>`).join('') + '</div>';
+  for (const m of state.mitglieder) {
+    html += `<div class="balken-zeile" style="border-left:4px solid ${m.farbe}"><span class="balken-name">${esc(m.name)}</span>`;
+    for (const x of kws) {
+      const tage = tageProKW[x.id];
+      const ferien = tage.some(k => istFerienTag(k));
+      const own = [];
+      for (const k of tage) for (const e of eintraegeGefiltert(k)) if (e.mitgliedId === m.id) own.push(e);
+      let cls = 'balken-zelle', title = `KW ${x.nr}`;
+      if (ferien) { cls += ' b-ferien'; title += ' · Ferien'; }
+      if (own.some(e => e.typ === 'urlaub')) { cls += ' b-urlaub'; title += ' · Urlaub'; }
+      else if (own.some(e => e.typ === 'schulfrei')) { cls += ' b-schulfrei'; title += ' · schulfrei'; }
+      else if (own.length) { cls += ' b-termin'; title += ' · ' + own.map(e => TYP_LABEL[e.typ]).join(', '); }
+      html += `<span class="${cls}" data-kw="${x.nr}" data-start="${x.start}" title="${esc(title)}"></span>`;
+    }
+    html += '</div>';
+  }
+  const box = document.getElementById('balkenInhalt');
+  box.innerHTML = html;
+  box.querySelectorAll('.balken-zelle[data-kw]').forEach(el => el.addEventListener('click', () => {
+    state.ansicht = 'wand'; save(); render(); jumpDatum(el.dataset.start); // Datum statt KW-Nummer: KW 52/53 kommt am Jahresanfang und -ende vor
+  }));
+}
+
+function renderAlleEintraege() {
+  const jahr = state.jahr;
+  const filter = state.filterMitglied || 'alle';
+  const alle = eintraegeImJahr(jahr)
+    .filter(e => e.von <= `${jahr}-12-31` && e.bis >= `${jahr}-01-01`)
+    .filter(e => filter === 'alle' || e.mitgliedId === filter)
+    .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
+  let html = '<p class="hint">Alle Urlaube, Termine, Abwesenheiten und schulfreien Tage (Personen-Filter oben). Klick auf einen Eintrag öffnet den Tag.</p>';
+  if (!alle.length) html += '<p>Noch keine Einträge.</p>';
+  let monat = -1;
+  for (const e of alle) {
+    const mo = Number(e.von.slice(5, 7));
+    if (mo !== monat) { monat = mo; html += `<h3 class="wand-monat">${MONATSNAMEN[mo - 1]} ${jahr}</h3>`; }
+    const m = mitgliedById(e.mitgliedId);
+    html += `<div class="liste-zeile alle-eintrag" data-key="${e.von}" style="cursor:pointer">
+      <strong>${fmtDeutsch(e.von)}${e.bis !== e.von ? ' – ' + fmtDeutsch(e.bis) : ''}</strong>
+      <span class="chip-e" style="background:${m ? m.farbe : '#666'}">${esc(m ? m.name : '?')}</span>
+      <span>${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ' – ' + esc(e.titel) : ''}</span>
+    </div>`;
+  }
+  const box = document.getElementById('alleInhalt');
+  box.innerHTML = html;
+  box.querySelectorAll('.alle-eintrag').forEach(el => el.addEventListener('click', () => openTagModal(el.dataset.key)));
+}
+
+// Brückentag = Werktag, der zwischen zwei freien Tagen (Wochenende/Feiertag) liegt. fmap sollte auch die
+// Feiertage des Vor- und Folgejahres enthalten, damit Jahresränder stimmen.
+function brueckenTipps(fmap, jahr) {
+  const jahrStr = String(jahr);
+  const istFrei = (k) => {
+    const d = fromKey(k).getDay();
+    return d === 0 || d === 6 || !!fmap[k];
+  };
+  const tipps = [];
+  const seen = new Set();
+  for (const key in fmap) {
+    if (key.slice(0, 4) !== jahrStr) continue;
+    const dow = fromKey(key).getDay();
+    if (dow === 0 || dow === 6) continue;
+    for (const b of [addDaysKey(key, -1), addDaysKey(key, 1)]) {
+      if (b.slice(0, 4) !== jahrStr || !isWerktag(b) || fmap[b] || seen.has(b)) continue;
+      if (!istFrei(addDaysKey(b, -1)) || !istFrei(addDaysKey(b, 1))) continue;
+      let start = b, end = b;
+      while (istFrei(addDaysKey(start, -1))) start = addDaysKey(start, -1);
+      while (istFrei(addDaysKey(end, 1))) end = addDaysKey(end, 1);
+      const tage = daysBetween(start, end);
+      if (tage >= 4) {
+        seen.add(b);
+        tipps.push({ feiertag: key, name: fmap[key], bruecke: b, von: start, bis: end, tage });
+      }
+    }
+  }
+  return tipps.sort((a, b) => a.bruecke < b.bruecke ? -1 : 1);
+}
+
+function istSchulfreiFuer(mitgliedId, key) {
+  if (istFerienTag(key)) return true;
+  return eintraegeAm(key).some(e => e.mitgliedId === mitgliedId && e.typ === 'schulfrei');
+}
+
+function betreuungsluecken(jahr) {
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const eltern = state.mitglieder.filter(m => m.rolle === 'elternteil');
+  const kids = state.mitglieder.filter(m => m.rolle === 'kind');
+  const luecken = [];
+  for (let k = `${jahr}-01-01`; k <= `${jahr}-12-31`; k = addDaysKey(k, 1)) {
+    if (!isWerktag(k) || fmap[k]) continue;
+    const betroffene = kids.filter(kd => istSchulfreiFuer(kd.id, k));
+    if (!betroffene.length) continue;
+    const abgedeckt = eltern.some(p => eintraegeAm(k).some(e => e.mitgliedId === p.id && e.typ === 'urlaub'))
+      || betroffene.some(kd => eintraegeAm(k).some(e => e.mitgliedId === kd.id && (e.typ === 'betreuung' || e.typ === 'abwesenheit')));
+    if (!abgedeckt) luecken.push({ key: k, kinder: betroffene.map(x => x.name) });
+  }
+  return luecken;
+}
+
+function renderTipps() {
+  const jahr = state.jahr;
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const eltern = state.mitglieder.filter(m => m.rolle === 'elternteil');
+  const luecken = betreuungsluecken(jahr);
+  const fl = state.einstellungen?.fronleichnamRegional === true;
+  const fmapErweitert = Object.assign({}, feiertagMap(jahr - 1, fl), fmap, feiertagMap(jahr + 1, fl));
+  const bruecken = brueckenTipps(fmapErweitert, jahr);
+  const schnellBtns = (von, bis) => eltern.map(p =>
+    `<button type="button" class="btn-schnell" data-schnell-urlaub="${p.id}" data-von="${von}" data-bis="${bis}">+ Urlaub ${esc(p.name)}</button>`).join(' ');
+  let html = '';
+  html += `<div class="liste-karte"><h3>👨‍👩‍👧 Betreuungslücken ${jahr}</h3>
+    <p class="hint">Werktage, an denen mindestens ein Kind schulfrei ist (Ferien/schulfrei), aber weder ein Elternteil Urlaub hat noch das Kind Betreuung/Abwesenheit eingetragen ist. Aufeinanderfolgende Tage sind zu Zeiträumen zusammengefasst.</p>`;
+  if (!luecken.length) html += '<p>Keine Lücken – an allen schulfreien Werktagen ist abgedeckt. 🎉</p>';
+  const bloecke = mergeBloecke(luecken.map(l => ({ von: l.key, bis: l.key })), fmap);
+  for (const b of bloecke) {
+    let werke = 0;
+    for (let k = b.von; k <= b.bis; k = addDaysKey(k, 1)) if (isWerktag(k) && !fmap[k]) werke++;
+    const kinder = [...new Set(luecken.filter(l => l.key >= b.von && l.key <= b.bis).flatMap(l => l.kinder))];
+    html += `<div class="liste-zeile"><strong>${fmtDeutsch(b.von)} – ${fmtDeutsch(b.bis)}</strong>
+      <span>${werke} ungedeckte Werktage · betrifft: ${esc(kinder.join(', '))}</span>
+      <span>${schnellBtns(b.von, b.bis)}</span></div>`;
+  }
+  html += '</div>';
+  html += `<div class="liste-karte"><h3>🌉 Brückentag-Tipps ${jahr}</h3>
+    <p class="hint">Ein Werktag zwischen Feiertag und Wochenende: 1 Urlaubstag → mindestens 4 zusammenhängende freie Tage.</p>`;
+  if (!bruecken.length) html += '<p>Keine Brückentage mit 4+ freien Tagen in diesem Jahr.</p>';
+  for (const t of bruecken) {
+    html += `<div class="liste-zeile"><strong>${fmtDeutsch(t.bruecke)} als Urlaub</strong>
+      <span>${esc(t.name)} (${fmtDeutsch(t.feiertag)}) → frei: ${fmtDeutsch(t.von)} – ${fmtDeutsch(t.bis)} (${t.tage} Tage)</span>
+      <span>${schnellBtns(t.bruecke, t.bruecke)}</span></div>`;
+  }
+  html += '</div>';
+  const box = document.getElementById('tippsInhalt');
+  box.innerHTML = html;
+  box.querySelectorAll('[data-schnell-urlaub]').forEach(b => b.addEventListener('click', () => {
+    const mid = b.dataset.schnellUrlaub;
+    const von = b.dataset.von, bis = b.dataset.bis;
+    const belegt = eintraegeImJahr(jahr).some(e => e.mitgliedId === mid && e.typ === 'urlaub' && e.von <= bis && e.bis >= von);
+    if (belegt) { alert('Für diesen Zeitraum ist bereits Urlaub eingetragen.'); return; }
+    const e = { id: uid(), mitgliedId: mid, typ: 'urlaub', von, bis, titel: '', notiz: '' };
+    state.eintraege.push(e);
+    gcalAutoUpsert(e);
+    save(); render();
+  }));
+}
+
+function render() {
+  datenCacheLeeren();
+  renderJahrSelect();
+  renderUebersicht();
+  renderFilterSelect();
+  const views = { monate: 'monate', wand: 'wandkalender', liste: 'urlaubsliste', balken: 'balkenansicht', alle: 'alleEintraege', tipps: 'tippsansicht' };
+  for (const [key, id] of Object.entries(views)) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = state.ansicht === key ? (key === 'monate' ? 'grid' : 'block') : 'none';
+  }
+  if (state.ansicht !== 'wand') document.body.classList.remove('mit-auswahl');
+  if (state.ansicht === 'wand') renderWandkalender();
+  else if (state.ansicht === 'liste') renderUrlaubsliste();
+  else if (state.ansicht === 'balken') renderBalken();
+  else if (state.ansicht === 'alle') renderAlleEintraege();
+  else if (state.ansicht === 'tipps') renderTipps();
+  else renderKalender();
+  document.querySelectorAll('#menuAnsicht [role=menuitem]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.ansicht === state.ansicht));
+  });
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('offen');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('offen');
+}
+
+function openTagModal(key) {
+  const jahr = Number(key.slice(0, 4)); // Jahr des Tages, nicht der Ansicht (Einträge über den Jahreswechsel)
+  const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
+  const ferien = ferienAm(key);
+  const feiertag = fmap[key];
+  const eintraege = eintraegeAm(key);
+  let html = `<h3>${fmtDeutsch(key)}</h3>`;
+  if (ferien.length) html += `<p class="ferien-text">🏖 ${esc(ferien.join(', '))}</p>`;
+  if (feiertag) html += `<p class="feiertag-text">🎌 ${esc(feiertag)}</p>`;
+  if (!eintraege.length && !ferien.length && !feiertag) html += '<p>Keine Einträge.</p>';
+  for (const e of eintraege) {
+    const m = mitgliedById(e.mitgliedId);
+    html += `<div class="eintrag-zeile" style="border-left:4px solid ${m ? m.farbe : '#666'}">
+      <div><strong>${esc(m ? m.name : '?')}</strong> · ${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich wiederkehrend)' : ''}<br>
+      <strong>${esc(e.titel || '–')}</strong><br>
+      <small>${fmtDeutsch(e.von)} – ${fmtDeutsch(e.bis)}${e.typ === 'urlaub' ? ` (${urlaubstageImJahr(e, jahr, fmap)} Urlaubstage in ${jahr})` : ''}</small>
+      ${e.notiz ? `<br><small>${esc(e.notiz)}</small>` : ''}</div>
+      <span><button class="bearbeiten" data-id="${e.id}">Bearbeiten</button> <button class="loeschen" data-id="${e.id}">Löschen</button> <a class="btn-link" href="${esc(gcalVorlageUrl(e))}" target="_blank" rel="noopener noreferrer" title="Öffnet Google Kalender mit diesem Termin vorausgefüllt">In Google Kalender öffnen</a></span>
+    </div>`;
+  }
+  html += `<button id="tagNeuBtn" data-key="${key}">+ Eintrag an diesem Tag</button>`;
+  const body = document.getElementById('tagModalBody');
+  body.innerHTML = html;
+  body.querySelectorAll('.loeschen').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.id;
+    const e = state.eintraege.find(x => x.id === id);
+    state.eintraege = state.eintraege.filter(x => x.id !== id);
+    if (e && e.gcalId && gcalAktiv()) gcalDelete(e.gcalId);
+    save(); render(); closeModal('tagModal');
+  }));
+  body.querySelectorAll('.bearbeiten').forEach(b => b.addEventListener('click', () => {
+    closeModal('tagModal');
+    openEintragModal(key, b.dataset.id);
+  }));
+  const neuBtn = document.getElementById('tagNeuBtn');
+  if (neuBtn) neuBtn.addEventListener('click', () => {
+    closeModal('tagModal');
+    openEintragModal(neuBtn.dataset.key);
+  });
+  openModal('tagModal');
+}
+
+let editEintragId = null;
+
+function fillMitgliederSelect(sel, rolleFilter) {
+  sel.innerHTML = state.mitglieder
+    .filter(m => !rolleFilter || m.rolle === rolleFilter || rolleFilter === 'alle')
+    .map(m => `<option value="${m.id}">${esc(m.name)} (${m.rolle === 'elternteil' ? 'Elternteil' : 'Kind'})</option>`)
+    .join('');
+}
+
+function openEintragModal(voreingestelltKey, editId) {
+  const selTyp = document.getElementById('eTyp');
+  selTyp.innerHTML = Object.entries(TYP_LABEL).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  fillMitgliederSelect(document.getElementById('eMitglied'), 'alle');
+  const edit = editId ? state.eintraege.find(x => x.id === editId) : null;
+  editEintragId = edit ? edit.id : null;
+  document.getElementById('eintragModalTitel').textContent = edit ? 'Eintrag bearbeiten' : 'Neuer Eintrag';
+  document.getElementById('eMitglied').value = edit ? edit.mitgliedId : state.mitglieder[0].id;
+  document.getElementById('eTyp').value = edit ? edit.typ : 'urlaub';
+  document.getElementById('eVon').value = edit ? edit.von : (voreingestelltKey || toKey(new Date()));
+  document.getElementById('eBis').value = edit ? edit.bis : (voreingestelltKey || toKey(new Date()));
+  document.getElementById('eTitel').value = edit ? (edit.titel || '') : '';
+  document.getElementById('eNotiz').value = edit ? (edit.notiz || '') : '';
+  document.getElementById('eJaehrlich').checked = !!(edit && edit.jaehrlich);
+  openModal('eintragModal');
+}
+
+function submitEintrag() {
+  const mitgliedId = document.getElementById('eMitglied').value;
+  const typ = document.getElementById('eTyp').value;
+  let von = document.getElementById('eVon').value;
+  let bis = document.getElementById('eBis').value;
+  const titel = document.getElementById('eTitel').value.trim();
+  const notiz = document.getElementById('eNotiz').value.trim();
+  if (!von) { alert('Bitte Startdatum angeben.'); return; }
+  if (!bis || bis < von) bis = von;
+  const m = mitgliedById(mitgliedId);
+  if (typ === 'urlaub' && m.rolle !== 'elternteil') { alert('Urlaub kann nur für Elternteile eingetragen werden.'); return; }
+  if (typ === 'schulfrei' && m.rolle !== 'kind') { alert('Schulfreie Tage werden für Kinder eingetragen.'); return; }
+  if (editEintragId) {
+    const e = state.eintraege.find(x => x.id === editEintragId);
+    if (e) {
+      e.mitgliedId = mitgliedId;
+      e.typ = typ;
+      e.von = von;
+      e.bis = document.getElementById('eJaehrlich').checked ? von : bis;
+      e.titel = titel;
+      e.notiz = notiz;
+      if (document.getElementById('eJaehrlich').checked) {
+        const teile = von.split('-');
+        e.jaehrlich = true;
+        e.monat = Number(teile[1]);
+        e.tag = Number(teile[2]);
+      } else {
+        delete e.jaehrlich;
+      }
+      save(); render(); closeModal('eintragModal');
+      gcalAutoUpsert(e);
+    }
+    editEintragId = null;
+    return;
+  }
+  let e;
+  if (document.getElementById('eJaehrlich').checked) {
+    const teile = von.split('-');
+    e = { id: uid(), mitgliedId, typ, von, bis: von, titel, notiz, jaehrlich: true, monat: Number(teile[1]), tag: Number(teile[2]) };
+  } else {
+    e = { id: uid(), mitgliedId, typ, von, bis, titel, notiz };
+  }
+  state.eintraege.push(e);
+  save(); render(); closeModal('eintragModal');
+  gcalAutoUpsert(e);
+}
+
+function renderEinstellungen() {
+  const box = document.getElementById('einstellungenListe');
+  let html = '';
+  state.mitglieder.forEach((m, i) => {
+    html += `<div class="mit-row">
+      <input type="color" value="${m.farbe}" data-farbe="${m.id}">
+      <input type="text" value="${esc(m.name)}" data-name="${m.id}">
+      <select data-rolle="${m.id}">
+        <option value="elternteil" ${m.rolle === 'elternteil' ? 'selected' : ''}>Elternteil</option>
+        <option value="kind" ${m.rolle === 'kind' ? 'selected' : ''}>Kind</option>
+      </select>
+      ${m.rolle === 'elternteil' ? `<input type="number" min="0" max="60" value="${m.urlaubstage ?? 30}" data-urlaub="${m.id}" title="Verfügbare Urlaubstage" style="width:70px"> Tage
+      <input type="number" min="0" max="60" value="${m.resturlaubVorjahr ?? 0}" data-resturlaub="${m.id}" title="Resturlaub aus dem Vorjahr (Verfall 31.03.)" style="width:70px"> Rest-VJ` : ''}
+    </div>`;
+  });
+  html += `<h4>Sonstiges</h4>
+    <p class="hint">Ferien, Feiertage (auch Fronleichnam) und der Online-Abgleich: Extras ▸ „Ferien &amp; Feiertage pflegen“.</p>
+    <label>Google Client-ID (OAuth, aus Google Cloud Console):
+      <input type="text" id="gcalClientId" value="${esc(state.einstellungen?.gcalClientId || '')}" placeholder="xxx.apps.googleusercontent.com" style="width:100%"></label>`;
+  box.innerHTML = html;
+  box.querySelectorAll('[data-name]').forEach(inp => inp.addEventListener('change', () => {
+    mitgliedById(inp.dataset.name).name = inp.value; save(); render();
+  }));
+  box.querySelectorAll('[data-farbe]').forEach(inp => inp.addEventListener('change', () => {
+    mitgliedById(inp.dataset.farbe).farbe = inp.value; save(); render();
+  }));
+  box.querySelectorAll('[data-rolle]').forEach(sel => sel.addEventListener('change', () => {
+    const m = mitgliedById(sel.dataset.rolle);
+    m.rolle = sel.value;
+    delete state.wandModus[m.id]; // passenden Markier-Modus fuer die neue Rolle waehlen
+    normalizeState();
+    const unpassend = state.eintraege.filter(e => e.mitgliedId === m.id
+      && ((m.rolle === 'kind' && e.typ === 'urlaub') || (m.rolle === 'elternteil' && (e.typ === 'schulfrei' || e.typ === 'betreuung')))).length;
+    save(); render(); renderEinstellungen();
+    if (unpassend) alert(`${m.name} hat ${unpassend} Eintrag/Einträge, die zur neuen Rolle nicht passen (Urlaub nur für Eltern, Schulfrei/Betreuung nur für Kinder). Sie bleiben erhalten, zählen aber nicht mehr korrekt – bitte prüfen.`);
+  }));
+  box.querySelectorAll('[data-urlaub]').forEach(inp => inp.addEventListener('change', () => {
+    mitgliedById(inp.dataset.urlaub).urlaubstage = Number(inp.value); save(); render();
+  }));
+  box.querySelectorAll('[data-resturlaub]').forEach(inp => inp.addEventListener('change', () => {
+    mitgliedById(inp.dataset.resturlaub).resturlaubVorjahr = Number(inp.value); save(); render();
+  }));
+  document.getElementById('gcalClientId').addEventListener('change', (ev) => {
+    state.einstellungen.gcalClientId = ev.target.value.trim(); save();
+  });
+}
+
+function exportJson() {
+  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege.map(({ gcalId, ...rest }) => rest), eigeneFerien: state.eigeneFerien || [], ferienAus: state.ferienAus || [], feiertageAus: state.feiertageAus || [], feiertageExtra: state.feiertageExtra || [], einstellungen: state.einstellungen };
+  const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `familienplaner-${state.jahr}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data !== 'object' || !Array.isArray(data.eintraege)) throw new Error('keine gültige Planungsdatei');
+      const plan = sanitizePlan(data);
+      if (Array.isArray(data.mitglieder) && data.mitglieder.length) state.mitglieder = plan.mitglieder;
+      else {
+        // ohne Personen in der Datei: vorhandene behalten, Einträge fremder Personen verwerfen
+        const bekannt = new Set(state.mitglieder.map(m => m.id));
+        plan.eintraege = sanitizePlan({ ...data, mitglieder: state.mitglieder }).eintraege.filter(e => bekannt.has(e.mitgliedId));
+      }
+      state.jahr = plan.jahr;
+      state.eintraege = plan.eintraege.map(({ gcalId, ...rest }) => rest);
+      state.eigeneFerien = plan.eigeneFerien;
+      state.ferienAus = plan.ferienAus;
+      state.feiertageAus = plan.feiertageAus;
+      state.feiertageExtra = plan.feiertageExtra;
+      state.einstellungen = plan.einstellungen; // Online-Cache bleibt unverändert (wird neu abgerufen)
+      normalizeState();
+      save(); render();
+      alert('Import erfolgreich.' + (plan.verworfen ? `\n${plan.verworfen} ungültige Einträge wurden verworfen.` : ''));
+    } catch (err) {
+      alert('Datei konnte nicht gelesen werden: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function icsText(t) {
+  return String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+// Zeilen laenger als 75 Oktette werden gefaltet (RFC 5545), ohne Multibyte-Zeichen zu zerschneiden
+function icsFold(zeile) {
+  const enc = new TextEncoder();
+  if (enc.encode(zeile).length <= 75) return zeile;
+  const teile = [];
+  let aktuell = '', bytes = 0, limit = 75;
+  for (const ch of zeile) {
+    const n = enc.encode(ch).length;
+    if (bytes + n > limit) { teile.push(aktuell); aktuell = ''; bytes = 0; limit = 74; }
+    aktuell += ch;
+    bytes += n;
+  }
+  teile.push(aktuell);
+  return teile.join('\r\n ');
+}
+
+function exportIcs() {
+  const jahr = state.jahr;
+  const stempel = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Familienplaner//DE', 'CALSCALE:GREGORIAN'];
+  const addEvent = (uidStr, name, von, bis, extra) => {
+    lines.push('BEGIN:VEVENT', `UID:${uidStr}@familienplaner`, `DTSTAMP:${stempel}`,
+      `DTSTART;VALUE=DATE:${von.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDaysKey(bis, 1).replace(/-/g, '')}`,
+      `SUMMARY:${icsText(name)}`);
+    if (extra) lines.push(...extra);
+    lines.push('END:VEVENT');
+  };
+  for (const f of alleFerien()) addEvent('ferie-' + f.von + '-' + f.bis, 'Schulferien Sachsen: ' + f.name, f.von, f.bis);
+  for (const f of feiertageEffektiv(jahr, state.einstellungen?.fronleichnamRegional === true)) addEvent('feiertag-' + f.key, 'Feiertag: ' + f.name, f.key, f.key);
+  for (const e of state.eintraege) {
+    const m = mitgliedById(e.mitgliedId);
+    const extra = [];
+    if (e.notiz) extra.push(`DESCRIPTION:${icsText(e.notiz)}`);
+    if (e.jaehrlich) extra.push(e.monat === 2 && e.tag === 29 ? 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1' : 'RRULE:FREQ=YEARLY');
+    addEvent('eintrag-' + e.id, `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ' – ' + e.titel : ''}`, e.von, e.bis, extra);
+  }
+  lines.push('END:VCALENDAR');
+  const blob = new Blob([lines.map(icsFold).join('\r\n') + '\r\n'], { type: 'text/calendar' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `familienplaner-${jahr}.ics`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function gcalStatus(text) {
+  const el = document.getElementById('gcalStatus');
+  if (el) el.textContent = text;
+}
+
+// Sync nur, wenn schon einmal verbunden wurde; laeuft die Sitzung ab, wird das sichtbar gemeldet
+function gcalAktiv() {
+  if (!gcalCalendarId) return false;
+  if (!gcalToken || Date.now() >= gcalTokenBis) {
+    gcalStatus('⚠️ Google-Sitzung abgelaufen – Änderungen werden nicht synchronisiert. Bitte unter Extras neu verbinden.');
+    return false;
+  }
+  return true;
+}
+
+function gcalAutoUpsert(e) {
+  if (gcalAktiv()) gcalUpsert(e);
+}
+
+async function gcalRequest(method, path, body) {
+  const res = await fetch('https://www.googleapis.com/calendar/v3' + path, {
+    method,
+    headers: { Authorization: 'Bearer ' + gcalToken, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    let msg;
+    if (res.status === 401) { gcalToken = null; msg = 'Google-Sitzung abgelaufen – bitte neu verbinden.'; }
+    else msg = 'Google API Fehler ' + res.status + ': ' + (await res.text()).slice(0, 200);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// Nur von der App angelegte Termine tragen diese Markierung; nur sie werden je geloescht.
+// Ohne Anmeldung und ohne Client-ID: öffnet Google Kalender mit vorausgefülltem Termin (Speichern dort mit einem Tipp)
+function gcalVorlageUrl(e) {
+  const m = mitgliedById(e.mitgliedId);
+  const tag = k => k.replace(/-/g, '');
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`,
+    dates: `${tag(e.von)}/${tag(addDaysKey(e.bis, 1))}`,
+    details: e.notiz || ''
+  });
+  if (e.jaehrlich) p.set('recur', 'RRULE:FREQ=YEARLY');
+  return 'https://calendar.google.com/calendar/render?' + p.toString();
+}
+
+function gcalEvent(e) {
+  const m = mitgliedById(e.mitgliedId);
+  const ev = {
+    summary: `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.titel ? ' – ' + e.titel : ''}`,
+    description: e.notiz || '',
+    start: { date: e.von },
+    end: { date: addDaysKey(e.bis, 1) },
+    extendedProperties: { private: { familienplaner: '1' } }
+  };
+  if (e.jaehrlich) ev.recurrence = ['RRULE:FREQ=YEARLY'];
+  return ev;
+}
+
+async function gcalUpsert(e) {
+  const basis = `/calendars/${encodeURIComponent(gcalCalendarId)}/events`;
+  try {
+    if (e.gcalId) {
+      try {
+        await gcalRequest('PATCH', `${basis}/${encodeURIComponent(e.gcalId)}`, gcalEvent(e));
+        return true;
+      } catch (err) {
+        if (err.status !== 404 && err.status !== 410) throw err;
+        delete e.gcalId; // in Google geloescht -> neu anlegen
+      }
+    }
+    const res = await gcalRequest('POST', basis, gcalEvent(e));
+    e.gcalId = res.id;
+    save();
+    return true;
+  } catch (err) {
+    console.warn('GCAL upsert fehlgeschlagen', err);
+    gcalStatus('⚠️ Google-Sync fehlgeschlagen: ' + err.message);
+    return false;
+  }
+}
+
+async function gcalDelete(gcalId) {
+  try {
+    await gcalRequest('DELETE', `/calendars/${encodeURIComponent(gcalCalendarId)}/events/${encodeURIComponent(gcalId)}`);
+    return true;
+  } catch (err) {
+    if (err.status === 404 || err.status === 410) return true; // schon weg
+    console.warn('GCAL delete fehlgeschlagen', err);
+    gcalStatus('⚠️ Google-Sync fehlgeschlagen: ' + err.message);
+    return false;
+  }
+}
+
+// Das Google-Skript wird erst bei Bedarf geladen (nicht bei jedem Appstart).
+function gcalLadeSkript() {
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if (!gcalSkriptPromise) {
+    gcalSkriptPromise = new Promise((resolve, reject) => {
+      const sk = document.createElement('script');
+      sk.src = 'https://accounts.google.com/gsi/client';
+      sk.async = true;
+      sk.onload = () => resolve();
+      sk.onerror = () => { gcalSkriptPromise = null; sk.remove(); reject(new Error('Google-Login-Skript konnte nicht geladen werden (offline?).')); };
+      document.head.appendChild(sk);
+    });
+  }
+  return gcalSkriptPromise;
+}
+
+// Der Google-Login (Google Identity Services) braucht eine registrierte http(s)-Adresse und einen echten Browser:
+// aus file:// oder einer eingebetteten App-WebView (z. B. Capacitor, WebView-APK) wird er nicht angeboten.
+function gcalUmgebungsProblem() {
+  const ua = navigator.userAgent || '';
+  if (location.protocol === 'file:') {
+    return 'Der Google-Login funktioniert nicht, wenn die Datei lokal geöffnet wird (file://). Bitte die App über eine https-Adresse (oder http://localhost) öffnen und diese Adresse im Google-Cloud-Projekt unter „Autorisierte JavaScript-Quellen“ eintragen.\n\nOhne Einrichtung geht es immer über „In Google Kalender öffnen“ bei einem Eintrag (Tag antippen).';
+  }
+  if (/; wv\)/.test(ua) || (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) {
+    return 'In einer eingebetteten App-Ansicht (WebView) blockiert Google den Login. Öffne den Planer im Browser (Chrome) bzw. als installierte Web-App über https.\n\nOhne Einrichtung geht es immer über „In Google Kalender öffnen“ bei einem Eintrag (Tag antippen).';
+  }
+  return null;
+}
+
+async function gcalConnect() {
+  const problem = gcalUmgebungsProblem();
+  if (problem) { alert(problem); gcalStatus('Google-Sync hier nicht möglich – siehe Hinweis.'); return; }
+  const clientId = (state.einstellungen?.gcalClientId || '').trim();
+  if (!clientId) { alert('Bitte zuerst die Google Client-ID in den Einstellungen hinterlegen.'); return; }
+  try { await gcalLadeSkript(); } catch (err) { alert(err.message); return; }
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/calendar',
+    callback: (resp) => {
+      if (resp.error) { alert('Google-Login fehlgeschlagen: ' + resp.error); return; }
+      gcalToken = resp.access_token;
+      gcalTokenBis = Date.now() + ((Number(resp.expires_in) || 3600) - 60) * 1000;
+      gcalSync();
+    },
+    error_callback: () => gcalStatus('Google-Login abgebrochen.')
+  });
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function gcalSync() {
+  gcalStatus('Synchronisiere mit Google Kalender…');
+  try {
+    let cal = null;
+    let seite = '';
+    do {
+      const list = await gcalRequest('GET', '/users/me/calendarList' + (seite ? '?pageToken=' + encodeURIComponent(seite) : ''));
+      cal = cal || (list.items || []).find(c => c.summary === 'Familienplaner' && c.accessRole === 'owner');
+      seite = cal ? '' : (list.nextPageToken || '');
+    } while (seite);
+    if (!cal) cal = await gcalRequest('POST', '/calendars', { summary: 'Familienplaner' });
+    gcalCalendarId = cal.id;
+    const basis = `/calendars/${encodeURIComponent(gcalCalendarId)}/events`;
+    // nur von der App angelegte Termine (Markierung) und alle Seiten abrufen
+    const remoteIds = new Set();
+    let token = '';
+    do {
+      const r = await gcalRequest('GET', `${basis}?maxResults=2500&privateExtendedProperty=familienplaner%3D1${token ? '&pageToken=' + encodeURIComponent(token) : ''}`);
+      for (const i of r.items || []) remoteIds.add(i.id);
+      token = r.nextPageToken || '';
+    } while (token);
+    const lokalIds = new Set();
+    let fehler = 0;
+    for (const e of state.eintraege) {
+      if (await gcalUpsert(e)) lokalIds.add(e.gcalId); else fehler++;
+    }
+    if (fehler) { gcalStatus(`⚠️ ${fehler} Einträge konnten nicht synchronisiert werden; nichts gelöscht.`); return; }
+    const entfernen = [...remoteIds].filter(rid => !lokalIds.has(rid));
+    let entfernt = 0;
+    if (entfernen.length && confirm(`${entfernen.length} Termin(e) im Google-Kalender „Familienplaner“ gibt es lokal nicht (mehr). Jetzt dort löschen?\n\nAbbrechen lässt sie unverändert.`)) {
+      for (const rid of entfernen) if (await gcalDelete(rid)) entfernt++;
+    }
+    gcalStatus(`Synchronisiert: ${state.eintraege.length} Einträge im Kalender „Familienplaner“${entfernt ? `, ${entfernt} entfernt` : ''}.`);
+  } catch (err) {
+    gcalStatus('Fehler: ' + err.message);
+  }
+}
+
+// ===================== Online-Abgleich (OpenHolidays API) + Pflegedialog =====================
+const OH_BASIS = 'https://openholidaysapi.org';
+const OH_MAX_ALTER = 7 * 24 * 3600 * 1000; // automatisch hoechstens einmal pro Woche
+let ohLaeuft = false;
+let datenStatus = '';
+let datenStatusFehler = false;
+
+function setDatenStatus(text, fehler) {
+  datenStatus = text;
+  datenStatusFehler = !!fehler;
+  const el = document.getElementById('pfStatus');
+  if (el) { el.textContent = text; el.classList.toggle('fehler', !!fehler); }
+}
+
+// Die API erlaubt hoechstens 1095 Tage je Abfrage -> in Fenstern abfragen
+function ohFenster(von, bis, maxTage = 1000) {
+  const out = [];
+  for (let a = von; a <= bis; ) {
+    let b = addDaysKey(a, maxTage - 1);
+    if (b > bis) b = bis;
+    out.push([a, b]);
+    a = addDaysKey(b, 1);
+  }
+  return out;
+}
+
+async function ohAbruf(pfad, von, bis) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(`${OH_BASIS}/${pfad}?countryIsoCode=DE&subdivisionCode=DE-SN&languageIsoCode=DE&validFrom=${von}&validTo=${bis}`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('unerwartete Antwort');
+    return data;
+  } catch (err) {
+    throw new Error(err.name === 'AbortError' ? 'Zeitüberschreitung' : err.message);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function ohName(e) {
+  if (!Array.isArray(e.name)) return '';
+  const n = e.name.find(x => x && x.language === 'DE') || e.name[0];
+  return n && typeof n.text === 'string' ? n.text.trim() : '';
+}
+
+// Die API liefert Namen ohne Jahr ("Winterferien"); die App zeigt "Winterferien 2027" bzw. "Weihnachtsferien 2027/28"
+function ferienAnzeigeName(name, von) {
+  const y = Number(von.slice(0, 4));
+  if (ferienTyp(name) === 'weihnacht') {
+    const beginnt = Number(von.slice(5, 7)) >= 11 ? y : y - 1;
+    return `${name} ${beginnt}/${String(beginnt + 1).slice(2)}`;
+  }
+  return `${name} ${y}`;
+}
+
+async function ladeOnlineDaten(opt = {}) {
+  if (ohLaeuft) return { ok: false, aktiv: true };
+  ohLaeuft = true;
+  setDatenStatus('Lade Ferien und Feiertage …');
+  try {
+    const fenster = ohFenster(`${JAHR_MIN - 1}-12-01`, `${JAHR_MAX}-12-31`);
+    const [ferienRoh, feiertageRoh] = await Promise.all([
+      Promise.all(fenster.map(([v, b]) => ohAbruf('SchoolHolidays', v, b))),
+      Promise.all(fenster.map(([v, b]) => ohAbruf('PublicHolidays', v, b)))
+    ]);
+    const ferien = [];
+    const seen = new Set();
+    for (const e of ferienRoh.flat()) {
+      const name = ohName(e);
+      if (!e || e.type !== 'School' || !name || !istDatum(e.startDate) || !istDatum(e.endDate) || e.endDate < e.startDate) continue;
+      const k = e.startDate + '|' + e.endDate + '|' + name;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      ferien.push({ name: ferienAnzeigeName(name, e.startDate), von: e.startDate, bis: e.endDate });
+    }
+    if (ferien.length < 5) throw new Error('Antwort enthält zu wenige Ferientermine – nichts übernommen');
+    ferien.sort((x, y) => x.von < y.von ? -1 : 1);
+    const daten = {};
+    for (const e of feiertageRoh.flat()) {
+      const name = ohName(e);
+      if (!e || e.type !== 'Public' || e.regionalScope === 'Local' || !name || !istDatum(e.startDate) || e.endDate !== e.startDate) continue;
+      const jahr = e.startDate.slice(0, 4);
+      const liste = (daten[jahr] = daten[jahr] || []);
+      if (!liste.some(x => x.key === e.startDate)) liste.push({ key: e.startDate, name });
+    }
+    // Nur Jahre mit plausibel vollstaendiger Liste uebernehmen, sonst gilt die Berechnung
+    for (const jahr of Object.keys(daten)) if (daten[jahr].length < 8 || Number(jahr) < JAHR_MIN - 1 || Number(jahr) > JAHR_MAX) delete daten[jahr];
+    // Aenderungen gegenueber vorher (eingebaut + letzter Online-Stand) zaehlen
+    const vorher = new Set([...FERIEN_SACHSEN, ...((state.ferienOnline && state.ferienOnline.eintraege) || [])].map(ferienKey));
+    const neu = ferien.filter(f => f.von >= `${JAHR_MIN}-01-01` && !vorher.has(ferienKey(f))).length;
+    const jetzt = Date.now();
+    state.ferienOnline = { abgerufen: jetzt, eintraege: ferien };
+    state.feiertageOnline = Object.keys(daten).length ? { abgerufen: jetzt, daten } : null;
+    save();
+    render();
+    const text = `Aktualisiert: ${ferien.length} Ferientermine, Feiertage für ${Object.keys(daten).length} Jahre` + (neu ? ` – ${neu} neu/geändert gegenüber vorher.` : ' – keine Änderungen.');
+    setDatenStatus(text);
+    if (opt.stumm && neu) gcalStatus(`Ferien/Feiertage online aktualisiert (${neu} neu/geändert).`), setTimeout(() => { const el = document.getElementById('gcalStatus'); if (el && el.textContent.startsWith('Ferien/Feiertage online')) el.textContent = ''; }, 10000);
+    return { ok: true, neu };
+  } catch (err) {
+    setDatenStatus('Online-Abgleich fehlgeschlagen: ' + err.message + ' – es gelten die gespeicherten bzw. eingebauten Daten.', true);
+    return { ok: false, fehler: err.message };
+  } finally {
+    ohLaeuft = false;
+  }
+}
+
+function autoAktualisieren() {
+  if (!state.einstellungen || state.einstellungen.autoLaden === false) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  const stand = Math.min((state.ferienOnline && state.ferienOnline.abgerufen) || 0, (state.feiertageOnline && state.feiertageOnline.abgerufen) || 0);
+  if (Date.now() - stand < OH_MAX_ALTER) return;
+  ladeOnlineDaten({ stumm: true });
+}
+
+let pflegeJahr = null;
+let pflegeEdit = null; // Index der gerade bearbeiteten eigenen Ferien
+
+function renderPflege() {
+  if (!pflegeJahr) pflegeJahr = state.jahr;
+  const jahr = pflegeJahr;
+  const fron = state.einstellungen?.fronleichnamRegional === true;
+  const box = document.getElementById('pflegeInhalt');
+  const stand = state.ferienOnline ? new Date(state.ferienOnline.abgerufen).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  let html = `<div class="pf-box">
+    <div><strong>Online-Abgleich</strong> mit der freien <a href="https://www.openholidaysapi.org" target="_blank" rel="noopener noreferrer">OpenHolidays-API</a> (Sachsen).
+      ${stand ? 'Stand: ' + esc(stand) + '.' : 'Noch nicht abgerufen – es gelten die eingebauten Daten.'}</div>
+    <div class="pf-aktionen"><button type="button" class="prim" id="pfLaden">Jetzt aktualisieren</button>
+      ${state.ferienOnline || state.feiertageOnline ? '<button type="button" id="pfVerwerfen">Online-Daten verwerfen</button>' : ''}</div>
+    <label><input type="checkbox" id="pfAuto" ${state.einstellungen?.autoLaden !== false ? 'checked' : ''}> Beim Start automatisch aktualisieren (höchstens einmal pro Woche)</label>
+    <div class="pf-status${datenStatusFehler ? ' fehler' : ''}" id="pfStatus" role="status">${esc(datenStatus)}</div>
+    <div class="hint">Beim Abruf wird nur Ihre IP-Adresse an openholidaysapi.org übermittelt – keine Planungsdaten.</div>
+  </div>`;
+  html += `<div class="form-row"><label for="pfJahr">Jahr</label><select id="pfJahr">${
+    Array.from({ length: JAHR_MAX - JAHR_MIN + 1 }, (_, i) => JAHR_MIN + i).map(j => `<option value="${j}" ${j === jahr ? 'selected' : ''}>${j}</option>`).join('')}</select></div>`;
+
+  // --- Schulferien ---
+  const ferien = ferienListeVoll().filter(f => f.von <= `${jahr}-12-31` && f.bis >= `${jahr}-01-01`);
+  html += `<h4>Schulferien ${jahr}</h4><div class="pf-hinweis">Häkchen = wird im Planer berücksichtigt. Eingebaute und Online-Termine lassen sich ausblenden; eigene Termine bearbeiten/löschen.</div>`;
+  if (!ferien.length) html += '<p>Für dieses Jahr sind keine Ferien hinterlegt – bitte unten ergänzen.</p>';
+  for (const f of ferien) {
+    const k = ferienKey(f);
+    html += `<div class="pf-zeile${f.aus ? ' pf-aus' : ''}">
+      <input type="checkbox" data-pf-ferie-an="${k}" ${f.aus ? '' : 'checked'} aria-label="${esc(f.name)} berücksichtigen">
+      <div class="pf-text"><strong>${esc(f.name)}</strong><br><small>${fmtDeutsch(f.von)} – ${fmtDeutsch(f.bis)} (${daysBetween(f.von, f.bis)} ${daysBetween(f.von, f.bis) === 1 ? 'Tag' : 'Tage'})</small></div>
+      <span class="pf-badge ${f.quelle}">${f.quelle}</span>
+      ${f.quelle === 'eigen' ? `<button type="button" data-pf-ferie-edit="${f.idx}">Bearbeiten</button> <button type="button" class="loeschen" data-pf-ferie-del="${f.idx}">Löschen</button>` : ''}
+    </div>`;
+  }
+  const bearbeitet = pflegeEdit !== null ? state.eigeneFerien[pflegeEdit] : null;
+  html += `<div class="pf-form">
+    <input type="text" id="pfFName" placeholder="Name (z. B. Herbstferien 2030)" value="${esc(bearbeitet ? bearbeitet.name : '')}" aria-label="Name der Ferien">
+    <input type="date" id="pfFVon" value="${bearbeitet ? bearbeitet.von : ''}" aria-label="Von"><input type="date" id="pfFBis" value="${bearbeitet ? bearbeitet.bis : ''}" aria-label="Bis">
+    <button type="button" class="prim" id="pfFSpeichern">${bearbeitet ? 'Speichern' : 'Ferien hinzufügen'}</button>
+    ${bearbeitet ? '<button type="button" id="pfFAbbruch">Abbrechen</button>' : ''}
+  </div>`;
+
+  // --- Feiertage ---
+  const fl = feiertageEffektiv(jahr, fron, true);
+  html += `<h4>Feiertage ${jahr}</h4>`;
+  const onlineJahr = state.feiertageOnline && state.feiertageOnline.daten && state.feiertageOnline.daten[jahr];
+  if (onlineJahr) {
+    const rech = new Set(feiertageSachsen(jahr, false).map(f => f.key));
+    const onl = new Set(onlineJahr.map(f => f.key));
+    const nurOnline = [...onl].filter(k => !rech.has(k)), nurRech = [...rech].filter(k => !onl.has(k));
+    html += nurOnline.length || nurRech.length
+      ? `<div class="pf-hinweis warn">⚠️ Die Online-Daten weichen von der gesetzlichen Berechnung ab${nurOnline.length ? ' – nur online: ' + nurOnline.map(fmtDeutsch).join(', ') : ''}${nurRech.length ? ' – nur berechnet: ' + nurRech.map(fmtDeutsch).join(', ') : ''}. Es gelten die Online-Daten.</div>`
+      : '<div class="pf-hinweis">✓ Online-Daten stimmen mit der gesetzlichen Berechnung überein.</div>';
+  } else {
+    html += `<div class="pf-hinweis">Für ${jahr} liegen keine Online-Daten vor – die Feiertage werden nach Gesetz berechnet (Ostern, Himmelfahrt, Buß- und Bettag …).</div>`;
+  }
+  for (const f of fl) {
+    const d = fromKey(f.key);
+    html += `<div class="pf-zeile${f.aus ? ' pf-aus' : ''}">
+      <input type="checkbox" data-pf-ft-an="${f.key}" ${f.aus ? '' : 'checked'} aria-label="${esc(f.name)} berücksichtigen">
+      <div class="pf-text"><strong>${esc(f.name)}</strong><br><small>${WOCHENTAG_KURZ[(d.getDay() + 6) % 7]} ${fmtDeutsch(f.key)}${d.getDay() === 0 || d.getDay() === 6 ? ' · fällt aufs Wochenende' : ''}</small></div>
+      <span class="pf-badge ${f.quelle}">${f.quelle}</span>
+      ${f.quelle === 'eigen' ? `<button type="button" class="loeschen" data-pf-ft-del="${f.key}">Löschen</button>` : ''}
+    </div>`;
+  }
+  html += `<label style="display:block;margin:.6rem 0"><input type="checkbox" id="pfFron" ${fron ? 'checked' : ''}> Fronleichnam als Feiertag anzeigen (nur sorbische Gemeinden in Sachsen)</label>
+  <div class="pf-form">
+    <input type="date" id="pfTDatum" aria-label="Datum des Feiertags"><input type="text" id="pfTName" placeholder="Name (z. B. Betriebsfrei, Brückentag)" aria-label="Name des Feiertags">
+    <button type="button" class="prim" id="pfTHinzu">Feiertag hinzufügen</button>
+  </div>
+  <div class="pf-hinweis">Eigene Feiertage zählen wie gesetzliche: sie werden nicht als Urlaubstag gerechnet und gelten als schulfrei.</div>`;
+  box.innerHTML = html;
+
+  const neuZeichnen = () => { save(); render(); renderPflege(); };
+  const umschalten = (liste, wert, an) => {
+    const i = liste.indexOf(wert);
+    if (an && i >= 0) liste.splice(i, 1);          // aktiv = nicht in der Aus-Liste
+    if (!an && i < 0) liste.push(wert);
+  };
+  box.querySelector('#pfLaden').addEventListener('click', async (ev) => {
+    ev.target.disabled = true;
+    await ladeOnlineDaten();
+    renderPflege();
+  });
+  const verwerfen = box.querySelector('#pfVerwerfen');
+  if (verwerfen) verwerfen.addEventListener('click', () => {
+    state.ferienOnline = null; state.feiertageOnline = null;
+    setDatenStatus('Online-Daten verworfen – es gelten die eingebauten Daten.');
+    neuZeichnen();
+  });
+  box.querySelector('#pfAuto').addEventListener('change', (ev) => { state.einstellungen.autoLaden = ev.target.checked; save(); });
+  box.querySelector('#pfJahr').addEventListener('change', (ev) => { pflegeJahr = Number(ev.target.value); pflegeEdit = null; renderPflege(); });
+  box.querySelectorAll('[data-pf-ferie-an]').forEach(cb => cb.addEventListener('change', () => {
+    umschalten(state.ferienAus, cb.dataset.pfFerieAn, cb.checked); neuZeichnen();
+  }));
+  box.querySelectorAll('[data-pf-ft-an]').forEach(cb => cb.addEventListener('change', () => {
+    umschalten(state.feiertageAus, cb.dataset.pfFtAn, cb.checked); neuZeichnen();
+  }));
+  box.querySelectorAll('[data-pf-ferie-edit]').forEach(b => b.addEventListener('click', () => { pflegeEdit = Number(b.dataset.pfFerieEdit); renderPflege(); }));
+  box.querySelectorAll('[data-pf-ferie-del]').forEach(b => b.addEventListener('click', () => {
+    const idx = Number(b.dataset.pfFerieDel);
+    const f = state.eigeneFerien[idx];
+    if (!f || !confirm(`„${f.name}“ löschen?`)) return;
+    state.eigeneFerien.splice(idx, 1);
+    state.ferienAus = state.ferienAus.filter(k => k !== ferienKey(f));
+    pflegeEdit = null;
+    neuZeichnen();
+  }));
+  const abbruch = box.querySelector('#pfFAbbruch');
+  if (abbruch) abbruch.addEventListener('click', () => { pflegeEdit = null; renderPflege(); });
+  box.querySelector('#pfFSpeichern').addEventListener('click', () => {
+    const name = box.querySelector('#pfFName').value.trim();
+    const von = box.querySelector('#pfFVon').value;
+    const bis = box.querySelector('#pfFBis').value;
+    if (!name || !istDatum(von) || !istDatum(bis) || bis < von) { alert('Name sowie ein gültiger Zeitraum (Start ≤ Ende) sind nötig.'); return; }
+    if (pflegeEdit !== null && state.eigeneFerien[pflegeEdit]) {
+      const alt = state.eigeneFerien[pflegeEdit];
+      state.ferienAus = state.ferienAus.map(k => k === ferienKey(alt) ? von + '|' + bis : k);
+      state.eigeneFerien[pflegeEdit] = { name: kurzText(name, 80), von, bis };
+    } else {
+      state.eigeneFerien.push({ name: kurzText(name, 80), von, bis });
+    }
+    pflegeEdit = null;
+    neuZeichnen();
+  });
+  box.querySelectorAll('[data-pf-ft-del]').forEach(b => b.addEventListener('click', () => {
+    state.feiertageExtra = state.feiertageExtra.filter(f => f.key !== b.dataset.pfFtDel);
+    state.feiertageAus = state.feiertageAus.filter(k => k !== b.dataset.pfFtDel);
+    neuZeichnen();
+  }));
+  box.querySelector('#pfTHinzu').addEventListener('click', () => {
+    const key = box.querySelector('#pfTDatum').value;
+    const name = box.querySelector('#pfTName').value.trim();
+    if (!istDatum(key) || !name) { alert('Datum und Name angeben.'); return; }
+    if (feiertageEffektiv(Number(key.slice(0, 4)), fron, true).some(f => f.key === key)) { alert('Für diesen Tag ist bereits ein Feiertag hinterlegt.'); return; }
+    state.feiertageExtra.push({ key, name: kurzText(name, 80) });
+    if (Number(key.slice(0, 4)) !== pflegeJahr && Number(key.slice(0, 4)) >= JAHR_MIN && Number(key.slice(0, 4)) <= JAHR_MAX) pflegeJahr = Number(key.slice(0, 4));
+    neuZeichnen();
+  });
+  box.querySelector('#pfFron').addEventListener('change', (ev) => { state.einstellungen.fronleichnamRegional = ev.target.checked; neuZeichnen(); });
+}
+
+function init() {
+  document.getElementById('jahrSelect').addEventListener('change', (ev) => {
+    state.jahr = Number(ev.target.value); save(); render();
+  });
+  document.getElementById('btnAnsichtMonate').addEventListener('click', () => {
+    state.ansicht = 'monate'; save(); render();
+  });
+  document.getElementById('btnAnsichtWand').addEventListener('click', () => {
+    state.ansicht = 'wand'; save(); render();
+  });
+  document.getElementById('btnAnsichtListe').addEventListener('click', () => {
+    state.ansicht = 'liste'; save(); render();
+  });
+  document.getElementById('btnAnsichtBalken').addEventListener('click', () => {
+    state.ansicht = 'balken'; save(); render();
+  });
+  document.getElementById('btnAnsichtAlle').addEventListener('click', () => {
+    state.ansicht = 'alle'; save(); render();
+  });
+  document.getElementById('btnAnsichtTipps').addEventListener('click', () => {
+    state.ansicht = 'tipps'; save(); render();
+  });
+  document.getElementById('btnDrucken').addEventListener('click', () => window.print());
+  document.getElementById('filterMitglied').addEventListener('change', (ev) => {
+    state.filterMitglied = ev.target.value; save(); render();
+  });
+  document.getElementById('btnMarkieren').addEventListener('click', () => markiereAuswahl());
+  document.getElementById('btnAuswahlClear').addEventListener('click', () => {
+    auswahl.clear(); auswahlAnker = null; resetBereich(); renderWandkalender();
+  });
+  const jm = document.getElementById('jumpMonat');
+  if (jm) {
+    jm.innerHTML = MONATSNAMEN.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('');
+    jm.addEventListener('change', (ev) => jumpMonat(ev.target.value));
+  }
+  document.getElementById('btnJumpKW').addEventListener('click', () => jumpKW(document.getElementById('jumpKW').value));
+  document.getElementById('btnJumpDatum').addEventListener('click', () => jumpDatum(document.getElementById('jumpDatum').value));
+  // Am Handy gibt es keine Springen-Buttons: Sprung direkt bei Eingabe/Enter
+  document.getElementById('jumpKW').addEventListener('change', (ev) => jumpKW(ev.target.value));
+  document.getElementById('jumpDatum').addEventListener('change', (ev) => jumpDatum(ev.target.value));
+  document.getElementById('btnJumpHeute').addEventListener('click', () => {
+    const heute = new Date();
+    if (heute.getFullYear() !== state.jahr) { alert(`Heute liegt nicht im gewählten Jahr ${state.jahr}.`); return; }
+    jumpDatum(toKey(heute));
+  });
+  document.getElementById('auswahlKommentar').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); markiereAuswahl(); }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    const offen = document.querySelector('.modal.offen');
+    if (offen) { offen.classList.remove('offen'); return; }
+    if (state.ansicht === 'wand' && auswahl.size) {
+      auswahl.clear();
+      auswahlAnker = null;
+      resetBereich();
+      document.querySelectorAll('.tag-zelle.ausgewaehlt').forEach(c => c.classList.remove('ausgewaehlt'));
+      updateAuswahlBar();
+    }
+  });
+  document.getElementById('btnNeu').addEventListener('click', () => openEintragModal());
+  document.getElementById('btnPflege').addEventListener('click', () => { pflegeEdit = null; pflegeJahr = state.jahr; renderPflege(); openModal('pflegeModal'); });
+  document.getElementById('btnEinstellungen').addEventListener('click', () => { renderEinstellungen(); openModal('einstellModal'); });
+  document.getElementById('btnExport').addEventListener('click', exportJson);
+  document.getElementById('btnIcs').addEventListener('click', exportIcs);
+  document.getElementById('btnImport').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (ev) => {
+    if (ev.target.files[0]) importJson(ev.target.files[0]);
+    ev.target.value = '';
+  });
+  document.getElementById('btnGcal').addEventListener('click', gcalConnect);
+  document.getElementById('btnExtras').addEventListener('click', () => {
+    if (state.einstellungen?.gcalClientId) gcalLadeSkript().catch(() => {});
+  });
+  document.getElementById('eintragSpeichern').addEventListener('click', submitEintrag);
+  document.querySelectorAll('.dd').forEach(dd => {
+    const trigger = dd.querySelector('button');
+    const close = () => { dd.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
+    trigger.addEventListener('click', () => {
+      const open = !dd.classList.contains('open');
+      document.querySelectorAll('.dd.open').forEach(o => {
+        if (o !== dd) { o.classList.remove('open'); o.querySelector('button').setAttribute('aria-expanded', 'false'); }
+      });
+      dd.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', String(open));
+    });
+    dd.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { close(); trigger.focus(); return; }
+      if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+      const items = [...dd.querySelectorAll('[role=menuitem]')];
+      const i = items.indexOf(document.activeElement);
+      ev.preventDefault();
+      items[(i + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+    });
+    dd.querySelectorAll('[role=menuitem]').forEach(it => it.addEventListener('click', () => close()));
+  });
+  document.addEventListener('click', (ev) => {
+    if (!ev.target.closest('.dd')) {
+      document.querySelectorAll('.dd.open').forEach(o => {
+        o.classList.remove('open');
+        o.querySelector('button').setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+  document.querySelectorAll('.modal .schliessen').forEach(b => b.addEventListener('click', () => {
+    b.closest('.modal').classList.remove('offen');
+  }));
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (ev) => {
+    if (ev.target === m) m.classList.remove('offen');
+  }));
+  try { load(); } catch (err) { state = defaultState(); normalizeState(); }
+  render();
+  autoAktualisieren();
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', init);
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { ostern, bussUndBettag, feiertageSachsen, toKey, fromKey, addDaysKey, isWerktag, isoKW, istHalbtag, urlaubstageImJahr, hatWerktagZwischen, mergeBloecke, brueckenTipps, FERIEN_SACHSEN };
+}
+</script>
+</body>
+</html>
