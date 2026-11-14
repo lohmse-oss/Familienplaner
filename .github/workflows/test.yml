@@ -1,0 +1,32 @@
+name: Tests
+
+# Unit-Tests (Sync-Server, Worker, App-Sync-Logik) + Playwright-E2E gegen index.html
+# bei Push auf main und in Pull Requests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sync-Server (Node, Loopback)
+        run: node server/test-sync.mjs
+      - name: Cloudflare-Worker (Node, KV gemockt)
+        run: node cloudflare/test-worker.mjs
+      - name: App-Sync-Logik (happy-dom)
+        run: |
+          cd test
+          npm ci
+          npm test
+      - name: Playwright E2E (Chromium)
+        run: |
+          cd test
+          npx playwright install --with-deps chromium
+          npm run test:e2e
