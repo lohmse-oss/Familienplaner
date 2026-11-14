@@ -1,0 +1,52 @@
+plugins {
+  id 'com.android.application'
+}
+
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+  keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
+android {
+  namespace 'dev.lohmse.familienplaner'
+  compileSdk 34
+
+  defaultConfig {
+    applicationId 'dev.lohmse.familienplaner'
+    minSdk 24
+    targetSdk 34
+    versionCode 1
+    versionName '1.0'
+  }
+
+  signingConfigs {
+    release {
+      if (keystorePropsFile.exists()) {
+        storeFile rootProject.file(keystoreProps['storeFile'])
+        storePassword keystoreProps['storePassword']
+        keyAlias keystoreProps['keyAlias']
+        keyPassword keystoreProps['keyPassword']
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      signingConfig keystorePropsFile.exists() ? signingConfigs.release : null
+    }
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}
+
+// Web-App (../index.html) vor jedem Build in die APK-Assets kopieren
+task copyWebApp(type: Copy) {
+  from rootProject.file('../index.html')
+  into layout.projectDirectory.dir('src/main/assets')
+}
+preBuild.dependsOn copyWebApp

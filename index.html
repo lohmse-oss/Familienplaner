@@ -172,6 +172,11 @@
   .ferien-text { color: #c2410c; font-weight: 600; }
   .feiertag-text { color: #b91c1c; font-weight: 600; }
   #gcalStatus { font-size: .85rem; color: #475569; margin-left: .5rem; }
+  #syncStatus { font-size: .85rem; color: #475569; margin-left: .5rem; white-space: nowrap; }
+  #syncStatus .dot { display: inline-block; width: .55em; height: .55em; border-radius: 50%; background: #94a3b8; margin-right: .3em; }
+  #syncStatus.ok .dot { background: #16a34a; }
+  #syncStatus.warn .dot { background: #d97706; }
+  #syncStatus.err .dot { background: #dc2626; }
   .dd { position: relative; }
   .dd-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 90; background: #fff; border: 1px solid var(--border); border-radius: .5rem; box-shadow: 0 10px 28px rgba(15,23,42,.2); padding: 6px; min-width: 240px; }
   .dd.open .dd-menu { display: block; }
@@ -222,6 +227,7 @@
   </div>
   <input type="file" id="importFile" accept="application/json" hidden>
   <span id="gcalStatus"></span>
+  <span id="syncStatus" title="Familien-Sync (gemeinsame Nutzung auf mehreren Geräten)"></span>
 </header>
 
 <div id="uebersicht"></div>
@@ -659,7 +665,7 @@ function defaultState() {
     ],
     eintraege: [],
     eigeneFerien: [],
-    einstellungen: { fronleichnamRegional: false, gcalClientId: '' }
+    einstellungen: { fronleichnamRegional: false, gcalClientId: '', syncUrl: '', syncToken: '', geraetName: '' }
   };
 }
 
@@ -669,6 +675,7 @@ function save() {
   } catch (err) {
     console.warn('Speichern im Browser fehlgeschlagen', err);
   }
+  scheduleSyncPush();
 }
 
 const ANSICHTEN = ['wand', 'monate', 'liste', 'balken', 'alle', 'tipps'];
@@ -682,7 +689,7 @@ function normalizeState() {
     if (!erlaubt.includes(state.wandModus[m.id])) state.wandModus[m.id] = m.rolle === 'kind' ? 'schulfrei' : 'urlaub';
     if (m.rolle === 'elternteil') m.resturlaubVorjahr = Number(m.resturlaubVorjahr) || 0;
   }
-  state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '' };
+  state.einstellungen = state.einstellungen || { fronleichnamRegional: false, gcalClientId: '', syncUrl: '', syncToken: '', geraetName: '' };
   state.eigeneFerien = state.eigeneFerien || [];
 }
 
@@ -704,6 +711,131 @@ function load() {
   state = defaultState();
   normalizeState();
   save();
+}
+
+const SYNC_POLL_MS = 20000;
+let syncTimer = null;
+let syncPushTimer = null;
+let syncAdopting = false;
+let syncBusy = false;
+
+function syncConfig() {
+  const e = state.einstellungen || {};
+  return {
+    url: String(e.syncUrl || '').trim().replace(/\/+$/, ''),
+    token: String(e.syncToken || '').trim(),
+    name: String(e.geraetName || '').trim()
+  };
+}
+
+function syncEnabled() { return !!syncConfig().url; }
+
+function setSyncStatus(text, cls) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = cls || '';
+  el.innerHTML = '<span class="dot"></span>' + esc(text);
+}
+
+function syncHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  const t = syncConfig().token;
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+function ensureGeraetName() {
+  if (!syncConfig().name) {
+    state.einstellungen.geraetName = 'Gerät-' + Math.random().toString(36).slice(2, 6);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (err) {}
+  }
+  return syncConfig().name;
+}
+
+function relTime(ts) {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 10) return 'gerade eben';
+  if (s < 60) return 'vor ' + s + ' Sek.';
+  const m = Math.round(s / 60);
+  if (m < 60) return 'vor ' + m + ' Min.';
+  const h = Math.round(m / 60);
+  if (h < 24) return 'vor ' + h + ' Std.';
+  return 'vor ' + Math.round(h / 24) + ' T.';
+}
+
+async function syncPull() {
+  if (!syncEnabled() || syncAdopting) return;
+  try {
+    const res = await fetch(syncConfig().url + '/state', { headers: syncHeaders() });
+    if (res.status === 401 || res.status === 403) { setSyncStatus('Sync-Token ungültig', 'err'); return; }
+    if (res.status === 404) { scheduleSyncPush(true); return; }
+    if (!res.ok) { setSyncStatus('Sync-Server nicht erreichbar (' + res.status + ')', 'warn'); return; }
+    const remote = await res.json();
+    if (!remote || typeof remote.updatedAt !== 'number') return;
+    if (remote.updatedAt > (state.updatedAt || 0)) {
+      syncAdopting = true;
+      state = remote;
+      normalizeState();
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (err) {}
+      syncAdopting = false;
+      render();
+    }
+    const by = remote.updatedBy ? ' · ' + remote.updatedBy : '';
+    setSyncStatus('aktuell (' + relTime(remote.updatedAt) + by + ')', 'ok');
+  } catch (err) {
+    setSyncStatus('offline – Änderungen lokal', 'warn');
+  }
+}
+
+async function syncPush() {
+  if (!syncEnabled() || syncAdopting || syncBusy) return;
+  syncBusy = true;
+  try {
+    const c = syncConfig();
+    state.updatedAt = Date.now();
+    state.updatedBy = c.name || 'unbekannt';
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (err) {}
+    const res = await fetch(c.url + '/state', { method: 'PUT', headers: syncHeaders(), body: JSON.stringify(state) });
+    if (res.status === 401 || res.status === 403) { setSyncStatus('Sync-Token ungültig', 'err'); return; }
+    if (res.status === 409) { await syncPull(); return; }
+    if (!res.ok) { setSyncStatus('Push fehlgeschlagen (' + res.status + ')', 'warn'); return; }
+    const saved = await res.json().catch(() => null);
+    const ts = (saved && saved.updatedAt) || state.updatedAt;
+    setSyncStatus('gesichert (' + relTime(ts) + ')', 'ok');
+  } catch (err) {
+    setSyncStatus('offline – Änderungen lokal', 'warn');
+  } finally {
+    syncBusy = false;
+  }
+}
+
+function scheduleSyncPush(immediate) {
+  if (!syncEnabled() || syncAdopting) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => syncPush(), immediate ? 200 : 1200);
+}
+
+async function syncNow() {
+  await syncPush();
+  await syncPull();
+}
+
+function startSync() {
+  clearInterval(syncTimer);
+  if (!syncEnabled()) { setSyncStatus('Sync nicht konfiguriert', ''); return; }
+  ensureGeraetName();
+  syncPull();
+  syncTimer = setInterval(syncPull, SYNC_POLL_MS);
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncPull();
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.famSync = { pull: syncPull, push: syncPush, now: syncNow };
 }
 
 function uid() {
@@ -1369,7 +1501,16 @@ function renderEinstellungen() {
   html += `<h4>Sonstiges</h4>
     <label><input type="checkbox" id="efFronleichnam" ${state.einstellungen?.fronleichnamRegional ? 'checked' : ''}> Fronleichnam als Feiertag anzeigen (nur sorbische Gemeinden in Sachsen)</label>
     <label>Google Client-ID (OAuth, aus Google Cloud Console):
-      <input type="text" id="gcalClientId" value="${esc(state.einstellungen?.gcalClientId || '')}" placeholder="xxx.apps.googleusercontent.com" style="width:100%"></label>`;
+      <input type="text" id="gcalClientId" value="${esc(state.einstellungen?.gcalClientId || '')}" placeholder="xxx.apps.googleusercontent.com" style="width:100%"></label>
+    <h4>Familien-Sync (gemeinsame Nutzung auf mehreren Handys)</h4>
+    <label>Sync-Server-URL (z. B. https://planer.example.de oder http://192.168.1.50:8080):
+      <input type="text" id="syncUrl" value="${esc(state.einstellungen?.syncUrl || '')}" placeholder="https://…" style="width:100%"></label>
+    <label>Sync-Token (gemeinsames Passwort, wird vom Server beim Start ausgegeben):
+      <input type="password" id="syncToken" value="${esc(state.einstellungen?.syncToken || '')}" style="width:100%" autocomplete="off"></label>
+    <label>Name dieses Geräts (wird bei Änderungen der anderen angezeigt):
+      <input type="text" id="geraetName" value="${esc(state.einstellungen?.geraetName || '')}" placeholder="z. B. Bettys Handy" style="width:100%"></label>
+    <div class="mit-row"><button type="button" id="btnSyncNow">Jetzt synchronisieren</button></div>
+    <small style="color:#64748b">Änderungen werden automatisch auf den Server geladen und alle 20 Sek. von dort geholt (zuletzt schreibend gewinnt). Server: <code>server/sync-server.js</code> (siehe README).</small>`;
   box.innerHTML = html;
   box.querySelectorAll('[data-name]').forEach(inp => inp.addEventListener('change', () => {
     mitgliedById(inp.dataset.name).name = inp.value; save(); render();
@@ -1405,10 +1546,22 @@ function renderEinstellungen() {
   document.getElementById('gcalClientId').addEventListener('change', (ev) => {
     state.einstellungen.gcalClientId = ev.target.value.trim(); save();
   });
+  document.getElementById('syncUrl').addEventListener('change', (ev) => {
+    state.einstellungen.syncUrl = ev.target.value.trim(); save(); startSync();
+  });
+  document.getElementById('syncToken').addEventListener('change', (ev) => {
+    state.einstellungen.syncToken = ev.target.value.trim(); save(); startSync();
+  });
+  document.getElementById('geraetName').addEventListener('change', (ev) => {
+    state.einstellungen.geraetName = ev.target.value.trim(); save();
+  });
+  document.getElementById('btnSyncNow').addEventListener('click', () => { syncNow(); });
 }
 
 function exportJson() {
-  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege, eigeneFerien: state.eigeneFerien || [], einstellungen: state.einstellungen };
+  const einstellungen = Object.assign({}, state.einstellungen);
+  delete einstellungen.syncToken;
+  const plan = { version: 1, jahr: state.jahr, mitglieder: state.mitglieder, eintraege: state.eintraege, eigeneFerien: state.eigeneFerien || [], einstellungen };
   const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1427,7 +1580,8 @@ function importJson(file) {
       if (data.jahr) state.jahr = data.jahr;
       state.eintraege = data.eintraege;
       state.eigeneFerien = Array.isArray(data.eigeneFerien) ? data.eigeneFerien : [];
-      state.einstellungen = Object.assign({ fronleichnamRegional: false, gcalClientId: '' }, data.einstellungen || {});
+      const localSync = { syncUrl: state.einstellungen?.syncUrl || '', syncToken: state.einstellungen?.syncToken || '', geraetName: state.einstellungen?.geraetName || '' };
+      state.einstellungen = Object.assign({ fronleichnamRegional: false, gcalClientId: '', syncUrl: '', syncToken: '', geraetName: '' }, data.einstellungen || {}, localSync);
       normalizeState();
       save(); render();
       alert('Import erfolgreich.');
@@ -1655,6 +1809,7 @@ function init() {
   document.head.appendChild(s);
   try { load(); } catch (err) { state = defaultState(); normalizeState(); }
   render();
+  startSync();
 }
 
 if (typeof document !== 'undefined') {

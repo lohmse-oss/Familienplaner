@@ -7,6 +7,11 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 ## Dateien
 - `index.html` – komplette App als eine Datei (Markup, CSS, JS und unveränderliche Basisdaten:
   Schulferien/Feiertage Sachsen, Personen Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
+- `server/sync-server.js` – optionaler Sync-Server für Multi-User-Betrieb (siehe unten)
+- `server/test-sync.mjs` – Test für den Sync-Server (zero dependencies)
+- `android/` – WebView-Wrapper, baut die App als APK (siehe unten)
+- `test/` – App-seitige Sync-Tests (happy-dom, `cd test && npm install && npm test`)
+- `dist/` – fertige, signierte APK aus dem jeweiligen Branch
 
 ## Lokal starten
 `index.html` direkt per Doppelklick öffnen (file://) – die Basisdaten sind in `app.js` integriert,
@@ -70,6 +75,63 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 3. Button „Mit Google Kalender verbinden & syncen“: legt einen Kalender „Familienplaner“ an und
    überträgt alle Einträge als Ganztagstermine (bei Änderungen werden Termine aktualisiert bzw.
    gelöschte entfernt). Richtung: App → Google Kalender.
+
+## Familien-Sync: gemeinsame Nutzung auf mehreren Handys (Multi-User)
+
+Die App kann ihren kompletten Stand (Einträge, Personen, eigene Ferien, Einstellungen) mit einem kleinen
+Server abgleichen, den du selbst hostest (z. B. Raspberry Pi / NAS zuhause oder ein kleiner VPS).
+Du und deine Partnerin installiert die App jeweils auf dem eigenen Handy und tragt dieselbe
+Server-URL + dasselbe Token ein – danach arbeiten beide auf demselben Datenstand.
+
+### Server starten (Node.js >= 18 auf dem Server-Rechner)
+```
+node server/sync-server.js                                  # Port 8080, Daten in server/data/
+PORT=8080 SYNC_TOKEN=<geheimes-passwort> node server/sync-server.js
+```
+Beim ersten Start ohne `SYNC_TOKEN` wird ein zufälliges Token generiert, in `server/data/token.txt`
+abgelegt (Datei nur für den Server lesbar) und in der Konsole ausgegeben.
+Der Server liefert außerdem die App selbst aus: `http://<server>:8080/`.
+
+- `GET /state` / `PUT /state` mit `Authorization: Bearer <token>`; gespeichert wird immer der Stand mit dem
+  neueren `updatedAt` (last-write-wins). Ohne gültiges Token: 401.
+- Test (startet den Server nur auf 127.0.0.1 und simuliert zwei Clients): `node server/test-sync.mjs`
+
+### In der App einrichten (pro Handy)
+**Extras ▸ Einstellungen ▸ Familien-Sync**: Server-URL (z. B. `http://192.168.1.50:8080` im Heimnetz oder
+`https://planer.example.de` von unterwegs), Sync-Token und ein Gerätename (z. B. „Bettys Handy“).
+Danach synchronisiert die App automatisch: jede Änderung wird ca. 1 Sek. nach dem Speichern gepusht,
+alle 20 Sek. wird der Serverstand gepullt (zusätzlich beim Sichtbarwerden der App); der Status steht
+oben im Header („aktuell (vor 2 Min. · Sebastians Handy)“). Button „Jetzt synchronisieren“ in den
+Einstellungen erzwingt einen Abgleich.
+
+- Konflikte: zuletzt schreibend gewinnt (einfaches last-write-wins auf dem Gesamtstand) – bei
+  gleichzeitigem Bearbeiten auf beiden Geräten gewinnt der neuere Stand.
+- Das Sync-Token wird **nicht** im JSON-Export mit ausgegeben und beim JSON-Import nicht überschrieben.
+- Zugriff von unterwegs nur über HTTPS (z. B. Reverse Proxy mit DynDNS); im Heimnetz reicht http.
+
+## Android-APK
+
+`android/` enthält einen schlanken WebView-Wrapper ohne externe App-Dependencies: Er lädt die gebündelte
+`index.html` aus den APK-Assets (localStorage bleibt pro Handy erhalten) und ist für den Familien-Sync
+konfiguriert (Server-URL + Token werden in den App-Einstellungen gepflegt, Internetzugriff via
+`INTERNET`-Permission, `usesCleartextTraffic` für LAN-Server im Heimnetz).
+
+```
+cd android
+cp keystore.properties.example keystore.properties   # Keystore-Pfad/Passwörter anpassen
+# Keystore erzeugen: keytool -genkeypair -keystore familienplaner.keystore -alias familienplaner \
+#   -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Familienplaner"
+./gradlew :app:assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
+```
+Voraussetzungen: JDK 17 und Android SDK (compileSdk 34). Die Web-App (`../index.html`) wird vor jedem
+Build automatisch als Asset in die APK kopiert (`copyWebApp`).
+Ohne `keystore.properties` wird eine unsignierte APK gebaut.
+
+## Tests
+- `node server/test-sync.mjs` – Sync-Server (Loopback, zwei simulierte Clients: Auth, LWW, CORS, Static)
+- `cd test && npm install && npm test` – App-Sync-Logik (Push/Pull, last-write-wins, Token nicht im Export,
+  Import überschreibt Sync-Konfig nicht) gegen einen lokalen Test-Server
 
 ## Datenquellen
 Schulferien: Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender (2027–2029 vollständig,
