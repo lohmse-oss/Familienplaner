@@ -61,7 +61,7 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
 - **Druckansicht**: „Drucken“-Button (window.print) mit printoptimierter Darstellung.
 - Einstellungen: Namen/Farben/Rollen ändern, Urlaubstage je Elternteil, eigene Ferien ergänzen
   (z. B. 2030 Herbst/Weihnachten und 2031, sobald offiziell veröffentlicht), Fronleichnam (regional).
-- **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API).
+- **ICS-Export** für Import in Google Kalender & Co. (manuell, ohne API). Alle Einträge werden einmal exportiert, jährliche als Serie (`RRULE:FREQ=YEARLY`); Sonderzeichen und lange Zeilen werden nach RFC 5545 maskiert bzw. gefaltet.
 - **Resturlaub aus dem Vorjahr**: je Elternteil in den Einstellungen pflegbar (`Rest-VJ`); erhöht das Budget in Übersicht und Urlaubsliste, Verfallswarnung „⚠️ X Resturlaubstage bis 31.03. offen“ auf der Übersichtskarte.
 - **Eintragstyp „Betreuung / Ferienlager (Kind)“**: eigener Modus im Personen-Schalter (Eltern: Urlaub/Abwesenheit/Termin; Kinder: Schulfrei/Betreuung/Abwesenheit/Termin). Betreuungslücken in den Tipps gelten als abgedeckt, wenn ein Elternteil Urlaub hat ODER das Kind Betreuung/Abwesenheit eingetragen ist; Lücken werden zu Zeiträumen zusammengefasst und bieten 1-Klick-Schnellbuchung („+ Urlaub Betty/Sebastian“).
 - **Wandkalender-Ergonomie**: sticky Spaltenköpfe, Klick auf das Datum wählt die ganze Zeile (alle Personen), Live-Netto-Vorschau der Urlaubstage in der Auswahlleiste, „Heute“-Button mit Tageshervorhebung, Escape hebt die Auswahl auf / schließt Modals, Enter im Titel-Feld markiert direkt.

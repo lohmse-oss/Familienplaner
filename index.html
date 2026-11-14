@@ -1021,6 +1021,7 @@ function renderKalender() {
 
 let auswahl = new Set();
 let auswahlAnker = null;
+let dragQuelleKey = null; // Tag, von dem ein Eintrag gerade gezogen wird
 
 function bereichAn() {
   const cb = document.getElementById('bereichModus');
@@ -1223,14 +1224,20 @@ function renderWandkalender() {
       const id = ev.dataTransfer.getData('text/plain');
       const ziel = el.dataset.key;
       const e = state.eintraege.find(x => x.id === id);
-      if (!e || e.von === ziel) return;
-      const delta = Math.round((fromKey(ziel) - fromKey(e.von)) / 86400000);
-      e.von = addDaysKey(e.von, delta);
-      e.bis = addDaysKey(e.bis, delta);
+      const quelle = dragQuelleKey || (e && e.von);
+      dragQuelleKey = null;
+      if (!e || !quelle || quelle === ziel) return;
+      // Verschiebung = Abstand zwischen gezogenem Tag und Zieltag (bei mehrtägigen Einträgen nicht zum Starttag)
+      const delta = Math.round((fromKey(ziel) - fromKey(quelle)) / 86400000);
       if (e.jaehrlich) {
         const p = ziel.split('-').map(Number);
+        e.von = ziel;
+        e.bis = ziel;
         e.monat = p[1];
         e.tag = p[2];
+      } else {
+        e.von = addDaysKey(e.von, delta);
+        e.bis = addDaysKey(e.bis, delta);
       }
       save(); render();
       gcalAutoUpsert(e);
@@ -1240,6 +1247,8 @@ function renderWandkalender() {
     chip.addEventListener('dragstart', (ev) => {
       ev.dataTransfer.setData('text/plain', chip.dataset.id);
       ev.dataTransfer.effectAllowed = 'move';
+      const zelle = chip.closest('.tag-zelle');
+      dragQuelleKey = zelle ? zelle.dataset.key : null;
     });
   });
   wrap.querySelectorAll('select[data-modus]').forEach(sel => {
@@ -1351,21 +1360,26 @@ function renderAlleEintraege() {
   box.querySelectorAll('.alle-eintrag').forEach(el => el.addEventListener('click', () => openTagModal(el.dataset.key)));
 }
 
+// Brückentag = Werktag, der zwischen zwei freien Tagen (Wochenende/Feiertag) liegt. fmap sollte auch die
+// Feiertage des Vor- und Folgejahres enthalten, damit Jahresränder stimmen.
 function brueckenTipps(fmap, jahr) {
+  const jahrStr = String(jahr);
+  const istFrei = (k) => {
+    const d = fromKey(k).getDay();
+    return d === 0 || d === 6 || !!fmap[k];
+  };
   const tipps = [];
   const seen = new Set();
   for (const key in fmap) {
+    if (key.slice(0, 4) !== jahrStr) continue;
     const dow = fromKey(key).getDay();
     if (dow === 0 || dow === 6) continue;
     for (const b of [addDaysKey(key, -1), addDaysKey(key, 1)]) {
-      if (!isWerktag(b) || fmap[b] || seen.has(b)) continue;
-      const frei = (k) => {
-        const d = fromKey(k).getDay();
-        return d === 0 || d === 6 || !!fmap[k] || k === b;
-      };
-      let start = key, end = key;
-      while (frei(addDaysKey(start, -1))) start = addDaysKey(start, -1);
-      while (frei(addDaysKey(end, 1))) end = addDaysKey(end, 1);
+      if (b.slice(0, 4) !== jahrStr || !isWerktag(b) || fmap[b] || seen.has(b)) continue;
+      if (!istFrei(addDaysKey(b, -1)) || !istFrei(addDaysKey(b, 1))) continue;
+      let start = b, end = b;
+      while (istFrei(addDaysKey(start, -1))) start = addDaysKey(start, -1);
+      while (istFrei(addDaysKey(end, 1))) end = addDaysKey(end, 1);
       const tage = daysBetween(start, end);
       if (tage >= 4) {
         seen.add(b);
@@ -1402,7 +1416,9 @@ function renderTipps() {
   const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
   const eltern = state.mitglieder.filter(m => m.rolle === 'elternteil');
   const luecken = betreuungsluecken(jahr);
-  const bruecken = brueckenTipps(fmap, jahr);
+  const fl = state.einstellungen?.fronleichnamRegional === true;
+  const fmapErweitert = Object.assign({}, feiertagMap(jahr - 1, fl), fmap, feiertagMap(jahr + 1, fl));
+  const bruecken = brueckenTipps(fmapErweitert, jahr);
   const schnellBtns = (von, bis) => eltern.map(p =>
     `<button type="button" class="btn-schnell" data-schnell-urlaub="${p.id}" data-von="${von}" data-bis="${bis}">+ Urlaub ${esc(p.name)}</button>`).join(' ');
   let html = '';
@@ -1420,7 +1436,7 @@ function renderTipps() {
   }
   html += '</div>';
   html += `<div class="liste-karte"><h3>🌉 Brückentag-Tipps ${jahr}</h3>
-    <p class="hint">1 Urlaubstag am Brückentag → mindestens 4 zusammenhängende freie Tage.</p>`;
+    <p class="hint">Ein Werktag zwischen Feiertag und Wochenende: 1 Urlaubstag → mindestens 4 zusammenhängende freie Tage.</p>`;
   if (!bruecken.length) html += '<p>Keine Brückentage mit 4+ freien Tagen in diesem Jahr.</p>';
   for (const t of bruecken) {
     html += `<div class="liste-zeile"><strong>${fmtDeutsch(t.bruecke)} als Urlaub</strong>
@@ -1472,7 +1488,7 @@ function closeModal(id) {
 }
 
 function openTagModal(key) {
-  const jahr = state.jahr;
+  const jahr = Number(key.slice(0, 4)); // Jahr des Tages, nicht der Ansicht (Einträge über den Jahreswechsel)
   const fmap = feiertagMap(jahr, state.einstellungen?.fronleichnamRegional === true);
   const ferien = ferienAm(key);
   const feiertag = fmap[key];
@@ -1486,7 +1502,7 @@ function openTagModal(key) {
     html += `<div class="eintrag-zeile" style="border-left:4px solid ${m ? m.farbe : '#666'}">
       <div><strong>${esc(m ? m.name : '?')}</strong> · ${esc(TYP_LABEL[e.typ])}${e.jaehrlich ? ' (jährlich wiederkehrend)' : ''}<br>
       <strong>${esc(e.titel || '–')}</strong><br>
-      <small>${fmtDeutsch(e.von)} – ${fmtDeutsch(e.bis)}${e.typ === 'urlaub' ? ` (${urlaubstageImJahr(e, state.jahr, fmap)} Urlaubstage in ${state.jahr})` : ''}</small>
+      <small>${fmtDeutsch(e.von)} – ${fmtDeutsch(e.bis)}${e.typ === 'urlaub' ? ` (${urlaubstageImJahr(e, jahr, fmap)} Urlaubstage in ${jahr})` : ''}</small>
       ${e.notiz ? `<br><small>${esc(e.notiz)}</small>` : ''}</div>
       <span><button class="bearbeiten" data-id="${e.id}">Bearbeiten</button> <button class="loeschen" data-id="${e.id}">Löschen</button></span>
     </div>`;
@@ -1604,9 +1620,9 @@ function renderEinstellungen() {
   const ef = state.eigeneFerien || [];
   html += `<h4>Schulferien manuell ergänzen (z. B. 2030 Herbst/Weihnachten, 2031 – sobald veröffentlicht)</h4>`;
   if (!ef.length) html += '<p>Noch keine eigenen Ferien hinterlegt.</p>';
-  for (const f of ef) {
-    html += `<div class="mit-row"><span>${esc(f.name)}</span> <small>${fmtDeutsch(f.von)} – ${fmtDeutsch(f.bis)}</small> <button class="loeschen" data-ferie="${esc(f.von + '|' + f.name)}">Löschen</button></div>`;
-  }
+  ef.forEach((f, i) => {
+    html += `<div class="mit-row"><span>${esc(f.name)}</span> <small>${fmtDeutsch(f.von)} – ${fmtDeutsch(f.bis)}</small> <button class="loeschen" data-ferie="${i}">Löschen</button></div>`;
+  });
   html += `<div class="mit-row">
     <input type="text" id="efName" placeholder="Name (z. B. Herbstferien 2030)">
     <input type="date" id="efVon"><input type="date" id="efBis">
@@ -1640,8 +1656,7 @@ function renderEinstellungen() {
     mitgliedById(inp.dataset.resturlaub).resturlaubVorjahr = Number(inp.value); save(); render();
   }));
   box.querySelectorAll('[data-ferie]').forEach(b => b.addEventListener('click', () => {
-    const [von, name] = b.dataset.ferie.split('|');
-    state.eigeneFerien = state.eigeneFerien.filter(f => !(f.von === von && f.name === name));
+    state.eigeneFerien.splice(Number(b.dataset.ferie), 1);
     save(); render(); renderEinstellungen();
   }));
   document.getElementById('efAdd').addEventListener('click', () => {
@@ -1697,23 +1712,48 @@ function importJson(file) {
   reader.readAsText(file);
 }
 
+function icsText(t) {
+  return String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+// Zeilen laenger als 75 Oktette werden gefaltet (RFC 5545), ohne Multibyte-Zeichen zu zerschneiden
+function icsFold(zeile) {
+  const enc = new TextEncoder();
+  if (enc.encode(zeile).length <= 75) return zeile;
+  const teile = [];
+  let aktuell = '', bytes = 0, limit = 75;
+  for (const ch of zeile) {
+    const n = enc.encode(ch).length;
+    if (bytes + n > limit) { teile.push(aktuell); aktuell = ''; bytes = 0; limit = 74; }
+    aktuell += ch;
+    bytes += n;
+  }
+  teile.push(aktuell);
+  return teile.join('\r\n ');
+}
+
 function exportIcs() {
   const jahr = state.jahr;
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Familienplaner//DE'];
-  const addEvent = (uidStr, name, von, bis) => {
-    lines.push('BEGIN:VEVENT', `UID:${uidStr}@familienplaner`, `DTSTAMP:${jahr}0101T000000Z`,
+  const stempel = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Familienplaner//DE', 'CALSCALE:GREGORIAN'];
+  const addEvent = (uidStr, name, von, bis, extra) => {
+    lines.push('BEGIN:VEVENT', `UID:${uidStr}@familienplaner`, `DTSTAMP:${stempel}`,
       `DTSTART;VALUE=DATE:${von.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDaysKey(bis, 1).replace(/-/g, '')}`,
-      `SUMMARY:${name.replace(/[,;\n]/g, ' ')}`, 'END:VEVENT');
+      `SUMMARY:${icsText(name)}`);
+    if (extra) lines.push(...extra);
+    lines.push('END:VEVENT');
   };
   for (const f of alleFerien()) addEvent('ferie-' + f.von + '-' + f.bis, 'Schulferien Sachsen: ' + f.name, f.von, f.bis);
   for (const f of feiertageSachsen(jahr, state.einstellungen?.fronleichnamRegional === true)) addEvent('feiertag-' + f.key, 'Feiertag: ' + f.name, f.key, f.key);
-  const icsEintraege = state.eintraege.filter(e => !e.jaehrlich).concat(eintraegeImJahr(jahr).filter(e => e.jaehrlich));
-  for (const e of icsEintraege) {
+  for (const e of state.eintraege) {
     const m = mitgliedById(e.mitgliedId);
-    addEvent('eintrag-' + e.id, `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ' – ' + e.titel : ''}`, e.von, e.bis);
+    const extra = [];
+    if (e.notiz) extra.push(`DESCRIPTION:${icsText(e.notiz)}`);
+    if (e.jaehrlich) extra.push(e.monat === 2 && e.tag === 29 ? 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1' : 'RRULE:FREQ=YEARLY');
+    addEvent('eintrag-' + e.id, `${m ? m.name : ''}: ${TYP_LABEL[e.typ]}${e.jaehrlich ? ' (jährlich)' : ''}${e.titel ? ' – ' + e.titel : ''}`, e.von, e.bis, extra);
   }
   lines.push('END:VCALENDAR');
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  const blob = new Blob([lines.map(icsFold).join('\r\n') + '\r\n'], { type: 'text/calendar' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `familienplaner-${jahr}.ics`;
