@@ -1,45 +1,14 @@
 import { useMemo } from 'preact/hooks';
-import type { Calendar } from '../core/calendar';
 import { findBridges } from '../core/bridges';
-import { addDays, dow, fmtRange, MONTHS, range, today, WD } from '../core/dates';
-import { PERSONS } from '../core/types';
+import { gapRuns } from '../core/gaps';
+import { fmtRange, range } from '../core/dates';
 import { useStore } from '../store';
+import { MonthGrid } from './MonthGrid';
 
-interface Run {
-  start: string;
-  end: string;
-  who: string;
-  why: string;
-}
-
-/** Zusammenhängende Zeiträume mit ungeklärter Betreuung (Wochenenden/Feiertage unterbrechen nicht) */
-function gapRuns(cal: Calendar, year: number): Run[] {
-  const runs: Run[] = [];
-  let cur: (Run & { kids: Set<string>; reasons: Set<string> }) | null = null;
-  const flush = () => {
-    if (cur) runs.push({ start: cur.start, end: cur.end, who: [...cur.kids].join(' & '), why: [...cur.reasons].join(', ') });
-    cur = null;
-  };
-  for (const d of range(`${year}-01-01`, `${year}-12-31`)) {
-    const day = cal.day(d);
-    if (day.coverage === 'gap') {
-      cur ??= { start: d, end: d, who: '', why: '', kids: new Set(), reasons: new Set() };
-      cur.end = d;
-      day.needs.forEach((n) => {
-        cur!.kids.add(PERSONS[n.child].name);
-        cur!.reasons.add(n.reason);
-      });
-    } else if (day.workday) flush();
-  }
-  flush();
-  return runs;
-}
-
-export function Year({ year, setYear, openDay, goWeek }: { year: number; setYear: (y: number) => void; openDay: (d: string) => void; goWeek: (d: string) => void }) {
+export function Year({ year, setYear, openDay, goWeek, plan }: { year: number; setYear: (y: number) => void; openDay: (d: string) => void; goWeek: (d: string) => void; plan: (days?: string[]) => void }) {
   const { cal } = useStore();
   const bridges = useMemo(() => new Set(findBridges(cal, year).flatMap((b) => [...range(b.gapStart, b.gapEnd)])), [cal, year]);
-  const runs = useMemo(() => gapRuns(cal, year), [cal, year]);
-  const t = today();
+  const runs = useMemo(() => gapRuns(cal, `${year}-01-01`, `${year}-12-31`), [cal, year]);
 
   return (
     <div class="page">
@@ -57,6 +26,7 @@ export function Year({ year, setYear, openDay, goWeek }: { year: number; setYear
         <span><i class="sw sw-holiday" /> Feiertag</span>
         <span><i class="sw sw-bridge" /> Brückentag</span>
       </div>
+      <button class="btn primary wide" onClick={() => plan()}>＋ Mehrere Tage eintragen</button>
 
       <section class="card gaps">
         <header class="card-head"><strong>Offene Betreuung</strong><span class={`pill ${runs.length ? 'pill-gap' : 'pill-ok'}`}>{runs.length ? `${runs.length} Zeiträume` : 'alles geklärt'}</span></header>
@@ -71,38 +41,9 @@ export function Year({ year, setYear, openDay, goWeek }: { year: number; setYear
       </section>
 
       <div class="months">
-        {MONTHS.map((name, m) => {
-          const first = `${year}-${String(m + 1).padStart(2, '0')}-01`;
-          const pad = dow(first);
-          const days: string[] = [];
-          for (let d = first; d.slice(5, 7) === first.slice(5, 7); d = addDays(d, 1)) days.push(d);
-          return (
-            <section key={name} class="month">
-              <h3>{name}</h3>
-              <div class="grid">
-                {WD.map((w) => <span key={w} class="wd">{w[0]}</span>)}
-                {Array.from({ length: pad }, (_, i) => <span key={`p${i}`} />)}
-                {days.map((d) => {
-                  const day = cal.day(d);
-                  const vac = (['sebastian', 'betty'] as const).filter((p) => day.parents[p].status === 'vacation' || day.parents[p].status === 'trip');
-                  return (
-                    <button
-                      key={d}
-                      class={`cell ${day.weekend ? 'we' : ''} ${day.holiday ? 'ho' : ''} ${day.school.length && !day.weekend ? 'sc' : ''} ${bridges.has(d) ? 'br' : ''} ${d === t ? 'tod' : ''}`}
-                      onClick={() => openDay(d)}
-                    >
-                      <span class="num">{Number(d.slice(8))}</span>
-                      <span class="marks">
-                        {vac.map((p) => <i key={p} style={{ background: PERSONS[p].color }} />)}
-                      </span>
-                      {day.coverage !== 'none' && <i class={`lamp lamp-${day.coverage} cl`} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+        {Array.from({ length: 12 }, (_, m) => (
+          <MonthGrid key={m} year={year} month={m} cal={cal} bridges={bridges} onDay={openDay} />
+        ))}
       </div>
     </div>
   );

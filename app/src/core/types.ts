@@ -21,8 +21,9 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  *  task     – Aufgabe mit Fälligkeit
  *  birthday – Geburtstag (jährlich)
  *  config   – Einstellungen pro Person und Jahr (Urlaubstage)
+ *  shop     – Eintrag der Einkaufsliste (title, done)
  */
-export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config';
+export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop';
 export type Mode = 'homeoffice' | 'vacation' | 'trip';
 export type EventSub = 'arzt' | 'schule' | 'elternabend' | 'sonstiges';
 
@@ -44,6 +45,7 @@ export interface Item {
   done?: boolean; // task
   note?: string;
   entitlement?: number; // config: Urlaubstage im Jahr
+  ts?: number; // shop: Zeitpunkt des Eintragens (Reihenfolge)
 }
 
 export interface Span {
