@@ -1,0 +1,14 @@
+name = "familienplaner-sync"
+main = "worker.js"
+compatibility_date = "2025-11-01"
+
+# IDs nach `npx wrangler kv namespace create STATE_KV` hier eintragen:
+[[kv_namespaces]]
+binding = "STATE_KV"
+id = "<KV-NAMESPACE-ID>"
+preview_id = "<KV-PREVIEW-ID>"
+
+# Gemeinsames Sync-Token wird als Secret gesetzt (nie in dieses File schreiben):
+#   npx wrangler secret put SYNC_TOKEN
+# [vars]
+# SYNC_TOKEN = "..."

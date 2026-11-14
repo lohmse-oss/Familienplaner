@@ -7,7 +7,8 @@ Urlaubsplanung der Eltern (Aufsummierung gegen verfügbare Urlaubstage), schulfr
 ## Dateien
 - `index.html` – komplette App als eine Datei (Markup, CSS, JS und unveränderliche Basisdaten:
   Schulferien/Feiertage Sachsen, Personen Betty & Sebastian (Eltern, je 30 Urlaubstage), Ida & Irma (Kinder))
-- `server/sync-server.js` – optionaler Sync-Server für Multi-User-Betrieb (siehe unten)
+- `server/sync-server.js` – optionaler Sync-Server für Self-Hosting (siehe unten)
+- `cloudflare/worker.js` + `wrangler.toml` – gleicher Sync-Server als Cloudflare Worker (kostenlos, HTTPS, siehe unten)
 - `server/test-sync.mjs` – Test für den Sync-Server (zero dependencies)
 - `android/` – WebView-Wrapper, baut die App als APK (siehe unten)
 - `test/` – App-seitige Sync-Tests (happy-dom, `cd test && npm install && npm test`)
@@ -109,6 +110,20 @@ Einstellungen erzwingt einen Abgleich.
 - Das Sync-Token wird **nicht** im JSON-Export mit ausgegeben und beim JSON-Import nicht überschrieben.
 - Zugriff von unterwegs nur über HTTPS (z. B. Reverse Proxy mit DynDNS); im Heimnetz reicht http.
 
+### Alternative: kostenlos bei Cloudflare (Workers + KV, immer HTTPS)
+Wenn du einen Cloudflare-Account hast, läuft derselbe Sync-Server ohne eigenen Rechner als Worker
+(gleiche API, die App braucht keine Änderung – nur die Worker-URL in den Einstellungen eintragen):
+```
+cd cloudflare
+npx wrangler login                                   # einmalig im Browser autorisieren
+npx wrangler kv namespace create STATE_KV            # ausgegebene ID in wrangler.toml eintragen
+npx wrangler secret put SYNC_TOKEN                   # gemeinsames Token (Secret, nicht in wrangler.toml!)
+npx wrangler deploy
+# danach erreichbar unter: https://familienplaner-sync.<deine-subdomain>.workers.dev
+```
+Free-Tier reicht locker für 2 Handys: 100.000 Worker-Requests/Tag, KV 100k Reads + 1k Writes/Tag.
+Test des Workers lokal (mit gemocktem KV): `node cloudflare/test-worker.mjs`
+
 ## Android-APK
 
 `android/` enthält einen schlanken WebView-Wrapper ohne externe App-Dependencies: Er lädt die gebündelte
@@ -130,6 +145,7 @@ Ohne `keystore.properties` wird eine unsignierte APK gebaut.
 
 ## Tests
 - `node server/test-sync.mjs` – Sync-Server (Loopback, zwei simulierte Clients: Auth, LWW, CORS, Static)
+- `node cloudflare/test-worker.mjs` – Cloudflare-Worker (in Node aufgerufen, KV gemockt: Auth, LWW, CORS)
 - `cd test && npm install && npm test` – App-Sync-Logik (Push/Pull, last-write-wins, Token nicht im Export,
   Import überschreibt Sync-Konfig nicht) gegen einen lokalen Test-Server
 
