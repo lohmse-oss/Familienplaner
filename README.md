@@ -82,8 +82,23 @@ keine Datei wird nachgeladen. Alternativ über HTTP: `python3 -m http.server 800
    - Läuft die Google-Sitzung ab (ca. 1 Stunde), warnt die App in der Kopfzeile, statt still nicht mehr zu synchronisieren.
    - Die Google-Termin-IDs werden nicht in die JSON-Datei exportiert (gehören zu einem Konto/Kalender).
 
+## Ferien & Feiertage pflegen (Extras ▸ „Ferien & Feiertage pflegen“)
+- **Online-Abgleich:** Die App holt Schulferien und Feiertage für Sachsen von der freien
+  [OpenHolidays-API](https://www.openholidaysapi.org) (`openholidaysapi.org`, CORS-offen, funktioniert auch aus `file://`).
+  Beim Start automatisch, höchstens einmal pro Woche (abschaltbar), oder per Knopf „Jetzt aktualisieren“.
+  Übermittelt wird nur die IP-Adresse, keine Planungsdaten. Bei Fehlern/Offline gelten die gespeicherten bzw.
+  eingebauten Daten; die App bleibt voll nutzbar.
+- **Zusammenführung:** Online-Daten haben Vorrang vor den eingebauten (gleiche Ferienart im selben Jahr bzw. gleicher
+  Zeitraum). Was die API nicht liefert (z. B. Herbst/Weihnachten 2030, 2031), bleibt aus den eingebauten Daten bzw.
+  der Gesetzesberechnung erhalten. Feiertage ohne Online-Daten werden nach Gesetz berechnet; weichen Online-Daten von
+  der Berechnung ab, zeigt der Dialog einen Hinweis.
+- **Pflege:** Je Jahr lassen sich Ferien und Feiertage ausblenden/deaktivieren (Häkchen), eigene Ferien und eigene
+  Feiertage (z. B. Betriebsferien, Brückentage) anlegen, bearbeiten und löschen sowie Fronleichnam (sorbische
+  Gemeinden) zuschalten. Eigene Feiertage zählen wie gesetzliche (kein Urlaubstag, schulfrei). Die Pflegedaten stehen im
+  JSON-Export; der Online-Cache nicht (er wird neu abgerufen).
+
 ## Datenquellen
-Schulferien: Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender (2027–2029 vollständig,
-2030 bis Sommerferien; Herbst/Weihnachten 2030 und 2031 werden noch nicht veröffentlicht und können
-in den Einstellungen manuell ergänzt werden). Feiertage: Sächsisches Feiertagsgesetz, bewegliche
-Termine aus dem Osterdatum berechnet.
+Schulferien: eingebaute Termine 2027–2030 (Sächsisches Staatsministerium für Kultus / KMK-Ferienkalender, mit der
+OpenHolidays-API abgeglichen; Herbst/Weihnachten 2030 und 2031 sind noch nicht veröffentlicht) plus Online-Abgleich und
+eigene Ergänzungen. Feiertage: Sächsisches Feiertagsgesetz, bewegliche Termine aus dem Osterdatum berechnet, bzw.
+Online-Daten (2026–2030). Hinweis: Die OpenHolidays-API ist ein Drittanbieter-Dienst und keine amtliche Quelle.
