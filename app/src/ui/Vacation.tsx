@@ -33,6 +33,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
         <button class="icon-btn" onClick={() => setYear(year - 1)} aria-label="Vorjahr"><Ic n="left" size={22} /></button>
         <div class="nav-title"><strong>Urlaubsverwaltung {year}</strong><span>Konto · Planung · Übersicht für den Arbeitgeber</span></div>
         <button class="icon-btn" onClick={() => setYear(year + 1)} aria-label="Nächstes Jahr"><Ic n="right" size={22} /></button>
+        {year !== Number(t.slice(0, 4)) && <button class="btn small today-btn" onClick={() => setYear(Number(t.slice(0, 4)))}><Ic n="today" size={15} /> {t.slice(0, 4)}</button>}
       </div>
 
       {/* Urlaubskonto: genommen + geplant + noch frei */}

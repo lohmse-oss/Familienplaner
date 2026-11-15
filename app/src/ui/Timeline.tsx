@@ -97,15 +97,18 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   }, [layout, to]);
 
   const jump = (d: string) => {
-    const a = addDays(d, -(dow(d) + 0));
-    setFrom(a);
-    setTo(addDays(a, FIRST_DAYS));
-    setTimeout(() => document.getElementById(`tl-${d}`)?.scrollIntoView({ block: 'start', inline: 'start', behavior: 'smooth' }), 80);
+    const loaded = d >= from && d <= to; // schon geladen: nur hinscrollen
+    if (!loaded) {
+      const a = addDays(d, -dow(d));
+      setFrom(a);
+      setTo(addDays(a, FIRST_DAYS));
+    }
+    setTimeout(() => document.getElementById(`tl-${d}`)?.scrollIntoView({ block: 'start', inline: 'start', behavior: 'smooth' }), loaded ? 0 : 80);
   };
 
   const bar = (
     <div class="tl-bar">
-      <button class="btn small" onClick={() => jump(t)}>Heute</button>
+      <button class="btn small today-btn" onClick={() => jump(t)}><Ic n="today" size={15} /> Heute</button>
       <input type="date" aria-label="Zu Datum springen" value="" onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) jump(v); }} />
       <span class="grow" />
       <div class="seg-ctl" role="group" aria-label="Anordnung">

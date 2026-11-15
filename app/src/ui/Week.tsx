@@ -114,7 +114,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
       </div>
 
       {(weekStart(t) !== start || (view === 'day' && dayDate !== t)) && (
-        <div class="week-tools"><span /><button class="link" onClick={toToday}>Heute</button></div>
+        <div class="week-tools"><span /><button class="btn small today-btn" onClick={toToday}><Ic n="today" size={15} /> Heute</button></div>
       )}
 
       {(gap > 0 || maybe > 0 || openEvents > 0) && (

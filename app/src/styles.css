@@ -513,3 +513,10 @@ h1, h2, h3 { margin: 0; }
   .tiles { grid-template-columns: 1fr 1fr; }
   .tl-ccol { width: 148px; }
 }
+
+/* ---------- „Heute“-Sprung ---------- */
+.today-btn { white-space: nowrap; flex-shrink: 0; }
+.nav .today-btn { margin-left: 4px; }
+.tl-rows .tl-date { scroll-margin-top: calc(100px + var(--safe-t)); }
+.tl-cols .tl-ccol { scroll-margin-left: 96px; }
+.month { scroll-margin-top: 62px; }

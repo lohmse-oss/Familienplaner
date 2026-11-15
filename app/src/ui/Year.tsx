@@ -86,6 +86,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
   const selected = useMemo(() => new Set(days), [days]);
   const edges = useMemo(() => (selMode === 'range' ? new Set([rg.start, rg.end].filter((x): x is string => !!x)) : selected), [selMode, rg, selected]);
 
+  const cy = Number(t.slice(0, 4));
   const scrollTo = (d: string) => setTimeout(() => document.getElementById(`m-${d.slice(0, 7)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
   const reset = () => {
     setRg({ start: null, end: null });
@@ -124,6 +125,16 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
       scrollTo(preset.start);
     }
   }, [preset?.id]);
+
+  // Im laufenden Jahr direkt zum aktuellen Monat; „Heute“ springt von jedem Jahr dorthin
+  useEffect(() => {
+    if (year === cy) setTimeout(() => document.getElementById(`m-${t.slice(0, 7)}`)?.scrollIntoView({ block: 'start' }), 60);
+  }, [year]);
+  const toToday = () => {
+    reset();
+    if (year !== cy) setYear(cy);
+    scrollTo(t);
+  };
 
   const startEdit = (per: { person: PersonId; start: string; end: string; titles: string[] }) => {
     setEditing({ person: per.person, start: per.start, end: per.end });
@@ -211,6 +222,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <button class="icon-btn" onClick={() => { setYear(year - 1); reset(); }} aria-label="Vorjahr"><Ic n="left" size={22} /></button>
         <div class="nav-title"><strong>{year}</strong><span>Jahresplaner</span></div>
         <button class="icon-btn" onClick={() => { setYear(year + 1); reset(); }} aria-label="Nächstes Jahr"><Ic n="right" size={22} /></button>
+        <button class="btn small today-btn" onClick={toToday}><Ic n="today" size={15} /> Heute</button>
       </div>
 
       {!readOnly && <div class="plan-hint">
