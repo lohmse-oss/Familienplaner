@@ -97,12 +97,17 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>
 
-      {(gap || unowned > 0) && (
+      {(gap || unowned > 0 || overdue > 0) && (
         <section class="card attn">
           <header class="card-head"><strong>Achtung</strong></header>
           {gap && (
             <div class="line link-row need" onClick={() => go('vacation')}>
               <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
+            </div>
+          )}
+          {overdue > 0 && (
+            <div class="line link-row need" onClick={() => go('tasks')}>
+              <span class="grow"><Ic n="tasks" size={15} /> {overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span><Ic n="right" size={16} />
             </div>
           )}
           {unowned > 0 && (
