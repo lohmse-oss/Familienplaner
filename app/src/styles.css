@@ -520,3 +520,7 @@ h1, h2, h3 { margin: 0; }
 .tl-rows .tl-date { scroll-margin-top: calc(100px + var(--safe-t)); }
 .tl-cols .tl-ccol { scroll-margin-left: 96px; }
 .month { scroll-margin-top: 62px; }
+
+/* ---------- Nach oben ---------- */
+.scroll-top { position: fixed; left: 14px; bottom: calc(86px + var(--safe-b)); z-index: 7; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0,0,0,.22); animation: fadein .18s ease-out; }
+@media (min-width: 900px) { .scroll-top { left: 112px; bottom: 28px; } }

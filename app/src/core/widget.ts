@@ -14,6 +14,8 @@ export interface WidgetData {
   updated: string; // "Stand 14:05"
   days: WidgetDay[]; // heute + nächste Tage – das Widget zeigt ab dem heutigen Eintrag drei Tage (rollierend)
   shopN: number; // offene Artikel der Einkaufsliste
+  taskN: number; // aktive (offene) Aufgaben
+  taskOverdue: number; // davon überfällig
 }
 
 const HORIZON = 14;
@@ -29,7 +31,9 @@ export function buildWidgetData(cal: Calendar, today: string, now: Date, style: 
     days.push({ date, n, cov: d.coverage });
   }
   const shopN = cal.items.filter((i) => i.kind === 'shop' && !i.done).length;
+  const tasks = cal.items.filter((i) => i.kind === 'task' && !i.done);
+  const taskOverdue = tasks.filter((i) => i.start < today).length;
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
-  return { style, updated: `Stand ${hh}:${mm}`, days, shopN };
+  return { style, updated: `Stand ${hh}:${mm}`, days, shopN, taskN: tasks.length, taskOverdue };
 }

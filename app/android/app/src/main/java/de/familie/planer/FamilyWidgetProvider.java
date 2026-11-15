@@ -23,10 +23,10 @@ import org.json.JSONObject;
 
 /**
  * Homescreen-Widget „Heute“ im Nothing-Stil – nur Grafik:
- * drei rollierende Tage (heute, morgen, übermorgen) und die Einkaufsliste als Kreise mit Zahlen.
+ * drei rollierende Tage (heute, morgen, übermorgen), die Einkaufsliste und die aktiven Aufgaben als Kreise mit Zahlen.
  *   leerer Ring      = nichts los
  *   gefüllter Kreis  = es stehen Einträge an (Zahl = Anzahl)
- *   roter Kreis      = Betreuung ungeklärt
+ *   roter Kreis      = Betreuung ungeklärt (bzw. überfällige Aufgaben)
  * Die App liefert Daten für die nächsten Tage; das Widget wählt daraus den heutigen Tag und aktualisiert sich
  * dadurch auch ohne App-Start, solange die Daten reichen.
  */
@@ -119,6 +119,14 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
         c.drawText(text, cx, cy - (p.ascent() + p.descent()) / 2f, p);
     }
 
+    /** Text zentriert zeichnen und bei Bedarf so weit verkleinern, dass er in die Zelle passt. */
+    private static void centeredFit(Canvas c, Paint p, String text, float cx, float cy, float size, float maxW) {
+        p.setTextSize(size);
+        float tw = p.measureText(text);
+        if (tw > maxW) p.setTextSize(size * maxW / tw);
+        centered(c, p, text, cx, cy);
+    }
+
     static Bitmap render(Context ctx, JSONObject root, String style, int w, int h) {
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
@@ -161,22 +169,28 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
         }
 
         float pad = h * 0.06f;
-        float cellW = (w - 2 * pad) / 4f;
+        float cellW = (w - 2 * pad) / 5f;
         float labelSize = Math.min(h * 0.14f, cellW * 0.26f);
         float r = Math.min(cellW * 0.36f, h * 0.27f);
         float cy = h * 0.52f;
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             float cx = pad + cellW * (i + 0.5f);
             String label;
             String foot;
             int n;
             String cov = "none";
-            boolean shop = i == 3;
-            if (shop) {
+            boolean counter = i >= 3; // Einkauf und Aufgaben sind reine Zähler
+            boolean alert = false;
+            if (i == 3) {
                 label = "EINKAUF";
                 foot = "OFFEN";
                 n = root.optInt("shopN", 0);
+            } else if (i == 4) {
+                label = "AUFGABEN";
+                foot = "AKTIV";
+                n = root.optInt("taskN", 0);
+                alert = root.optInt("taskOverdue", 0) > 0; // überfällige Aufgaben: roter Kreis
             } else {
                 JSONObject d = days.optJSONObject(Math.min(idx + i, days.length() - 1));
                 // Reicht die Datenmenge nicht mehr, bleibt der letzte bekannte Tag stehen
@@ -187,12 +201,11 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
             }
 
             // Beschriftung oben und unten
+            float maxW = cellW * 0.94f;
             text.setColor(i == 0 ? ink : dim);
-            text.setTextSize(labelSize);
-            centered(c, text, label, cx, h * 0.15f);
+            centeredFit(c, text, label, cx, h * 0.15f, labelSize, maxW);
             text.setColor(dim);
-            text.setTextSize(labelSize * 0.8f);
-            centered(c, text, foot, cx, h * 0.90f);
+            centeredFit(c, text, foot, cx, h * 0.90f, labelSize * 0.8f, maxW);
 
             // Kreis
             float sw = Math.max(2f, r * 0.14f);
@@ -204,8 +217,8 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
                 shape.setStyle(Paint.Style.FILL);
                 c.drawCircle(cx, cy, sw * 0.7f, shape);
             } else {
-                boolean gap = !shop && "gap".equals(cov);
-                boolean maybe = !shop && "maybe".equals(cov);
+                boolean gap = alert || (!counter && "gap".equals(cov));
+                boolean maybe = !counter && "maybe".equals(cov);
                 shape.setStyle(Paint.Style.FILL);
                 shape.setColor(gap ? accent : ink);
                 c.drawCircle(cx, cy, maybe ? r - sw : r, shape);

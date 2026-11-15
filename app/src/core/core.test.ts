@@ -295,12 +295,15 @@ describe('Widget-Daten', () => {
         item({ kind: 'shop', title: 'Milch', ts: 2, start: '2027-07-10' }),
         item({ kind: 'shop', title: 'Brot', ts: 1, start: '2027-07-10' }),
         item({ kind: 'shop', title: 'Eier', ts: 0, done: true, start: '2027-07-10' }),
+        item({ kind: 'task', title: 'Geschenk', start: '2027-07-20', owner: 'betty' }),
+        item({ kind: 'task', title: 'Anmeldung', start: '2027-07-01' }), // überfällig
+        item({ kind: 'task', title: 'Erledigt', start: '2027-07-05', done: true }),
       ],
       data,
     );
     const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5), 'glass');
     expect(w.days).toHaveLength(14);
-    expect(w).toMatchObject({ style: 'glass', updated: 'Stand 08:05', shopN: 2 });
+    expect(w).toMatchObject({ style: 'glass', updated: 'Stand 08:05', shopN: 2, taskN: 2, taskOverdue: 1 });
     expect(w.days.slice(0, 3)).toEqual([
       { date: '2027-07-12', n: 2, cov: 'maybe' }, // Elternabend + Betreuungsbedarf Ida (Sommerferien)
       { date: '2027-07-13', n: 2, cov: 'gap' }, // Dienstreise Sebastian + Betreuungsbedarf

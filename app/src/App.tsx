@@ -11,6 +11,7 @@ import { EditSheet, KindPicker } from './ui/EditSheet';
 import { Home } from './ui/Home';
 import { Ic, type IconName } from './ui/icons';
 import { More } from './ui/More';
+import { ScrollTop } from './ui/ScrollTop';
 import { Settings } from './ui/Settings';
 import { Shop } from './ui/Shop';
 import { Tasks } from './ui/Tasks';
@@ -130,6 +131,8 @@ export function App() {
         {tab === 'tasks' && <Tasks edit={edit} add={() => setSheet({ t: 'edit', item: { kind: 'task' } })} />}
         {tab === 'settings' && <Settings />}
       </main>
+
+      {(tab === 'cal' || tab === 'vacation') && <ScrollTop key={tab} />}
 
       {showFab && <button class="fab" aria-label="Neuer Eintrag" onClick={() => setSheet({ t: 'pick' })}><Ic n="plus" size={28} sw={2.5} /></button>}
 
