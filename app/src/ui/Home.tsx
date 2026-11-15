@@ -1,4 +1,4 @@
-import { addDays, dow, fmt, fmtShort, planningYear, range, today, WD, WD_LONG } from '../core/dates';
+import { addDays, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/dates';
 import { needsOwner } from '../core/calendar';
 import { nextGap } from '../core/gaps';
 import { budget } from '../core/report';
@@ -22,7 +22,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
   const t = today();
   const d = cal.day(t);
   const gap = nextGap(cal, t, 90);
-  const py = planningYear();
+  const py = Number(t.slice(0, 4)); // laufendes Jahr
 
   // Termine der nächsten 7 Tage (ohne heute)
   const L = settings.layers;
@@ -49,7 +49,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
   const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
   const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
   const free = PARENTS.map((p) => ({ p, b: budget(cal, p, py, t) }));
-  const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ' frei';
+  const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ` frei (${py})`;
 
   const tiles: { tab: Tab; icon: IconName; title: string; sub: string; badge?: string }[] = [
     { tab: 'cal', icon: 'week', title: 'Kalender', sub: 'Woche · Tag · Verlauf · Jahr' },

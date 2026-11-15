@@ -1,7 +1,7 @@
 # Familienplaner – Konzept
 
 Wochenplaner mit Jahresforecast für Sebastian, Betty, Ida (Schulkind) und Irma (Kindergarten) in Chemnitz, Sachsen.
-Zwei arbeitende Eltern (Vollzeit 40 h), die sich täglich abstimmen. Geplant wird immer das **Folgejahr**.
+Zwei arbeitende Eltern (Vollzeit 40 h), die sich täglich abstimmen. Die App öffnet immer mit **Fokus auf den heutigen Tag** (Woche, Verlauf, Jahr und Urlaub starten im laufenden Jahr); das Folgejahr planst du mit „›“.
 
 ## Kernlogik: Wer ist da, wer wird betreut?
 Pro Tag gilt: Eltern haben einen Anwesenheitsstatus, Kinder haben ggf. Betreuungsbedarf. Die **Ampel** vergleicht beides.

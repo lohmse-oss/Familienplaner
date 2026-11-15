@@ -99,6 +99,12 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const dates = useMemo(() => [...range(from, to)], [from, to]);
   const maxTo = addDays(t, MAX_AHEAD);
 
+  // Beim Öffnen direkt zum heutigen Tag
+  useEffect(() => {
+    const id = setTimeout(() => document.getElementById(`tl-${t}`)?.scrollIntoView({ block: 'start', inline: 'start' }), 60);
+    return () => clearTimeout(id);
+  }, [layout]);
+
   // Weiterscrollen: am Ende automatisch Tage nachladen
   useEffect(() => {
     const el = sentinel.current;

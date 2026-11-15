@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { planningYear, today, weekStart } from './core/dates';
+import { today, weekStart } from './core/dates';
 import type { Item, Kind, PersonId } from './core/types';
 import type { Tab } from './nav';
 import { dismissNotice, undoLast, updateSettings, useStore } from './store';
@@ -42,7 +42,7 @@ export function App() {
   const { sync, undo, notice, settings, readOnly } = useStore();
   const [tab, setTab] = useState<Tab>('home');
   const [weekOf, setWeekOf] = useState(weekStart(today()));
-  const [year, setYear] = useState(planningYear());
+  const [year, setYear] = useState(Number(today().slice(0, 4))); // Start immer mit Fokus auf heute
   const [sheet, setSheet] = useState<Sheet>(null);
   const [preset, setPreset] = useState<PlanPreset | undefined>();
   const close = () => setSheet(null);
