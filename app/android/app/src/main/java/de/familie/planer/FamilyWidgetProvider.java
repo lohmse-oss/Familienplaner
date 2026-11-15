@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.RemoteViews;
 import androidx.core.content.res.ResourcesCompat;
@@ -27,6 +28,7 @@ import org.json.JSONObject;
  *   leerer Ring      = nichts los
  *   gefüllter Kreis  = es stehen Einträge an (Zahl = Anzahl)
  *   roter Kreis      = Betreuung ungeklärt (bzw. Aufgaben heute fällig oder überfällig)
+ * Jeder Kreis ist antippbar: Tag-Kreise öffnen den Tag, Einkauf die Einkaufsliste, Aufgaben die Aufgaben.
  * Die App liefert Daten für die nächsten Tage; das Widget wählt daraus den heutigen Tag und aktualisiert sich
  * dadurch auch ohne App-Start, solange die Daten reichen.
  */
@@ -89,7 +91,26 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
 
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         v.setOnClickPendingIntent(R.id.widget_root, pi);
+
+        // Direktsprünge: Tag-Kreise → Tag, Einkauf → Einkaufsliste, Aufgaben → Aufgaben
+        int[] cells = { R.id.cell0, R.id.cell1, R.id.cell2, R.id.cell3, R.id.cell4 };
+        JSONArray days = root != null ? root.optJSONArray("days") : null;
+        int idx = days != null ? todayIndex(days) : -1;
+        for (int i = 0; i < cells.length; i++) {
+            String uri;
+            if (i == 3) uri = "de.familie.planer://shop";
+            else if (i == 4) uri = "de.familie.planer://tasks";
+            else if (idx >= 0) uri = "de.familie.planer://day/" + days.optJSONObject(Math.min(idx + i, days.length() - 1)).optString("date");
+            else uri = "de.familie.planer://today";
+            v.setOnClickPendingIntent(cells[i], link(ctx, 10 + i, uri));
+        }
         return v;
+    }
+
+    private static PendingIntent link(Context ctx, int requestCode, String uri) {
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+        i.setClass(ctx, MainActivity.class);
+        return PendingIntent.getActivity(ctx, requestCode, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** Heutiger Index in den Tagesdaten oder -1. */

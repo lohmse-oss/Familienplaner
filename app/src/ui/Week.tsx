@@ -99,7 +99,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
       class="page"
       onTouchStart={(e) => setTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY })}
       onTouchEnd={(e) => {
-        if (!touch) return;
+        if (!touch || touch.x < 24) return setTouch(null); // vom Rand: gehört zum „Zurück“-Wischen
         const dx = e.changedTouches[0].clientX - touch.x;
         const dy = e.changedTouches[0].clientY - touch.y;
         if (Math.abs(dx) > 70 && Math.abs(dy) < 45) (view === 'day' ? goDay : goWeek)(dx < 0 ? 1 : -1);

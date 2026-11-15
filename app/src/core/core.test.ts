@@ -6,6 +6,8 @@ import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekSta
 import { annotateChanges, describeChange } from './describe';
 import { marksOf } from './layers';
 import { relevant } from './filter';
+import { search, parseDateQuery } from './search';
+import { parseLink } from '../links';
 import { buildWidgetData } from './widget';
 import { gapRuns, nextGap } from './gaps';
 import { planPresence } from './presence';
@@ -356,5 +358,56 @@ describe('Kalender-Ebenen', () => {
     expect(marksOf(cal.day('2027-07-18'), '2027-07-20').overdue).toBe(true);
     const m = marksOf(cal.day('2027-07-18'), '2027-07-12', { events: false, tasks: true, birthdays: false });
     expect(m).toMatchObject({ events: 0, info: 0, birthdays: 0, tasks: 1, total: 1 });
+  });
+});
+
+describe('Suche', () => {
+  const items = [
+    item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt U8', persons: ['irma'], start: '2027-07-14', place: 'Praxis Dr. Müller', note: 'Impfpass mitbringen' }),
+    item({ kind: 'presence', mode: 'vacation', persons: ['betty'], start: '2027-08-02', end: '2027-08-13', title: 'Ostsee' }),
+    item({ kind: 'birthday', title: 'Oma Helga', start: '1957-07-18' }),
+    item({ kind: 'task', title: 'Geschenk für Oma', start: '2027-07-10', owner: 'betty' }),
+    item({ kind: 'shop', title: 'Milch', start: '2027-07-10', ts: 1 }),
+    { ...item({ kind: 'event', title: 'Gelöscht', start: '2027-07-20' }), deleted: true },
+    item({ kind: 'config', start: '2027-01-01', entitlement: 30 }),
+  ];
+  const today = '2027-07-12';
+  it('findet in Titel, Notiz, Ort und Art – alle Suchwörter müssen passen', () => {
+    expect(search(items, 'arzt', today)).toHaveLength(1);
+    expect(search(items, 'impfpass', today)).toHaveLength(1); // Notiz
+    expect(search(items, 'müller', today)).toHaveLength(1); // Ort
+    expect(search(items, 'urlaub', today)[0].item.title).toBe('Ostsee'); // Art
+    expect(search(items, 'betty ostsee', today)).toHaveLength(1);
+    expect(search(items, 'arzt ostsee', today)).toHaveLength(0);
+    expect(search(items, '  ', today)).toEqual([]);
+    expect(search(items, 'gelöscht', today)).toEqual([]);
+  });
+  it('Geburtstag springt zum nächsten Auftreten, sortiert: kommende zuerst, dann Vergangenes, dann Einkauf', () => {
+    const r = search(items, 'oma', today);
+    expect(r.map((h) => [h.kind, h.date])).toEqual([['birthday', '2027-07-18'], ['task', '2027-07-10']]);
+    const all = search(items, 'e', today); // „e“ kommt fast überall vor
+    expect(all[all.length - 1].kind).toBe('shop');
+    expect(search(items, 'oma', '2027-09-01')[0].date).toBe('2028-07-18'); // Geburtstag schon vorbei → nächstes Jahr
+  });
+  it('erkennt Datumseingaben', () => {
+    expect(parseDateQuery('14.7.', today)).toBe('2027-07-14');
+    expect(parseDateQuery('3.11.26', today)).toBe('2026-11-03');
+    expect(parseDateQuery('01.02.2028', today)).toBe('2028-02-01');
+    expect(parseDateQuery('31.02.', today)).toBeNull();
+    expect(parseDateQuery('arzt', today)).toBeNull();
+  });
+});
+
+describe('Direktlinks', () => {
+  it('parst Widget- und Schnellaktions-Links', () => {
+    expect(parseLink('de.familie.planer://shop')).toEqual({ type: 'tab', tab: 'shop' });
+    expect(parseLink('de.familie.planer://tasks')).toEqual({ type: 'tab', tab: 'tasks' });
+    expect(parseLink('de.familie.planer://today')).toEqual({ type: 'today' });
+    expect(parseLink('de.familie.planer://day/2027-07-12')).toEqual({ type: 'day', date: '2027-07-12' });
+    expect(parseLink('de.familie.planer://new/event')).toEqual({ type: 'new', what: 'event' });
+    expect(parseLink('de.familie.planer://new/shop')).toEqual({ type: 'new', what: 'shop' });
+    expect(parseLink('de.familie.planer://day/morgen')).toBeNull();
+    expect(parseLink('https://example.org/shop')).toBeNull();
+    expect(parseLink('de.familie.planer://unbekannt')).toBeNull();
   });
 });

@@ -43,6 +43,16 @@ Fünf Tabs, in der Mitte der runde **Start-Knopf** (auf Tablets eine Seitenleist
 Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Woche · Tag · Verlauf · Jahr**.
 Einstellungen sind in aufklappbare Gruppen gegliedert (Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien).
 
+## Schnell finden und bewegen
+* **Suche & Sprung** (Lupe in der Kopfzeile): Volltext über Termine, Aufgaben, Geburtstage, Urlaub, Betreuung und Einkauf (Titel, Notiz, Ort, Kontakt, Personen); ein Datum wie „14.7.“ springt direkt zum Tag;
+  ohne Eingabe stehen „Gehe zu“-Ziele bereit (Heute, Verlauf, Jahr, Urlaub, Einkauf, Aufgaben, Einstellungen).
+* **Zahlen an den Tabs:** Einkauf (offene Artikel), Mehr (überfällige Aufgaben, rot), Kalender (roter Punkt bei ungeklärter Betreuung heute/morgen).
+* **Zurück mit Verlauf:** „Zurück“ (Pfeil, Android-Taste, Wischen vom linken Rand) führt dorthin, wo du herkamst; aktiven Tab nochmal tippen = nach oben. Jede Ansicht **merkt sich ihre Scrollposition**.
+* **Herunterziehen** am Seitenanfang gleicht sofort ab.
+* **＋ überall:** Der Neu-Knopf ist in Kalender (außer Jahr), Urlaub und Aufgaben da – mit Urlaub/Mehrere Tage, Termin, Aufgabe, Betreuung, Info, Geburtstag und **Artikel zur Einkaufsliste**.
+* **Widget-Direktsprung:** Tag-Kreis → dieser Tag, Einkauf-Kreis → Einkaufsliste, Aufgaben-Kreis → Aufgaben.
+* **Schnellaktionen am App-Symbol** (lang drücken): Einkauf eintragen, Neuer Termin, Neue Aufgabe, Heute. Technisch Direktlinks `de.familie.planer://shop | tasks | today | day/<Datum> | new/event | new/task | new/shop`.
+
 ## Ansichten
 Die Startseite zeigt „Heute“, Warnungen, die nächsten Termine, „Neu vom Partner“ und vier Kacheln (Kalender, Urlaub, Einkauf, Aufgaben).
 * **Woche**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur

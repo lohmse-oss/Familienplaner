@@ -5,4 +5,12 @@
     <string name="package_name">de.familie.planer</string>
     <string name="custom_url_scheme">de.familie.planer</string>
     <string name="widget_description">Nächste drei Tage und Einkaufsliste als Kreise mit Zahlen</string>
+    <string name="shortcut_today_short">Heute</string>
+    <string name="shortcut_today_long">Kalender: heute</string>
+    <string name="shortcut_event_short">Neuer Termin</string>
+    <string name="shortcut_event_long">Neuen Termin eintragen</string>
+    <string name="shortcut_shop_short">Einkauf</string>
+    <string name="shortcut_shop_long">Artikel zur Einkaufsliste</string>
+    <string name="shortcut_task_short">Neue Aufgabe</string>
+    <string name="shortcut_task_long">Neue Aufgabe eintragen</string>
 </resources>
