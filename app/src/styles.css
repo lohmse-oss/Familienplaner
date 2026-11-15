@@ -524,3 +524,31 @@ h1, h2, h3 { margin: 0; }
 /* ---------- Nach oben ---------- */
 .scroll-top { position: fixed; left: 14px; bottom: calc(86px + var(--safe-b)); z-index: 7; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0,0,0,.22); animation: fadein .18s ease-out; }
 @media (min-width: 900px) { .scroll-top { left: 112px; bottom: 28px; } }
+
+/* ---------- Ebenen & Marker (Geburtstage, Aufgaben-Fälligkeit, Termine) ---------- */
+.filter-row { display: flex; align-items: flex-start; gap: 6px; }
+.filter-row .pfilter { flex: 1; min-width: 0; }
+.layer-menu { position: relative; flex-shrink: 0; margin-top: -2px; }
+.layer-menu .icon-btn { width: 36px; height: 36px; position: relative; }
+.layer-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--maybe); }
+.layer-backdrop { position: fixed; inset: 0; z-index: 19; }
+.layer-pop { position: absolute; right: 0; top: 42px; z-index: 20; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; min-width: 230px; box-shadow: 0 8px 24px rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 8px; }
+.layer-pop b { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.layer-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.layer-row input { width: 18px; height: 18px; }
+
+.cell .mk { position: absolute; top: 3px; left: 3px; display: flex; gap: 2px; z-index: 3; }
+.mk-b, .mk-t, .mk-e { display: inline-block; width: 7px; height: 7px; }
+.mk-b { border-radius: 50%; background: #e0529c; }
+.mk-t { border-radius: 1.5px; background: var(--maybe); }
+.mk-t.late { background: var(--gap); }
+.mk-e { border-radius: 50%; background: var(--accent); width: 6px; height: 6px; margin-top: .5px; }
+.mk-leg { vertical-align: 0; margin-right: 3px; }
+
+.mx-cell.multi { flex-wrap: wrap; gap: 1px 3px; align-content: center; padding: 2px; height: 38px; }
+.mk-ic.bd { color: #e0529c; }
+.mk-ic.tk { color: var(--maybe); }
+.mk-ic.late { color: var(--gap); }
+.mx-ev { font-style: normal; font-size: 10.5px; font-weight: 700; background: var(--accent); color: #fff; border-radius: 99px; min-width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+.tl-mk { display: flex; gap: 3px; margin-top: 1px; }
+@media (min-width: 640px) { .tl-mk { display: none; } }

@@ -25,7 +25,18 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
   const py = planningYear();
 
   // Termine der nächsten 7 Tage (ohne heute)
-  const upcoming = [...range(addDays(t, 1), addDays(t, 7))].flatMap((date) => cal.day(date).events.map((e) => ({ date, e }))).slice(0, 5);
+  const L = settings.layers;
+  const soon = [...range(addDays(t, 1), addDays(t, 7))]
+    .flatMap((date) => {
+      const d = cal.day(date);
+      return [
+        ...(L.events ? d.events.map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: `${e.time ? e.time + ' ' : ''}${e.title}`, e })) : []),
+        ...(L.tasks ? d.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
+        ...(L.birthdays ? d.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
+      ];
+    })
+    .slice(0, 6);
+  const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t).length;
   const unowned = [...range(t, addDays(t, 14))].reduce((n, date) => n + cal.day(date).events.filter((e) => needsOwner(e) && !e.owner).length, 0);
 
   // Neu vom Partner (letzte 7 Tage)
@@ -114,14 +125,15 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
         </section>
       )}
 
-      {upcoming.length > 0 && (
+      {soon.length > 0 && (
         <section class="card">
-          <header class="card-head"><strong>Nächste Termine</strong></header>
-          {upcoming.map(({ date, e }) => (
-            <div key={e.id + date} class="line link-row" onClick={() => openDay(date)}>
+          <header class="card-head"><strong>Demnächst</strong>{overdue > 0 && <span class="pill pill-gap">{overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span>}</header>
+          {soon.map(({ date, key, icon, text, e }) => (
+            <div key={key + date} class="line link-row" onClick={() => openDay(date)}>
               <span class="time wide">{WD[dow(date)]} {fmtShort(date)}</span>
-              <span class="grow">{e.time ? `${e.time} ` : ''}{e.title}</span>
-              {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
+              <Ic n={icon} size={15} class="muted" />
+              <span class="grow">{text}</span>
+              {e.owner ? <PersonTag p={e.owner} /> : e.kind === 'event' && needsOwner(e) ? <span class="open">offen</span> : null}
             </div>
           ))}
         </section>

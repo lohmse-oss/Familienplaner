@@ -5,6 +5,7 @@ import { contiguousRuns } from './core/dates';
 import { planPresence, type PresenceOptions } from './core/presence';
 import type { PersonFilter } from './core/filter';
 import type { CalView } from './nav';
+import { ALL_LAYERS, type Layers } from './core/layers';
 import { scheduleNotifications, showNow } from './notifications';
 import { nativeConfigure, nativeMarkSeen, nativeSeen } from './native';
 import { VERB_TEXT, type Verb } from './core/describe';
@@ -18,6 +19,7 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   filter: PersonFilter; // Personenfilter für Kalender und Aufgaben
   calView: CalView; // zuletzt genutzte Kalenderansicht
+  layers: Layers; // im Kalender sichtbare Ebenen (Termine, Aufgaben, Geburtstage)
   timeLayout: 'rows' | 'cols'; // Verlauf: Tage als Zeilen oder als Spalten
   role: 'write' | 'read'; // vom Server: Vollzugriff oder nur Lesen
   me: PersonId; // wer nutzt dieses Handy
@@ -56,7 +58,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', timeLayout: 'rows', role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, timeLayout: 'rows', role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {

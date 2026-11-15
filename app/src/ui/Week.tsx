@@ -3,6 +3,7 @@ import type { DayInfo } from '../core/calendar';
 import { needsOwner } from '../core/calendar';
 import { addDays, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { relevant, type PersonFilter } from '../core/filter';
+import type { Layers } from '../core/layers';
 import { PARENTS, PERSONS, type Item, type Kind, type Mode, type PersonId } from '../core/types';
 import { haptic } from '../haptics';
 import { setPresenceRange, updateSettings, useStore } from '../store';
@@ -25,15 +26,15 @@ type Scope = 'day' | 'rest' | 'week';
 const MODES: (Mode | 'office')[] = ['office', 'homeoffice', 'vacation', 'trip'];
 
 /** Inhalt eines Tages nach Personenfilter */
-function filtered(d: DayInfo, f: PersonFilter) {
+function filtered(d: DayInfo, f: PersonFilter, L: Layers) {
   const kid = f === 'ida' || f === 'irma';
   return {
     needs: kid ? d.needs.filter((n) => n.child === f) : d.needs,
     cover: d.cover.filter((c) => f === 'all' || !PERSONS[f].adult ? relevant(c, f) : true),
-    events: d.events.filter((e) => relevant(e, f)),
-    info: d.info.filter((i) => relevant(i, f)),
-    tasks: d.tasks.filter((t) => relevant(t, f)),
-    birthdays: d.birthdays,
+    events: L.events ? d.events.filter((e) => relevant(e, f)) : [],
+    info: L.events ? d.info.filter((i) => relevant(i, f)) : [],
+    tasks: L.tasks ? d.tasks.filter((t) => relevant(t, f)) : [],
+    birthdays: L.birthdays ? d.birthdays : [],
     warnings: d.warnings,
   };
 }
@@ -72,7 +73,8 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
   const gap = days.filter((d) => d.coverage === 'gap').length;
   const maybe = days.filter((d) => d.coverage === 'maybe').length;
   const openEvents = days.reduce((n, d) => n + d.events.filter((e) => needsOwner(e) && !e.owner).length, 0);
-  const rows = days.map((d) => ({ d, c: filtered(d, f) }));
+  const L = settings.layers;
+  const rows = days.map((d) => ({ d, c: filtered(d, f, L) }));
   const agenda = rows.filter(({ c }) => c.needs.length || c.cover.length || c.events.length || c.info.length || c.tasks.length || c.birthdays.length || c.warnings.length);
 
   const pick = (p: PersonId, date: string) => {
@@ -167,6 +169,24 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
               </MxRow>
             ))}
 
+            {(L.events || L.tasks || L.birthdays) && (
+              <MxRow label="Termine" color="">
+                {rows.map(({ d, c }) => {
+                  const ev = c.events.length + c.info.length;
+                  const tk = c.tasks.filter((x) => !x.done).length;
+                  const bd = c.birthdays.length;
+                  const late = tk > 0 && d.date < t;
+                  return (
+                    <button key={d.date} class={`mx-cell multi ${ev + tk + bd === 0 ? 'off' : ''}`} onClick={() => openDay(d.date)} aria-label={`${ev} Termine, ${tk} Aufgaben, ${bd} Geburtstage`}>
+                      {bd > 0 && <Ic n="cake" size={14} class="mk-ic bd" />}
+                      {tk > 0 && <Ic n="tasks" size={14} class={`mk-ic ${late ? 'late' : 'tk'}`} />}
+                      {ev > 0 && <i class="mx-ev">{ev}</i>}
+                    </button>
+                  );
+                })}
+              </MxRow>
+            )}
+
             <MxRow label="Betreuung" color="">
               {days.map((d) => (
                 <button key={d.date} class="mx-cell lampcell" onClick={() => openDay(d.date)} aria-label={d.coverage}>
@@ -213,8 +233,8 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
           {/* Tagesstreifen + Details des gewählten Tages */}
           <div class="day-strip">
             {days.map((d) => {
-              const c = filtered(d, f);
-              const n = c.events.length + c.tasks.length;
+              const c = filtered(d, f, L);
+              const n = c.events.length + c.tasks.filter((x) => !x.done).length + c.birthdays.length;
               return (
                 <button key={d.date} class={`ds ${d.date === dayDate ? 'on' : ''} ${d.weekend || d.holiday ? 'off' : ''} ${d.date === t ? 'today' : ''}`} onClick={() => setSelDate(d.date)}>
                   <span>{WD[dow(d.date)]}</span>

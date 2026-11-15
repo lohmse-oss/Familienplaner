@@ -263,11 +263,14 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <span><i class="sw sw-holiday" /> Feiertag</span>
         <span><i class="sw sw-bridge" /> Brückentag</span>
         <span><i class="sw sw-stripe" /> Urlaub je Person · blass = Dienstreise</span>
+        <span><i class="mk-leg mk-b" /> Geburtstag</span>
+        <span><i class="mk-leg mk-t" /> Aufgabe fällig <i class="mk-leg mk-t late" /> überfällig</span>
+        <span><i class="mk-leg mk-e" /> Termin</span>
       </div>
 
       <div class="months">
         {Array.from({ length: 12 }, (_, m) => (
-          <MonthGrid key={m} year={year} month={m} cal={cal} bridges={bridgeDays} selected={selected} edges={edges} bands={bands} onDay={tap} onLong={openDay} />
+          <MonthGrid key={m} year={year} month={m} cal={cal} bridges={bridgeDays} selected={selected} edges={edges} bands={bands} layers={settings.layers} onDay={tap} onLong={openDay} />
         ))}
       </div>
 

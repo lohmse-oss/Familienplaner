@@ -1,6 +1,7 @@
 import { useRef } from 'preact/hooks';
 import type { Calendar } from '../core/calendar';
 import { addDays, dow, MONTHS, today, WD } from '../core/dates';
+import { marksOf, type Layers } from '../core/layers';
 import { PARENTS, PERSONS, type Mode } from '../core/types';
 
 interface Props {
@@ -13,13 +14,14 @@ interface Props {
   selected?: Set<string>; // markierte Tage → durchgehendes Band
   edges?: Set<string>; // Start-/Endtage → gefüllter Kreis
   bands?: Record<string, Map<string, Mode>>; // Urlaub/Dienstreise je Elternteil → Streifen
+  layers?: Layers; // Marker für Geburtstage, Aufgaben (Fälligkeit) und Termine
 }
 
 /**
  * Monatskalender: Ferien, Feiertage, Brückentage, Urlaub (durchgehende Streifen je Elternteil),
  * Betreuungs-Ampel und eine Zeitraum-Auswahl wie bei Reisebuchungen (Band mit Start-/Endkreis).
  */
-export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, edges, bands }: Props) {
+export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, edges, bands, layers }: Props) {
   const first = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const days: string[] = [];
   for (let d = first; d.slice(5, 7) === first.slice(5, 7); d = addDays(d, 1)) days.push(d);
@@ -44,6 +46,7 @@ export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, 
         {days.map((d) => {
           const day = cal.day(d);
           const sel = selected?.has(d) ?? false;
+          const mk = layers ? marksOf(day, t, layers) : null;
           const pl = sameRow(d, -1);
           const nl = sameRow(d, 1);
           const cls = [
@@ -80,6 +83,13 @@ export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, 
             >
               <i class="fill" />
               {sel && <i class={`rng ${pl && selected!.has(pl) ? '' : 'rng-l'} ${nl && selected!.has(nl) ? '' : 'rng-r'}`} />}
+              {mk && mk.total > 0 && (
+                <span class="mk" title={`${mk.birthdays ? mk.birthdays + ' Geburtstag ' : ''}${mk.tasks ? mk.tasks + ' Aufgabe(n) fällig ' : ''}${mk.events + mk.info ? mk.events + mk.info + ' Termin(e)' : ''}`}>
+                  {mk.birthdays > 0 && <i class="mk-b" />}
+                  {mk.tasks > 0 && <i class={`mk-t ${mk.overdue ? 'late' : ''}`} />}
+                  {mk.events + mk.info > 0 && <i class="mk-e" />}
+                </span>
+              )}
               <span class={`num ${edges?.has(d) ? 'edge' : ''}`}>{Number(d.slice(8))}</span>
               {PARENTS.map((p, lane) => {
                 const m = bands?.[p]?.get(d);

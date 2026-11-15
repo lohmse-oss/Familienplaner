@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { DayInfo } from '../core/calendar';
 import { addDays, dow, isoWeek, MONTHS, range, today, weekStart, WD } from '../core/dates';
+import { marksOf, type Layers } from '../core/layers';
 import { ALL, PERSONS, type PersonId } from '../core/types';
 import { updateSettings, useStore } from '../store';
 import { STATUS_LABEL } from './common';
@@ -11,10 +12,10 @@ const STEP = 60; // so viele Tage kommen beim Weiterscrollen dazu
 const MAX_AHEAD = 365 * 3;
 
 /** Was steht für eine Person an einem Tag an? Eltern: Status + Termine/Aufgaben. Kinder: Betreuungsbedarf + Termine. */
-function PersonCell({ p, d }: { p: PersonId; d: DayInfo }) {
+function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
   const adult = PERSONS[p].adult;
-  const evs = d.events.filter((e) => e.owner === p || e.persons.includes(p));
-  const tasks = adult ? d.tasks.filter((t) => !t.done && t.owner === p) : [];
+  const evs = L.events ? d.events.filter((e) => e.owner === p || e.persons.includes(p)) : [];
+  const tasks = adult && L.tasks ? d.tasks.filter((t) => !t.done && t.owner === p) : [];
   const count = evs.length + tasks.length;
 
   let icon: preact.ComponentChildren = null;
@@ -52,15 +53,30 @@ function PersonCell({ p, d }: { p: PersonId; d: DayInfo }) {
   );
 }
 
-function DateCell({ d, t, compact }: { d: DayInfo; t: string; compact?: boolean }) {
-  const extra = [...d.info.map((i) => i.title), ...d.birthdays.map((b) => `Geb. ${b.title}`)].filter(Boolean) as string[];
+/** Datumsspalte: Tag, Feiertag/Ferien, KW, Ampel und alles, was keiner einzelnen Person gehört (Geburtstage, Infos, Familien-Termine, Aufgaben ohne Zuständigen). */
+function DateCell({ d, t, compact, L }: { d: DayInfo; t: string; compact?: boolean; L: Layers }) {
+  const m = marksOf(d, t, L);
+  const famEv = L.events ? d.events.filter((e) => !e.persons.length && !e.owner) : [];
+  const freeTasks = L.tasks ? d.tasks.filter((x) => !x.done && !x.owner) : [];
+  const extra = [
+    ...(L.events ? d.info.map((i) => i.title) : []),
+    ...(L.birthdays ? d.birthdays.map((b) => `Geb. ${b.title}`) : []),
+    ...famEv.map((e) => `${e.time ? e.time + ' ' : ''}${e.title}`),
+    ...freeTasks.map((x) => `Aufgabe: ${x.title}`),
+  ].filter(Boolean) as string[];
   return (
     <div class={`tl-date ${d.weekend ? 'we' : ''} ${d.holiday ? 'ho' : ''} ${d.school.length && !d.weekend ? 'sc' : ''} ${d.date === t ? 'tod' : ''}`} id={compact ? undefined : `tl-${d.date}`}>
       <div class="tl-dn"><span>{WD[dow(d.date)]}</span><b>{Number(d.date.slice(8))}</b>{d.coverage !== 'none' && <i class={`lamp lamp-${d.coverage}`} title={d.coverage} />}</div>
       {d.date === weekStart(d.date) && <i class="tl-kw">KW {isoWeek(d.date)}</i>}
+      {(m.birthdays > 0 || freeTasks.length > 0 || m.info > 0) && (
+        <span class="tl-mk">
+          {m.birthdays > 0 && <Ic n="cake" size={12} class="mk-ic bd" />}
+          {freeTasks.length > 0 && <Ic n="tasks" size={12} class={`mk-ic ${m.overdue ? 'late' : 'tk'}`} />}
+          {m.info > 0 && <Ic n="info" size={12} class="mk-ic" />}
+        </span>
+      )}
       {d.holiday && <span class="tl-txt tl-hol">{d.holiday}</span>}
       {extra.length > 0 && <span class="tl-txt tl-extra"><Ic n="info" size={11} /> {extra.join(', ')}</span>}
-      {(d.holiday || extra.length > 0) && <i class="tl-flag" />}
     </div>
   );
 }
@@ -72,6 +88,7 @@ function DateCell({ d, t, compact }: { d: DayInfo; t: string; compact?: boolean 
 export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const { cal, settings } = useStore();
   const t = today();
+  const L = settings.layers;
   const layout = settings.timeLayout;
   const [from, setFrom] = useState(weekStart(t));
   const [to, setTo] = useState(addDays(weekStart(t), FIRST_DAYS));
@@ -129,7 +146,7 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
               {dates.map((date) => (
                 <div key={date} class={`tl-ccol ${date.slice(8) === '01' ? 'month-start' : ''}`}>
                   {date.slice(8) === '01' && <i class="tl-cmonth">{MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)} {date.slice(2, 4)}</i>}
-                  <DateCell d={cal.day(date)} t={t} />
+                  <DateCell d={cal.day(date)} t={t} L={L} />
                 </div>
               ))}
               <div ref={sentinel} class="tl-sentinel" />
@@ -138,7 +155,7 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
               <div key={p} class="tl-crow">
                 <div class="tl-cname" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>
                 {dates.map((date) => (
-                  <div key={date} class={`tl-ccol ${cal.day(date).weekend ? 'we' : ''}`} onClick={() => openDay(date)}><PersonCell p={p} d={cal.day(date)} /></div>
+                  <div key={date} class={`tl-ccol ${cal.day(date).weekend ? 'we' : ''}`} onClick={() => openDay(date)}><PersonCell p={p} d={cal.day(date)} L={L} /></div>
                 ))}
               </div>
             ))}
@@ -168,8 +185,8 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
             <div key={date} class="tl-group">
               {header && <div class="tl-month">{MONTHS[Number(date.slice(5, 7)) - 1]} {date.slice(0, 4)}</div>}
               <div class={`tl-row ${d.weekend ? 'we' : ''}`} onClick={() => openDay(date)}>
-                <DateCell d={d} t={t} />
-                {persons.map((p) => <PersonCell key={p} p={p} d={d} />)}
+                <DateCell d={d} t={t} L={L} />
+                {persons.map((p) => <PersonCell key={p} p={p} d={d} L={L} />)}
               </div>
             </div>
           );

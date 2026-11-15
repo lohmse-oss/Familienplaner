@@ -1,6 +1,7 @@
 import type { CalView } from '../nav';
 import { updateSettings, useStore } from '../store';
 import { PersonFilterBar } from './common';
+import { LayerMenu } from './LayerMenu';
 import { Ic, type IconName } from './icons';
 
 const VIEWS: { v: CalView; label: string; icon: IconName }[] = [
@@ -22,7 +23,10 @@ export function CalNav() {
           </button>
         ))}
       </div>
-      <PersonFilterBar />
+      <div class="filter-row">
+        <PersonFilterBar />
+        <LayerMenu />
+      </div>
     </div>
   );
 }

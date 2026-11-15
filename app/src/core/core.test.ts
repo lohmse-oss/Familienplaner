@@ -4,6 +4,7 @@ import { findBridges } from './bridges';
 import { buildCalendar } from './calendar';
 import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekStart } from './dates';
 import { annotateChanges, describeChange } from './describe';
+import { marksOf } from './layers';
 import { relevant } from './filter';
 import { buildWidgetData } from './widget';
 import { gapRuns, nextGap } from './gaps';
@@ -333,5 +334,26 @@ describe('Änderungs-Hinweise', () => {
     ];
     const r = annotateChanges(items);
     expect(r.map((x) => x._text !== undefined)).toEqual([true, false, false, true]);
+  });
+});
+
+describe('Kalender-Ebenen', () => {
+  const cal = buildCalendar(
+    [
+      item({ kind: 'birthday', title: 'Oma Helga', start: '1957-07-18' }),
+      item({ kind: 'task', title: 'Geschenk', start: '2027-07-18', owner: 'betty' }),
+      item({ kind: 'task', title: 'Erledigt', start: '2027-07-18', done: true }),
+      item({ kind: 'event', sub: 'arzt', title: 'Arzt', start: '2027-07-18', persons: ['irma'] }),
+      item({ kind: 'info', title: 'Stadtfest', start: '2027-07-18' }),
+    ],
+    data,
+  );
+  it('zählt Geburtstage, offene Aufgaben, Termine und Infos am Tag', () => {
+    expect(marksOf(cal.day('2027-07-18'), '2027-07-12')).toEqual({ events: 1, tasks: 1, overdue: false, birthdays: 1, info: 1, total: 4 });
+  });
+  it('überfällige Aufgaben werden erkannt, abgewählte Ebenen ausgeblendet', () => {
+    expect(marksOf(cal.day('2027-07-18'), '2027-07-20').overdue).toBe(true);
+    const m = marksOf(cal.day('2027-07-18'), '2027-07-12', { events: false, tasks: true, birthdays: false });
+    expect(m).toMatchObject({ events: 0, info: 0, birthdays: 0, tasks: 1, total: 1 });
   });
 });
