@@ -8,7 +8,7 @@ const rel = (a: Item, b: Item) => (b.ts ?? 0) - (a.ts ?? 0);
 
 /** Fließende Einkaufsliste: eintragen, antippen = quittiert (wandert nach unten), Vorschläge aus der Historie. */
 export function Shop() {
-  const { items, settings } = useStore();
+  const { items, settings, readOnly } = useStore();
   const [text, setText] = useState('');
   const [showDone, setShowDone] = useState(false);
   const [note, setNote] = useState('');
@@ -56,22 +56,22 @@ export function Shop() {
 
   const Row = ({ i }: { i: Item }) => (
     <div class={`shop-row ${i.done ? 'done' : ''}`}>
-      <button class="check-btn" onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }} aria-label={i.done ? 'wieder offen' : 'abhaken'}>{i.done && <Ic n="check" size={16} sw={3} />}</button>
-      <span class="grow" onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }}>{i.title}</span>
+      <button class="check-btn" disabled={readOnly} onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }} aria-label={i.done ? 'wieder offen' : 'abhaken'}>{i.done && <Ic n="check" size={16} sw={3} />}</button>
+      <span class="grow" onClick={() => { if (readOnly) return; haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }}>{i.title}</span>
       {i.by && i.by !== settings.me && <i class="dot" style={{ background: PERSONS[i.by].color }} title={`von ${PERSONS[i.by].name}`} />}
-      <button class="x-btn" onClick={() => removeShop([i.id])} aria-label="entfernen"><Ic n="x" size={16} /></button>
+      {!readOnly && <button class="x-btn" onClick={() => removeShop([i.id])} aria-label="entfernen"><Ic n="x" size={16} /></button>}
     </div>
   );
 
   return (
     <div class="page">
-      <form class="shop-add" onSubmit={submit}>
+      {!readOnly && <form class="shop-add" onSubmit={submit}>
         <input type="text" placeholder="Artikel hinzufügen …" value={text} onInput={(e) => setText((e.target as HTMLInputElement).value)} enterkeyhint="done" autocomplete="off" />
         <button class="btn primary" type="submit" disabled={!text.trim()} aria-label="hinzufügen"><Ic n="plus" size={22} /></button>
-      </form>
+      </form>}
       {note ? <div class="hint neg">{note}</div> : open.length === 0 && all.length === 0 ? <div class="hint">Mehrere Artikel mit Komma trennen, z. B. „Milch, Brot, Eier“.</div> : null}
 
-      {suggestions.length > 0 && (
+      {!readOnly && suggestions.length > 0 && (
         <div class="chips scroll sugg">
           {suggestions.map((s) => (
             <button key={s.title} class="chip" onClick={() => { haptic(); addShop(s.title); }}><Ic n="plus" size={13} /> {s.title}</button>
@@ -90,7 +90,7 @@ export function Shop() {
           {showDone && (
             <section class="card shop-list">
               {doneRecent.map((i) => <Row key={i.id} i={i} />)}
-              <div class="actions"><button class="btn danger" onClick={() => removeShop(doneRecent.map((i) => i.id))}>Erledigte entfernen</button></div>
+              {!readOnly && <div class="actions"><button class="btn danger" onClick={() => removeShop(doneRecent.map((i) => i.id))}>Erledigte entfernen</button></div>}
             </section>
           )}
         </>

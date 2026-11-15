@@ -18,7 +18,7 @@ const ago = (ms: number) => {
 };
 
 export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: string) => void; add: () => void }) {
-  const { cal, settings, items } = useStore();
+  const { cal, settings, items, readOnly } = useStore();
   const t = today();
   const d = cal.day(t);
   const gap = nextGap(cal, t, 90);
@@ -41,23 +41,27 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
   const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ' frei';
 
   const tiles: { tab: Tab; icon: IconName; title: string; sub: string; badge?: string }[] = [
-    { tab: 'week', icon: 'week', title: 'Wochenplan', sub: 'Wer ist wo, Termine, Betreuung' },
-    { tab: 'year', icon: 'year', title: 'Jahresplaner', sub: 'Zeiträume markieren, Ferien, Brücken' },
-    { tab: 'vacation', icon: 'palm', title: 'Urlaubsverwaltung', sub: freeText },
-    { tab: 'shop', icon: 'cart', title: 'Einkaufsliste', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
-    { tab: 'tasks', icon: 'tasks', title: 'Aufgaben & Geburtstage', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
-    { tab: 'settings', icon: 'settings', title: 'Einstellungen', sub: 'Sync, Benachrichtigungen' },
+    { tab: 'cal', icon: 'week', title: 'Kalender', sub: 'Woche · Tag · Verlauf · Jahr' },
+    { tab: 'vacation', icon: 'palm', title: 'Urlaub', sub: freeText },
+    { tab: 'shop', icon: 'cart', title: 'Einkauf', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
+    { tab: 'tasks', icon: 'tasks', title: 'Aufgaben', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
   ];
 
   return (
-    <div class="page">
+    <div class="page home">
       <div class="hello">
         <div>
           <h2>Hallo {PERSONS[settings.me].name}</h2>
           <span class="muted">{WD_LONG[dow(t)]}, {fmt(t)}</span>
         </div>
-        <button class="btn primary" onClick={add}><Ic n="plus" size={16} /> Eintrag</button>
+        <div class="hello-actions">
+          <button class="icon-btn" onClick={() => go('settings')} aria-label="Einstellungen"><Ic n="settings" size={20} /></button>
+          {!readOnly && <button class="btn primary" onClick={add}><Ic n="plus" size={16} /> Eintrag</button>}
+        </div>
       </div>
+
+      <div class="home-cols">
+      <div>
 
       <section class="card today-card" onClick={() => openDay(t)}>
         <header class="card-head"><strong>Heute</strong><Pill coverage={d.coverage} /></header>
@@ -91,14 +95,14 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
             </div>
           )}
           {unowned > 0 && (
-            <div class="line link-row" onClick={() => go('week')}>
+            <div class="line link-row" onClick={() => go('cal')}>
               <span class="grow"><Ic n="warn" size={15} /> {unowned} Termin{unowned === 1 ? '' : 'e'} in den nächsten 14 Tagen ohne Zuständigen</span><Ic n="right" size={16} />
             </div>
           )}
         </section>
       )}
 
-      {recent.length > 0 && (
+      {!readOnly && recent.length > 0 && (
         <section class="card">
           <header class="card-head"><strong><Ic n="bell" size={15} /> Neu von {PERSONS[partner].name}</strong></header>
           {recent.map((i) => (
@@ -123,6 +127,8 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
         </section>
       )}
 
+      </div>
+
       <div class="tiles">
         {tiles.map((x) => (
           <button key={x.tab} class="tile" onClick={() => go(x.tab)}>
@@ -131,6 +137,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
             <small>{x.sub}</small>
           </button>
         ))}
+      </div>
       </div>
     </div>
   );

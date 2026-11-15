@@ -6,7 +6,7 @@ import { relevant, type PersonFilter } from '../core/filter';
 import { PARENTS, PERSONS, type Item, type Kind, type Mode, type PersonId } from '../core/types';
 import { haptic } from '../haptics';
 import { setPresenceRange, updateSettings, useStore } from '../store';
-import { Chips, Dot, PersonFilterBar, PersonTag, Pill, STATUS_LABEL } from './common';
+import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
 import { DayContent } from './DayContent';
 import { Details } from './Details';
 import { Ic, StatusIc } from './icons';
@@ -39,9 +39,9 @@ function filtered(d: DayInfo, f: PersonFilter) {
 }
 
 export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
-  const { cal, settings } = useStore();
+  const { cal, settings, readOnly } = useStore();
   const f = settings.filter;
-  const view = settings.weekView;
+  const view = settings.calView === 'day' ? 'day' : 'matrix';
   const [sel, setSel] = useState<Sel>(null);
   const [scope, setScope] = useState<Scope>('day');
   const [who, setWho] = useState<PersonId[]>([]);
@@ -76,6 +76,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
   const agenda = rows.filter(({ c }) => c.needs.length || c.cover.length || c.events.length || c.info.length || c.tasks.length || c.birthdays.length || c.warnings.length);
 
   const pick = (p: PersonId, date: string) => {
+    if (readOnly) return openDay(date);
     haptic();
     if (sel?.p === p && sel.date === date) return setSel(null);
     setSel({ p, date });
@@ -112,14 +113,9 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
         <button class="icon-btn" onClick={() => (view === 'day' ? goDay(1) : goWeek(1))} aria-label="Weiter"><Ic n="right" size={22} /></button>
       </div>
 
-      <div class="week-tools">
-        <div class="seg-ctl" role="group" aria-label="Ansicht">
-          <button class={view === 'matrix' ? 'on' : ''} onClick={() => updateSettings({ weekView: 'matrix' })}>Woche</button>
-          <button class={view === 'day' ? 'on' : ''} onClick={() => updateSettings({ weekView: 'day' })}>Tag</button>
-        </div>
-        {(weekStart(t) !== start || (view === 'day' && dayDate !== t)) && <button class="link" onClick={toToday}>Heute</button>}
-      </div>
-      <PersonFilterBar />
+      {(weekStart(t) !== start || (view === 'day' && dayDate !== t)) && (
+        <div class="week-tools"><span /><button class="link" onClick={toToday}>Heute</button></div>
+      )}
 
       {(gap > 0 || maybe > 0 || openEvents > 0) && (
         <div class="alerts">
@@ -130,12 +126,13 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
       )}
 
       {view === 'matrix' ? (
-        <>
+        <div class="week-split">
+          <div>
           {/* Wochenmatrix: die ganze Woche auf einen Blick */}
           <section class="matrix">
             <div class="mx-head" />
             {days.map((d) => (
-              <button key={d.date} class={`mx-day ${d.weekend ? 'off' : ''} ${d.holiday ? 'hol' : ''} ${d.school.length && !d.weekend ? 'school' : ''} ${d.date === t ? 'today' : ''}`} onClick={() => { setSelDate(d.date); updateSettings({ weekView: 'day' }); }} title={d.holiday ?? d.school.join(', ')}>
+              <button key={d.date} class={`mx-day ${d.weekend ? 'off' : ''} ${d.holiday ? 'hol' : ''} ${d.school.length && !d.weekend ? 'school' : ''} ${d.date === t ? 'today' : ''}`} onClick={() => { setSelDate(d.date); updateSettings({ calView: 'day' }); }} title={d.holiday ?? d.school.join(', ')}>
                 <span>{WD[dow(d.date)]}</span>
                 <b>{Number(d.date.slice(8))}</b>
                 <i class="mx-tag">{d.holiday ? 'Feiertag' : d.school.length && !d.weekend ? 'Ferien' : ''}</i>
@@ -148,7 +145,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
                   const s = d.parents[p];
                   const on = sel?.p === p && sel.date === d.date;
                   return (
-                    <button key={d.date} class={`mx-cell ${d.workday ? '' : 'off'} st-${s.status} ${on ? 'on' : ''}`} disabled={!d.workday} onClick={() => pick(p, d.date)} aria-label={`${PERSONS[p].name} ${d.date}`}>
+                    <button key={d.date} class={`mx-cell ${d.workday ? '' : 'off'} st-${s.status} ${on ? 'on' : ''}`} disabled={!d.workday && !readOnly} onClick={() => pick(p, d.date)} aria-label={`${PERSONS[p].name} ${d.date}`}>
                       {d.workday && <StatusIc s={s.status} size={18} />}
                     </button>
                   );
@@ -183,7 +180,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
             Zelle antippen zum Ändern, Wochentag für Details.
           </p>
 
-          {sel && (
+          {sel && !readOnly && (
             <section class="quick">
               <div class="quick-title">
                 <span><b>{PERSONS[sel.p].name}</b> · {WD[dow(sel.date)]} {fmtShort(sel.date)}</span>
@@ -204,10 +201,13 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
             </section>
           )}
 
+          </div>
+          <div>
           <h3 class="section">Diese Woche</h3>
           {agenda.length === 0 && <div class="empty"><Ic n="check" size={22} /><br />Keine Termine oder Betreuungsthemen{f !== 'all' ? ` für ${PERSONS[f].name}` : ''} in dieser Woche.</div>}
           {agenda.map(({ d, c }) => <AgendaDay key={d.date} d={d} c={c} today={t} openDay={openDay} edit={edit} />)}
-        </>
+          </div>
+        </div>
       ) : (
         <>
           {/* Tagesstreifen + Details des gewählten Tages */}

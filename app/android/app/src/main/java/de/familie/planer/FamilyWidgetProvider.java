@@ -6,10 +6,15 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
-import android.view.View;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.os.Bundle;
 import android.widget.RemoteViews;
+import androidx.core.content.res.ResourcesCompat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -17,48 +22,44 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Homescreen-Widget „Heute“ im Nothing-Stil: Punktmatrix-Schrift, Schwarz/Weiß, rote Warnfarbe.
- * Hintergrund wählbar: transparent, Glas, dunkel, hell (Einstellung in der App).
- * Die App liefert Daten für die nächsten Tage; das Widget wählt daraus den heutigen Tag
- * (und aktualisiert sich dadurch auch ohne App-Start, solange die Daten reichen).
+ * Homescreen-Widget „Heute“ im Nothing-Stil – nur Grafik:
+ * drei rollierende Tage (heute, morgen, übermorgen) und die Einkaufsliste als Kreise mit Zahlen.
+ *   leerer Ring      = nichts los
+ *   gefüllter Kreis  = es stehen Einträge an (Zahl = Anzahl)
+ *   roter Kreis      = Betreuung ungeklärt
+ * Die App liefert Daten für die nächsten Tage; das Widget wählt daraus den heutigen Tag und aktualisiert sich
+ * dadurch auch ohne App-Start, solange die Daten reichen.
  */
 public class FamilyWidgetProvider extends AppWidgetProvider {
     public static final String PREFS = "familienplaner_widget";
     public static final String KEY_DATA = "data";
 
-    private static final int[] ALL_TEXT = {
-        R.id.tv_date, R.id.tv_cov, R.id.tv_sub, R.id.tv_sep1, R.id.tv_p1n, R.id.tv_p1s, R.id.tv_p2n, R.id.tv_p2s,
-        R.id.tv_need, R.id.tv_sep2, R.id.tv_next, R.id.tv_shop, R.id.tv_updated
-    };
-    private static final int[] SECONDARY = { R.id.tv_sub, R.id.tv_sep1, R.id.tv_sep2, R.id.tv_shop, R.id.tv_updated };
-
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
-        for (int id : appWidgetIds) {
-            manager.updateAppWidget(id, build(context));
-        }
+        for (int id : appWidgetIds) update(context, manager, id);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager, int appWidgetId, Bundle newOptions) {
+        update(context, manager, appWidgetId);
     }
 
     public static void refreshAll(Context ctx) {
         AppWidgetManager manager = AppWidgetManager.getInstance(ctx);
         int[] ids = manager.getAppWidgetIds(new ComponentName(ctx, FamilyWidgetProvider.class));
-        if (ids == null || ids.length == 0) return;
-        RemoteViews views = build(ctx);
-        for (int id : ids) {
-            manager.updateAppWidget(id, views);
-        }
+        if (ids == null) return;
+        for (int id : ids) update(ctx, manager, id);
     }
 
-    private static void setText(RemoteViews v, int id, String text) {
-        if (text == null || text.length() == 0) {
-            v.setViewVisibility(id, View.GONE);
-        } else {
-            v.setViewVisibility(id, View.VISIBLE);
-            v.setTextViewText(id, text);
-        }
+    private static void update(Context ctx, AppWidgetManager manager, int id) {
+        Bundle o = manager.getAppWidgetOptions(id);
+        float density = ctx.getResources().getDisplayMetrics().density;
+        int wDp = o != null ? o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250) : 250;
+        int hDp = o != null ? o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 80) : 80;
+        manager.updateAppWidget(id, build(ctx, Math.max(200, (int) (wDp * density)), Math.max(70, (int) (hDp * density))));
     }
 
-    static RemoteViews build(Context ctx) {
+    static RemoteViews build(Context ctx, int w, int h) {
         String style = "dark";
         JSONObject root = null;
         try {
@@ -71,108 +72,163 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
             root = null;
         }
 
-        boolean shadow = "transparent".equals(style) || "glass".equals(style);
-        RemoteViews v = new RemoteViews(ctx.getPackageName(), shadow ? R.layout.widget_family_shadow : R.layout.widget_family);
+        RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_family);
+        if ("light".equals(style)) v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_light);
+        else if ("glass".equals(style)) v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_glass);
+        else if ("transparent".equals(style)) v.setInt(R.id.widget_root, "setBackgroundColor", Color.TRANSPARENT);
+        else v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_dark);
 
-        // Farben je Stil (Nothing: Weiß auf Schwarz, Rot als einzige Akzentfarbe)
-        int primary;
-        int secondary;
-        int accent;
-        if ("light".equals(style)) {
-            primary = Color.parseColor("#0A0A0A");
-            secondary = Color.parseColor("#6B6B70");
-            accent = Color.parseColor("#D71921");
-            v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_light);
-        } else if ("glass".equals(style)) {
-            primary = Color.WHITE;
-            secondary = Color.parseColor("#C9C9CE");
-            accent = Color.parseColor("#FF4D55");
-            v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_glass);
-        } else if ("transparent".equals(style)) {
-            primary = Color.WHITE;
-            secondary = Color.parseColor("#D9D9DE");
-            accent = Color.parseColor("#FF4D55");
-            v.setInt(R.id.widget_root, "setBackgroundColor", Color.TRANSPARENT);
-        } else {
-            primary = Color.WHITE;
-            secondary = Color.parseColor("#8E8E93");
-            accent = Color.parseColor("#D71921");
-            v.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_bg_dark);
+        // Speicherlimit für Widget-Bitmaps im Blick behalten
+        int maxPx = 700_000;
+        if ((long) w * h > maxPx) {
+            float f = (float) Math.sqrt((double) maxPx / ((long) w * h));
+            w = (int) (w * f);
+            h = (int) (h * f);
         }
-        for (int id : ALL_TEXT) v.setTextColor(id, primary);
-        for (int id : SECONDARY) v.setTextColor(id, secondary);
+        v.setImageViewBitmap(R.id.iv_graphic, render(ctx, root, style, w, h));
 
-        // Tippen öffnet die App
-        Intent open = new Intent(ctx, MainActivity.class);
-        PendingIntent pi = PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pi = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         v.setOnClickPendingIntent(R.id.widget_root, pi);
-
-        try {
-            if (root == null) throw new IllegalStateException("noch keine Daten");
-            JSONArray days = root.getJSONArray("days");
-            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).format(new Date());
-            JSONObject d = null;
-            for (int i = 0; i < days.length(); i++) {
-                JSONObject x = days.getJSONObject(i);
-                if (today.equals(x.getString("date"))) {
-                    d = x;
-                    break;
-                }
-            }
-            if (d == null) throw new IllegalStateException("Daten veraltet");
-
-            String cov = d.optString("cov", "none");
-            String covText = d.optString("covText", "");
-            String glyph = "gap".equals(cov) ? "● " : "maybe".equals(cov) ? "◐ " : "ok".equals(cov) ? "○ " : "";
-            v.setTextViewText(R.id.tv_date, d.optString("label", "Heute"));
-            setText(v, R.id.tv_sub, d.optString("sub", ""));
-            setText(v, R.id.tv_cov, covText.length() == 0 ? "" : glyph + covText);
-            v.setTextColor(R.id.tv_cov, "gap".equals(cov) ? accent : "maybe".equals(cov) ? primary : secondary);
-
-            JSONArray parents = d.optJSONArray("parents");
-            int[] names = { R.id.tv_p1n, R.id.tv_p2n };
-            int[] stats = { R.id.tv_p1s, R.id.tv_p2s };
-            for (int i = 0; i < 2; i++) {
-                if (parents != null && i < parents.length()) {
-                    JSONArray pair = parents.getJSONArray(i);
-                    setText(v, names[i], pair.getString(0));
-                    setText(v, stats[i], pair.getString(1));
-                } else {
-                    v.setViewVisibility(names[i], View.GONE);
-                    v.setViewVisibility(stats[i], View.GONE);
-                }
-            }
-
-            setText(v, R.id.tv_need, d.optString("need", ""));
-            if ("gap".equals(cov)) v.setTextColor(R.id.tv_need, accent);
-
-            JSONArray next = d.optJSONArray("next");
-            StringBuilder sb = new StringBuilder();
-            if (next != null) {
-                for (int i = 0; i < next.length(); i++) {
-                    if (i > 0) sb.append('\n');
-                    sb.append(next.getString(i));
-                }
-            }
-            setText(v, R.id.tv_next, sb.toString());
-            v.setViewVisibility(R.id.tv_sep2, sb.length() == 0 ? View.GONE : View.VISIBLE);
-            setText(v, R.id.tv_shop, root.optString("shop", ""));
-            setText(v, R.id.tv_updated, root.optString("updated", ""));
-        } catch (Exception e) {
-            v.setTextViewText(R.id.tv_date, "Familie");
-            v.setViewVisibility(R.id.tv_cov, View.GONE);
-            v.setViewVisibility(R.id.tv_sub, View.GONE);
-            v.setViewVisibility(R.id.tv_p2n, View.GONE);
-            v.setViewVisibility(R.id.tv_p2s, View.GONE);
-            v.setViewVisibility(R.id.tv_need, View.GONE);
-            v.setViewVisibility(R.id.tv_sep2, View.GONE);
-            v.setViewVisibility(R.id.tv_next, View.GONE);
-            v.setViewVisibility(R.id.tv_shop, View.GONE);
-            v.setViewVisibility(R.id.tv_updated, View.GONE);
-            v.setViewVisibility(R.id.tv_p1n, View.GONE);
-            v.setViewVisibility(R.id.tv_p1s, View.VISIBLE);
-            v.setTextViewText(R.id.tv_p1s, "Bitte die App öffnen, um das Widget zu füllen.");
-        }
         return v;
+    }
+
+    /** Heutiger Index in den Tagesdaten oder -1. */
+    private static int todayIndex(JSONArray days) {
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).format(new Date());
+        for (int i = 0; i < days.length(); i++) {
+            if (today.equals(days.optJSONObject(i).optString("date"))) return i;
+        }
+        return -1;
+    }
+
+    private static String weekday(String isoDate) {
+        try {
+            Date d = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).parse(isoDate);
+            String s = new SimpleDateFormat("EEE", Locale.GERMANY).format(d);
+            return s.replace(".", "").toUpperCase(Locale.GERMANY);
+        } catch (ParseException e) {
+            return "";
+        }
+    }
+
+    private static String shortDate(String isoDate) {
+        return isoDate.length() >= 10 ? isoDate.substring(8, 10) + "." + isoDate.substring(5, 7) + "." : "";
+    }
+
+    private static void centered(Canvas c, Paint p, String text, float cx, float cy) {
+        c.drawText(text, cx, cy - (p.ascent() + p.descent()) / 2f, p);
+    }
+
+    static Bitmap render(Context ctx, JSONObject root, String style, int w, int h) {
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmp);
+
+        // Farben (Nothing: Weiß auf Schwarz, Rot als einzige Akzentfarbe)
+        int ink = Color.WHITE;
+        int onInk = Color.BLACK;
+        int dim = Color.parseColor("#8E8E93");
+        int accent = Color.parseColor("#D71921");
+        boolean shadow = false;
+        if ("light".equals(style)) {
+            ink = Color.parseColor("#0A0A0A");
+            onInk = Color.WHITE;
+            dim = Color.parseColor("#6B6B70");
+        } else if ("glass".equals(style) || "transparent".equals(style)) {
+            dim = Color.parseColor("#D4D4D9");
+            accent = Color.parseColor("#FF4D55");
+            shadow = true;
+        }
+
+        Typeface font = ResourcesCompat.getFont(ctx, R.font.doto_semibold);
+        if (font == null) font = Typeface.DEFAULT_BOLD;
+
+        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        text.setTypeface(font);
+        text.setTextAlign(Paint.Align.CENTER);
+        Paint shape = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (shadow) {
+            text.setShadowLayer(h * 0.03f, 0, h * 0.01f, 0x99000000);
+            shape.setShadowLayer(h * 0.03f, 0, h * 0.01f, 0x99000000);
+        }
+
+        JSONArray days = root != null ? root.optJSONArray("days") : null;
+        int idx = days != null ? todayIndex(days) : -1;
+        if (idx < 0) {
+            text.setColor(dim);
+            text.setTextSize(h * 0.2f);
+            centered(c, text, "APP ÖFFNEN", w / 2f, h / 2f);
+            return bmp;
+        }
+
+        float pad = h * 0.06f;
+        float cellW = (w - 2 * pad) / 4f;
+        float labelSize = Math.min(h * 0.14f, cellW * 0.26f);
+        float r = Math.min(cellW * 0.36f, h * 0.27f);
+        float cy = h * 0.52f;
+
+        for (int i = 0; i < 4; i++) {
+            float cx = pad + cellW * (i + 0.5f);
+            String label;
+            String foot;
+            int n;
+            String cov = "none";
+            boolean shop = i == 3;
+            if (shop) {
+                label = "EINKAUF";
+                foot = "OFFEN";
+                n = root.optInt("shopN", 0);
+            } else {
+                JSONObject d = days.optJSONObject(Math.min(idx + i, days.length() - 1));
+                // Reicht die Datenmenge nicht mehr, bleibt der letzte bekannte Tag stehen
+                label = i == 0 ? "HEUTE" : weekday(d.optString("date"));
+                foot = shortDate(d.optString("date"));
+                n = d.optInt("n", 0);
+                cov = d.optString("cov", "none");
+            }
+
+            // Beschriftung oben und unten
+            text.setColor(i == 0 ? ink : dim);
+            text.setTextSize(labelSize);
+            centered(c, text, label, cx, h * 0.15f);
+            text.setColor(dim);
+            text.setTextSize(labelSize * 0.8f);
+            centered(c, text, foot, cx, h * 0.90f);
+
+            // Kreis
+            float sw = Math.max(2f, r * 0.14f);
+            if (n <= 0) {
+                shape.setStyle(Paint.Style.STROKE);
+                shape.setStrokeWidth(sw);
+                shape.setColor(dim);
+                c.drawCircle(cx, cy, r - sw / 2f, shape);
+                shape.setStyle(Paint.Style.FILL);
+                c.drawCircle(cx, cy, sw * 0.7f, shape);
+            } else {
+                boolean gap = !shop && "gap".equals(cov);
+                boolean maybe = !shop && "maybe".equals(cov);
+                shape.setStyle(Paint.Style.FILL);
+                shape.setColor(gap ? accent : ink);
+                c.drawCircle(cx, cy, maybe ? r - sw : r, shape);
+                if (maybe) {
+                    shape.setStyle(Paint.Style.STROKE);
+                    shape.setStrokeWidth(sw * 0.8f);
+                    shape.setColor(accent);
+                    c.drawCircle(cx, cy, r - sw * 0.4f, shape);
+                }
+                String num = String.valueOf(n);
+                text.setColor(gap ? Color.WHITE : onInk);
+                text.setTextSize(num.length() == 1 ? r * 1.15f : num.length() == 2 ? r * 0.95f : r * 0.7f);
+                text.clearShadowLayer();
+                centered(c, text, num, cx, cy);
+                if (shadow) text.setShadowLayer(h * 0.03f, 0, h * 0.01f, 0x99000000);
+            }
+        }
+
+        // gepunktete Trennlinie vor der Einkaufsliste
+        shape.setStyle(Paint.Style.FILL);
+        shape.setColor(dim);
+        float sx = pad + cellW * 3f;
+        for (float y = h * 0.22f; y < h * 0.84f; y += h * 0.07f) c.drawCircle(sx, y, Math.max(1.5f, h * 0.012f), shape);
+        return bmp;
     }
 }

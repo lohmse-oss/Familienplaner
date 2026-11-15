@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function Vacation({ year, setYear, goWeek, plan }: Props) {
-  const { cal, items, hd } = useStore();
+  const { cal, items, hd, readOnly } = useStore();
   const t = today();
   const [edit, setEdit] = useState<{ person: PersonId; period: VacationPeriod } | null>(null);
 
@@ -36,6 +36,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
       </div>
 
       {/* Urlaubskonto: genommen + geplant + noch frei */}
+      <div class="vac-cols">
       {PARENTS.map((p) => {
         const b = budget(cal, p, year, t);
         const ent = b.entitlement;
@@ -46,7 +47,7 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
               <strong><Dot p={p} /> {PERSONS[p].name}</strong>
               <label class="ent">
                 Urlaubstage {year}
-                <input type="number" min="0" step="0.5" inputMode="decimal" value={ent ?? ''} placeholder="z. B. 30" onChange={(e) => { const v = (e.target as HTMLInputElement).value; setEntitlement(p, year, v === '' ? undefined : Number(v)); }} />
+                <input type="number" min="0" step="0.5" inputMode="decimal" disabled={readOnly} value={ent ?? ''} placeholder="z. B. 30" onChange={(e) => { const v = (e.target as HTMLInputElement).value; setEntitlement(p, year, v === '' ? undefined : Number(v)); }} />
               </label>
             </header>
             {ent === undefined ? (
@@ -64,14 +65,17 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
                 </div>
               </>
             )}
-            <button class="btn primary wide" onClick={() => plan(undefined, [p])}><Ic n="plus" size={16} /> Urlaub für {PERSONS[p].name} planen</button>
+            {!readOnly && <button class="btn primary wide" onClick={() => plan(undefined, [p])}><Ic n="plus" size={16} /> Urlaub für {PERSONS[p].name} planen</button>}
           </section>
         );
       })}
 
+      </div>
+
       <Ribbon year={year} />
 
       {/* Geplante Zeiträume von–bis */}
+      <div class="vac-cols">
       {reports.map((r) => (
         <section key={r.person} class="card vac">
           <header class="card-head">
@@ -80,18 +84,19 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
           </header>
           {r.periods.length === 0 && <div class="line muted">Noch kein Urlaub geplant.</div>}
           {r.periods.map((p) => (
-            <div key={p.start} class="line link-row" onClick={() => setEdit({ person: r.person, period: p })}>
+            <div key={p.start} class="line link-row" onClick={() => !readOnly && setEdit({ person: r.person, period: p })}>
               <span class="grow">
                 <b>{WD[dow(p.start)]} {fmt(p.start)} – {WD[dow(p.end)]} {fmt(p.end)}</b>
                 {p.titles.length > 0 && <><br /><span class="muted">{p.titles.join(', ')}</span></>}
               </span>
               <span class="days-badge">{fmtDays(p.workdays)} {p.workdays === 1 ? 'Tag' : 'Tage'}</span>
-              <Ic n="edit" size={15} class="muted" />
+              {!readOnly && <Ic n="edit" size={15} class="muted" />}
             </div>
           ))}
           <p class="hint">Gezählt werden nur Arbeitstage: ohne Wochenenden und Feiertage; 24.12. und 31.12. zählen als halber Tag.</p>
         </section>
       ))}
+      </div>
 
       {/* Wo Urlaub gebraucht wird */}
       <div>
@@ -99,9 +104,9 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
         <section class="card">
           {gaps.length === 0 && <div class="empty"><Ic n="check" size={24} /><br />Für {year} ist jeder Betreuungstag abgedeckt.</div>}
           {gaps.map((g) => (
-            <div key={g.start} class="line link-row" onClick={() => plan([...range(g.start, g.end)].filter((d) => !cal.isFree(d)))}>
+            <div key={g.start} class="line link-row" onClick={() => !readOnly && plan([...range(g.start, g.end)].filter((d) => !cal.isFree(d)))}>
               <span class="grow"><b>{fmtRange(g.start, g.end)}</b> · {g.who} · {g.why}<br /><span class="muted">{g.days} Arbeitstage offen</span></span>
-              <span class="btn small">planen</span>
+              {!readOnly && <span class="btn small">planen</span>}
             </div>
           ))}
         </section>
@@ -119,14 +124,14 @@ export function Vacation({ year, setYear, goWeek, plan }: Props) {
               <span>Urlaub nehmen: <b>{fmtRange(b.gapStart, b.gapEnd)}</b></span>
               {b.idaFree > 0 && <span class="muted">Ida hat {b.idaFree === b.days ? 'an diesen Tagen' : `an ${b.idaFree} von ${b.days} Tagen`} ohnehin schulfrei.</span>}
             </div>
-            <div class="actions">
+            {!readOnly && <div class="actions">
               {PARENTS.map((p) =>
                 booked(p, b.gapStart, b.gapEnd) ? <span key={p} class="booked"><Dot p={p} /> <Ic n="check" size={14} /> eingetragen</span> : (
                   <button key={p} class="btn" onClick={() => book([p], b.gapStart, b.gapEnd)}><Dot p={p} /> {PERSONS[p].name}</button>
                 ),
               )}
               {!PARENTS.every((p) => booked(p, b.gapStart, b.gapEnd)) && <button class="btn" onClick={() => book([...PARENTS], b.gapStart, b.gapEnd)}>Beide</button>}
-            </div>
+            </div>}
           </section>
         ))}
         {bridges.length === 0 && <div class="line muted">Keine Brückentage gefunden.</div>}

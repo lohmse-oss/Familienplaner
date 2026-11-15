@@ -4,6 +4,7 @@ import { buildCalendar, type Calendar } from './core/calendar';
 import { contiguousRuns } from './core/dates';
 import { planPresence, type PresenceOptions } from './core/presence';
 import type { PersonFilter } from './core/filter';
+import type { CalView } from './nav';
 import { scheduleNotifications, showNow } from './notifications';
 import { nativeConfigure, nativeMarkSeen, nativeSeen } from './native';
 import { VERB_TEXT, type Verb } from './core/describe';
@@ -15,8 +16,10 @@ export interface Settings {
   widgetStyle: WidgetStyle;
   notifyPartner: boolean; // Hinweis, wenn der Partner etwas einträgt
   theme: 'system' | 'light' | 'dark';
-  filter: PersonFilter; // Personenfilter für Woche/Jahr/Aufgaben
-  weekView: 'matrix' | 'day';
+  filter: PersonFilter; // Personenfilter für Kalender und Aufgaben
+  calView: CalView; // zuletzt genutzte Kalenderansicht
+  timeLayout: 'rows' | 'cols'; // Verlauf: Tage als Zeilen oder als Spalten
+  role: 'write' | 'read'; // vom Server: Vollzugriff oder nur Lesen
   me: PersonId; // wer nutzt dieses Handy
   server: string; // z. B. https://familienplaner.<konto>.workers.dev
   code: string; // Familiencode
@@ -53,7 +56,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', weekView: 'matrix', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', timeLayout: 'rows', role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {
@@ -63,6 +66,8 @@ function applyLook() {
   else root.dataset.theme = settings.theme;
   root.style.setProperty('--head', PERSONS[settings.me].color);
 }
+// ältere Version: weekView 'day' → calView 'day'
+if ((settings as unknown as { weekView?: string }).weekView === 'day' && settings.calView === 'week') settings.calView = 'day';
 applyLook();
 const configured = () => !!settings.server && !!settings.code;
 let syncState: SyncState = { status: configured() ? 'idle' : 'off' };
@@ -79,7 +84,7 @@ export function useStore() {
     f(); // Änderungen nachholen, die zwischen erstem Rendern und Abonnieren eintrafen
     return () => void listeners.delete(f);
   }, []);
-  return { items, settings, hd, sync: syncState, cal: getCalendar(), undo: undoInfo ? { id: undoInfo.id, label: undoInfo.label } : null, notice };
+  return { items, settings, hd, sync: syncState, cal: getCalendar(), undo: undoInfo ? { id: undoInfo.id, label: undoInfo.label } : null, notice, readOnly: settings.role === 'read' };
 }
 
 export function getCalendar(): Calendar {
@@ -112,6 +117,13 @@ export interface Notice {
 let notice: Notice | null = null;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 type Remote = Item & { _rev?: number; _text?: string; _verb?: Verb };
+
+function flashReadOnly() {
+  notice = { id: Date.now(), title: 'Nur Lesezugriff', lines: ['Mit diesem Zugang kann nichts geändert werden.'] };
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(dismissNotice, 4000);
+  emit();
+}
 
 export function dismissNotice() {
   notice = null;
@@ -185,6 +197,10 @@ export const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function saveItem(it: Omit<Item, 'updated' | 'by'> & Partial<Pick<Item, 'updated' | 'by'>>): Item {
+  if (settings.role === 'read') {
+    flashReadOnly();
+    return { ...it, updated: 0 } as Item;
+  }
   const cur = items.find((i) => i.id === it.id);
   // created: erstes Speichern (neu); ältere Einträge ohne Zeitpunkt gelten als „schon länger vorhanden“
   const full: Item = { ...it, created: it.created ?? cur?.created ?? (cur ? 1 : Date.now()), updated: Date.now(), by: settings.me };
@@ -297,11 +313,22 @@ export async function sync(): Promise<void> {
   try {
     const base = settings.server.replace(/\/+$/, '');
     const headers = { 'content-type': 'application/json', 'x-family-code': settings.code };
-    const push = items.filter((i) => dirty.has(i.id));
+    const push = settings.role === 'read' ? [] : items.filter((i) => dirty.has(i.id));
     const res = await fetch(`${base}/api/sync`, { method: 'POST', headers, body: JSON.stringify({ since: rev, items: push }) });
     if (res.status === 401) throw new Error('Familiencode falsch');
+    if (res.status === 403) {
+      // Server kennt uns nur mit Lesezugriff: eigene Änderungen verwerfen
+      settings = { ...settings, role: 'read' };
+      write(LS.settings, settings);
+      dirty = new Set();
+      throw new Error('Nur Lesezugriff');
+    }
     if (!res.ok) throw new Error(`Server ${res.status}`);
-    const data = (await res.json()) as { rev: number; items: Remote[] };
+    const data = (await res.json()) as { rev: number; role?: 'write' | 'read'; items: Remote[] };
+    if (data.role && data.role !== settings.role) {
+      settings = { ...settings, role: data.role, ...(data.role === 'read' ? { notifyPartner: false } : {}) };
+      write(LS.settings, settings);
+    }
     const since = rev;
 
     const sent = new Set(push.map((i) => i.id));

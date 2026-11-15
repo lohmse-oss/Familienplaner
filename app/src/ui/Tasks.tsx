@@ -7,7 +7,7 @@ import { PersonFilterBar, PersonTag } from './common';
 import { Ic } from './icons';
 
 export function Tasks({ edit, add }: { edit: (it: Item) => void; add: () => void }) {
-  const { cal, settings } = useStore();
+  const { cal, settings, readOnly } = useStore();
   const f = settings.filter;
   const t0 = today();
   const tasks = cal.items.filter((i) => i.kind === 'task' && relevant(i, f));
@@ -21,7 +21,7 @@ export function Tasks({ edit, add }: { edit: (it: Item) => void; add: () => void
 
   const Row = ({ t }: { t: Item }) => (
     <div class={`line task-row ${t.done ? 'done' : ''}`}>
-      <button class="check-btn" onClick={() => toggle(t)} aria-label={t.done ? 'wieder offen' : 'erledigt'}>{t.done && <Ic n="check" size={16} sw={3} />}</button>
+      <button class="check-btn" disabled={readOnly} onClick={() => toggle(t)} aria-label={t.done ? 'wieder offen' : 'erledigt'}>{t.done && <Ic n="check" size={16} sw={3} />}</button>
       <span class="grow" onClick={() => edit(t)}>{t.title}</span>
       {t.owner && <PersonTag p={t.owner} />}
       <span class={`due ${!t.done && t.start < t0 ? 'late' : ''}`}>{fmtShort(t.start)}</span>
@@ -29,14 +29,14 @@ export function Tasks({ edit, add }: { edit: (it: Item) => void; add: () => void
   );
 
   return (
-    <div class="page">
+    <div class="page narrow">
       <PersonFilterBar />
       <h3 class="section">Aufgaben</h3>
       <section class="card">
         {open.length === 0 && (
           <div class="empty">
             <Ic n="check" size={24} /><br />Keine offenen Aufgaben.
-            <div><button class="btn small" onClick={add}><Ic n="plus" size={14} /> Aufgabe hinzufügen</button></div>
+            {!readOnly && <div><button class="btn small" onClick={add}><Ic n="plus" size={14} /> Aufgabe hinzufügen</button></div>}
           </div>
         )}
         {open.map((t) => <Row key={t.id} t={t} />)}

@@ -5,7 +5,7 @@ import { gapRuns } from '../core/gaps';
 import { budget, vacationReport } from '../core/report';
 import { ALL, CHILDREN, PARENTS, PERSONS, type Mode, type PersonId } from '../core/types';
 import { applyToDays, setPresenceRange, useStore, withUndo } from '../store';
-import { Chips, PersonFilterBar } from './common';
+import { Chips } from './common';
 import { haptic } from '../haptics';
 import { Ic, type IconName } from './icons';
 import { MonthGrid } from './MonthGrid';
@@ -49,7 +49,7 @@ interface Editing {
  * Bestehenden Urlaub antippen = ändern oder löschen. Langes Drücken = Tagesdetails.
  */
 export function Year({ year, setYear, openDay, preset }: { year: number; setYear: (y: number) => void; openDay: (d: string) => void; preset?: PlanPreset }) {
-  const { cal, settings, hd } = useStore();
+  const { cal, settings, hd, readOnly } = useStore();
   const t = today();
 
   const [selMode, setSelMode] = useState<'range' | 'single'>('range');
@@ -136,6 +136,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
   };
 
   const tap = (d: string) => {
+    if (readOnly) return openDay(d);
     if (selMode === 'single') {
       setMulti((s) => {
         const n = new Set(s);
@@ -212,13 +213,12 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <button class="icon-btn" onClick={() => { setYear(year + 1); reset(); }} aria-label="Nächstes Jahr"><Ic n="right" size={22} /></button>
       </div>
 
-      <PersonFilterBar />
-      <div class="plan-hint">
+      {!readOnly && <div class="plan-hint">
         <span>{hint}</span>
         <Chips<'range' | 'single'> options={[{ value: 'range', label: 'Zeitraum' }, { value: 'single', label: 'Einzelne Tage' }]} value={[selMode]} onChange={(v) => { setSelMode(v[0]); reset(); }} />
-      </div>
+      </div>}
 
-      {(ferien.length > 0 || bridges.length > 0) && (
+      {!readOnly && (ferien.length > 0 || bridges.length > 0) && (
         <div class="chips scroll quick-pick">
           {ferien.map((h) => <button key={h.name + h.start} class="chip" onClick={() => pickRange(h.start, h.end)}><Ic n="school" size={14} /> {h.name} {fmtShort(h.start)}–{fmtShort(h.end)}</button>)}
           {[...bridges].sort((a, b) => b.total / b.cost - a.total / a.cost).slice(0, 8).map((b) => (
@@ -236,9 +236,9 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         </header>
         {gapsOpen && gaps.length === 0 && <div class="line">Für {year} ist jeder Betreuungstag abgedeckt.</div>}
         {gapsOpen && gaps.map((r) => (
-          <div key={r.start} class="line link-row" onClick={() => pickRange(r.start, r.end)}>
+          <div key={r.start} class="line link-row" onClick={() => !readOnly && pickRange(r.start, r.end)}>
             <span class="grow"><b>{fmtRange(r.start, r.end)}</b> · {r.who} · {r.why}</span>
-            <span class="btn small">markieren</span>
+            {!readOnly && <span class="btn small">markieren</span>}
           </div>
         ))}
       </section>

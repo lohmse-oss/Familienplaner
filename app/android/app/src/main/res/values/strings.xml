@@ -4,5 +4,5 @@
     <string name="title_activity_main">Familienplaner</string>
     <string name="package_name">de.familie.planer</string>
     <string name="custom_url_scheme">de.familie.planer</string>
-    <string name="widget_description">Heute: Wer ist wo, Betreuung, nächste Termine und Einkaufsliste</string>
+    <string name="widget_description">Nächste drei Tage und Einkaufsliste als Kreise mit Zahlen</string>
 </resources>

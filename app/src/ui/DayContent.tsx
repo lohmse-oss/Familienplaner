@@ -18,7 +18,7 @@ interface Props {
 
 /** Alle Details eines Tages: Status der Eltern, Betreuung, Einträge – im Tagesblatt und in der Tagesansicht der Woche. */
 export function DayContent({ date, edit, add, plan }: Props) {
-  const { cal } = useStore();
+  const { cal, readOnly } = useStore();
   const d = cal.day(date);
   const items = cal.items.filter((i) => i.kind !== 'config' && i.kind !== 'shop' && i.kind !== 'birthday' && i.start <= date && i.end >= date);
 
@@ -32,7 +32,10 @@ export function DayContent({ date, edit, add, plan }: Props) {
         <Pill coverage={d.coverage} />
       </div>
 
-      {d.workday && PARENTS.map((p) => (
+      {d.workday && readOnly && PARENTS.map((p) => (
+        <div key={p} class="line"><Dot p={p} /><span class="grow"><b>{PERSONS[p].name}</b></span><StatusIc s={d.parents[p].status} size={16} /> {STATUS_LABEL[d.parents[p].status]}</div>
+      ))}
+      {d.workday && !readOnly && PARENTS.map((p) => (
         <div key={p} class="status-row">
           <span class="who-name"><Dot p={p} /> {PERSONS[p].name}</span>
           <Chips<Mode | 'office'>
@@ -64,12 +67,12 @@ export function DayContent({ date, edit, add, plan }: Props) {
       ))}
       {d.warnings.map((w) => <div key={w} class="line warn"><Ic n="warn" size={16} /> {w}</div>)}
 
-      <div class="actions wrap">
+      {!readOnly && <div class="actions wrap">
         <button class="btn primary" onClick={() => plan(date)}><Ic n="year" size={16} /> Mehrere Tage …</button>
         {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
           <button key={k.kind} class="btn" onClick={() => add(k.kind, date)}><Ic n={k.icon} size={16} /> {k.label.split(' / ')[0].split(' (')[0]}</button>
         ))}
-      </div>
+      </div>}
     </>
   );
 }

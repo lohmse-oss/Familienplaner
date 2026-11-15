@@ -3,7 +3,8 @@ import type { Item } from '../../app/src/core/types';
 
 export interface Env {
   DB: D1Database;
-  FAMILY_CODE: string;
+  FAMILY_CODE: string; // Vollzugriff (Sebastian, Betty)
+  READ_CODE?: string; // nur Lesezugriff (z. B. Ida)
 }
 
 const CORS = {
@@ -19,6 +20,13 @@ function safeEqual(a: string, b: string): boolean {
   let r = 0;
   for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return r === 0;
+}
+
+type Role = 'write' | 'read';
+function roleOf(code: string, env: Env): Role | null {
+  if (env.FAMILY_CODE && safeEqual(code, env.FAMILY_CODE)) return 'write';
+  if (env.READ_CODE && safeEqual(code, env.READ_CODE)) return 'read';
+  return null;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -43,7 +51,7 @@ function valid(i: unknown): i is Incoming {
 }
 
 /** Abgleich: Client schickt geänderte Einträge + letzte bekannte Revision, bekommt alles Neuere zurück. */
-async function sync(req: Request, env: Env): Promise<Response> {
+async function sync(req: Request, env: Env, role: Role): Promise<Response> {
   let body: { since?: number; items?: unknown[] };
   try {
     body = await req.json();
@@ -53,6 +61,7 @@ async function sync(req: Request, env: Env): Promise<Response> {
   const since = Number(body.since) || 0;
   const incoming = Array.isArray(body.items) ? body.items : [];
   if (incoming.length > 1000) return json({ error: 'zu viele Einträge' }, 413);
+  if (role === 'read' && incoming.length) return json({ error: 'Nur Lesezugriff', role }, 403);
 
   if (incoming.length) {
     const max = (await env.DB.prepare('SELECT COALESCE(MAX(rev),0) AS m FROM items').first<{ m: number }>())?.m ?? 0;
@@ -76,7 +85,7 @@ async function sync(req: Request, env: Env): Promise<Response> {
   const top = (await env.DB.prepare('SELECT COALESCE(MAX(rev),0) AS m FROM items').first<{ m: number }>())?.m ?? 0;
   // _rev: Server-Revision, _text/_verb: lesbare Beschreibung der Änderung (für Hinweise „Betty hat … eingetragen“)
   const items = annotateChanges((rows.results ?? []).map((r) => ({ ...(JSON.parse(r.data) as Item), _rev: r.rev })));
-  return json({ rev: Math.max(top, since), items });
+  return json({ rev: Math.max(top, since), role, items });
 }
 
 /* ---------- Feiertage & Schulferien Sachsen (OpenHolidays API) ---------- */
@@ -128,10 +137,10 @@ export async function handle(req: Request, env: Env, f: typeof fetch = fetch): P
   const url = new URL(req.url);
   if (url.pathname === '/' || url.pathname === '/health') return json({ ok: true, app: 'familienplaner' });
 
-  const code = req.headers.get('x-family-code') ?? '';
-  if (!env.FAMILY_CODE || !safeEqual(code, env.FAMILY_CODE)) return json({ error: 'Familiencode falsch' }, 401);
+  const role = roleOf(req.headers.get('x-family-code') ?? '', env);
+  if (!role) return json({ error: 'Familiencode falsch' }, 401);
 
-  if (url.pathname === '/api/sync' && req.method === 'POST') return sync(req, env);
+  if (url.pathname === '/api/sync' && req.method === 'POST') return sync(req, env, role);
   if (url.pathname === '/api/holidays' && req.method === 'GET') return holidays(env, f);
   return json({ error: 'nicht gefunden' }, 404);
 }

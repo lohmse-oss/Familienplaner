@@ -285,10 +285,10 @@ describe('Personenfilter', () => {
 });
 
 describe('Widget-Daten', () => {
-  it('liefert 14 Tage mit Status, Betreuung, nächsten Terminen und Einkauf', () => {
+  it('liefert pro Tag die Zahl der Einträge, die Ampel und die offenen Einkaufsartikel', () => {
     const cal = buildCalendar(
       [
-        item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13' }),
+        item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13', end: '2027-07-14' }),
         item({ kind: 'presence', mode: 'homeoffice', persons: ['betty'], start: '2027-07-12' }),
         item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt', time: '15:30', persons: ['irma'], start: '2027-07-14' }),
         item({ kind: 'event', sub: 'elternabend', title: 'Elternabend', time: '18:00', persons: ['irma'], owner: 'betty', start: '2027-07-12' }),
@@ -298,20 +298,15 @@ describe('Widget-Daten', () => {
       ],
       data,
     );
-    const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5));
+    const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5), 'glass');
     expect(w.days).toHaveLength(14);
-    expect(w.updated).toBe('Stand 08:05');
-    expect(w.shop).toBe('Einkauf (2): Milch, Brot');
-    const mo = w.days[0];
-    expect(mo).toMatchObject({ date: '2027-07-12', cov: 'maybe', covText: 'nur per Homeoffice', need: 'Ida: Sommerferien' });
-    expect(mo.parents).toEqual([['Sebastian', 'Büro'], ['Betty', 'Homeoffice']]);
-    expect(mo.label).toBe('Mo 12.07.');
-    expect(mo.sub).toBe('Sommerferien');
-    expect(w.style).toBe('dark');
-    expect(mo.next).toEqual(['18:00 Elternabend (Betty)', 'Mi 15:30 Kinderarzt – wer kümmert sich?']);
-    expect(w.days[1].parents[0]).toEqual(['Sebastian', 'Dienstreise']);
-    expect(w.days[1].next[0]).toBe('Mi 15:30 Kinderarzt – wer kümmert sich?'); // 13.7.: Termin morgen → mit Wochentag
-    expect(w.days[2].next[0]).toBe('15:30 Kinderarzt – wer kümmert sich?'); // am Tag selbst ohne Wochentag
+    expect(w).toMatchObject({ style: 'glass', updated: 'Stand 08:05', shopN: 2 });
+    expect(w.days.slice(0, 3)).toEqual([
+      { date: '2027-07-12', n: 2, cov: 'maybe' }, // Elternabend + Betreuungsbedarf Ida (Sommerferien)
+      { date: '2027-07-13', n: 2, cov: 'gap' }, // Dienstreise Sebastian + Betreuungsbedarf
+      { date: '2027-07-14', n: 3, cov: 'gap' }, // Dienstreise + Kinderarzt + Betreuungsbedarf
+    ]);
+    expect(w.days[5]).toMatchObject({ date: '2027-07-17', n: 0, cov: 'none' }); // Wochenende, nichts los
   });
 });
 

@@ -37,19 +37,38 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 * **Brückentage** werden berechnet: Zwischen zwei freien Blöcken (Wochenende/Feiertag) liegen 1–4 Arbeitstage und mindestens ein Block
   enthält einen Feiertag. Anzeige „x Urlaubstage → y Tage frei“, Hinweis wenn Ida ohnehin schulfrei hat, Eintragen mit einem Tap.
 
+## Menüführung (geclustert)
+Fünf Tabs, in der Mitte der runde **Start-Knopf** (auf Tablets eine Seitenleiste statt der unteren Leiste):
+**Kalender** · **Urlaub** · **Start** · **Einkauf** · **Mehr** (Aufgaben & Geburtstage, Einstellungen, Zugriff/Abgleich).
+Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Woche · Tag · Verlauf · Jahr**.
+Einstellungen sind in aufklappbare Gruppen gegliedert (Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien).
+
 ## Ansichten
-Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnungen, die nächsten Termine und Kacheln zu allen Bereichen.
-* **Wochenplan**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
+Die Startseite zeigt „Heute“, Warnungen, die nächsten Termine, „Neu vom Partner“ und vier Kacheln (Kalender, Urlaub, Einkauf, Aufgaben).
+* **Woche**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
   für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
-* **Jahresplaner**: Kalender des ganzen Jahres mit Zeitraum-Auswahl wie bei Reisebuchungen. Ersten Tag antippen, letzten Tag antippen → Band mit Start-/Endkreis,
+* **Tag**: Tagesstreifen mit Ampel und Terminzahl, darunter alle Details des gewählten Tages.
+* **Verlauf**: **fortlaufende Endlosliste ohne Wochenumbruch**, die vier Personen nebeneinander – wahlweise *Tage als Zeilen* (Personen als Spalten, kopfzeile bleibt stehen)
+  oder *Tage als Spalten* (Personen als Zeilen, horizontal scrollbar, Namen bleiben stehen). Pro Zelle: Status bzw. Betreuungsbedarf, Termine, Aufgaben; Datumsspalte mit
+  Feiertag, Ferien, KW, Ampel, Infos und Geburtstagen. Lädt beim Weiterscrollen automatisch weitere Tage nach; „Heute“ und Datumssprung. Auf dem Handy kompakt
+  (Symbole und Zähler), auf dem Tablet mit Text.
+* **Jahr** (Jahresplaner): Kalender des ganzen Jahres mit Zeitraum-Auswahl wie bei Reisebuchungen. Ersten Tag antippen, letzten Tag antippen → Band mit Start-/Endkreis,
   unten wählen (wer, was) und eintragen. Anzeige: Ferien, Feiertage, Brückentage, Urlaub als durchgehende Streifen je Person (Dienstreise blass), Betreuungs-Ampel.
   Bestehenden Urlaub antippen → ändern oder löschen. Langes Drücken → Tagesdetails. Schnellwahl für Schulferien und Brückentage; offene Betreuungszeiträume lassen sich
   direkt markieren. Zeigt vorab die Wirkung aufs Urlaubskonto („Rest 13 → 8“); jede Änderung ist per **Rückgängig** umkehrbar. Auch für Homeoffice, Dienstreise,
   Büro (zurücksetzen), Schließtage und Betreuung durch Dritte; wahlweise „Einzelne Tage“ statt Zeitraum.
-* **Urlaubsverwaltung**: je Elternteil Urlaubskonto (genommen / geplant / **noch frei**), Jahresband, Zeiträume von–bis mit Urlaubstagen (bearbeiten/löschen),
+* **Urlaub** (Urlaubsverwaltung): je Elternteil Urlaubskonto (genommen / geplant / **noch frei**), Jahresband, Zeiträume von–bis mit Urlaubstagen (bearbeiten/löschen),
   Betreuungslücken mit „planen“, Brückentage mit Ein-Tap-Eintragen.
-* **Einkaufsliste**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
-* **Aufgaben & Geburtstage**, **Einstellungen** (Sync, Benachrichtigungen).
+* **Einkauf**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
+* **Aufgaben & Geburtstage**, **Einstellungen**.
+
+## Tablets (responsiv)
+Ab ca. 640 px Breite werden Fenster zentrierte Dialoge statt Bottom-Sheets; ab ca. 900 px gibt es eine **Seitenleiste** statt der unteren Tab-Leiste und Mehrspalten-Layouts:
+Startseite (Heute | Kacheln), Woche (Matrix | Agenda), Jahr (3–4 Monate nebeneinander), Urlaub (beide Eltern nebeneinander), Verlauf mit Klartext in allen Zellen.
+
+## Lesezugriff (z. B. Ida)
+Zwei Codes: der **Familiencode** (Sebastian, Betty: lesen und bearbeiten) und ein **Lese-Code** (nur lesen). Der Server erzwingt das (`READ_CODE`; Schreiben → 403). Die App erkennt die Rolle
+beim Abgleich, blendet alle Bearbeiten-Funktionen aus (Kopfzeile „nur Lesen“) und sperrt Schreibzugriffe lokal. Das Handy wird als „Ida“ eingerichtet (Farbe, kein Partner-Hinweis).
 
 ## Bedienung und Darstellung
 * **Icons** (Lucide) statt Emojis, einheitliche Farben je Person; **Dunkelmodus** per Schalter oder wie das Handy; die **Kopfzeile trägt die Farbe der Person**, der das Handy gehört.
@@ -58,12 +77,11 @@ Die Startseite (runder Home-Button unten in der Mitte) zeigt „Heute“, Warnun
 * **Bottom-Sheets** mit Griff: nach unten wischen schließt; die Android-Zurück-Taste schließt das oberste Fenster, sonst Startseite, dort App beenden.
 * **Rückgängig** nach Mehrfach-Eingaben, **Vibrationsfeedback** beim Abhaken, weiche Übergänge, Hinweise bei leeren Listen.
 
-## Homescreen-Widget „Heute“ (Nothing-Stil)
-Natives Android-Widget (4×2, anpassbar) in der Optik von Nothing OS: Punktmatrix-Schrift (Doto, SIL OFL), Schwarz/Weiß, rote Warnfarbe, gepunktete Trenner.
-Inhalt: Datum und Feiertag/Ferien, Betreuungs-Ampel, Status von Sebastian und Betty, Betreuungsbedarf, nächste Termine (mit Ort und „wer kümmert sich?“) und
-Einkaufsliste. **Hintergrund wählbar:** Transparent, Glas (halbtransparent), Dunkel, Hell (Einstellungen → Widget). Tippen öffnet die App.
-Die App legt die Daten für die nächsten 14 Tage ab (bei jeder Änderung und jedem Abgleich); das Widget wählt daraus den heutigen Tag und aktualisiert sich alle
-30 Minuten auch ohne App-Start. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.
+## Homescreen-Widget „Heute“ (Nothing-Stil, nur Grafik)
+Natives Android-Widget (4×1, anpassbar), gezeichnet in der Optik von Nothing OS (Punktmatrix-Schrift Doto, SIL OFL): **drei rollierende Tage** (Heute, +1, +2) und die **Einkaufsliste**
+als Kreise mit Zahlen. *Leerer Ring* = nichts los · *gefüllter Kreis* = es stehen Einträge an (Zahl = Anzahl: Termine, Aufgaben, Geburtstage, Infos, Betreuungsbedarf, Urlaub/Dienstreise) ·
+*roter Kreis* = Betreuung ungeklärt · *Kreis mit rotem Rand* = Betreuung nur per Homeoffice. **Hintergrund wählbar:** Transparent, Glas, Dunkel, Hell (Einstellungen → Darstellung & Widget).
+Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start.
 
 ## Hinweise, wenn der Partner etwas einträgt
 * Jeder Eintrag trägt, wer ihn zuletzt gespeichert hat. Der Server beschreibt Änderungen lesbar („Sebastian hat eingetragen: Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln“).
