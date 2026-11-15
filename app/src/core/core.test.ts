@@ -307,7 +307,7 @@ describe('Widget-Daten', () => {
     expect(w.days).toHaveLength(14);
     expect(w).toMatchObject({ style: 'glass', updated: 'Stand 08:05', shopN: 2, taskN: 3, taskToday: 1, taskOverdue: 1 });
     expect(w.days.slice(0, 3)).toEqual([
-      { date: '2027-07-12', n: 2, cov: 'maybe' }, // Elternabend + Betreuungsbedarf Ida (Sommerferien)
+      { date: '2027-07-12', n: 3, cov: 'maybe' }, // Elternabend + Aufgabe fällig + Betreuungsbedarf Ida (Sommerferien)
       { date: '2027-07-13', n: 2, cov: 'gap' }, // Dienstreise Sebastian + Betreuungsbedarf
       { date: '2027-07-14', n: 3, cov: 'gap' }, // Dienstreise + Kinderarzt + Betreuungsbedarf
     ]);
