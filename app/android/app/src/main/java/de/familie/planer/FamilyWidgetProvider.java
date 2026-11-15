@@ -26,7 +26,7 @@ import org.json.JSONObject;
  * drei rollierende Tage (heute, morgen, übermorgen), die Einkaufsliste und die aktiven Aufgaben als Kreise mit Zahlen.
  *   leerer Ring      = nichts los
  *   gefüllter Kreis  = es stehen Einträge an (Zahl = Anzahl)
- *   roter Kreis      = Betreuung ungeklärt (bzw. überfällige Aufgaben)
+ *   roter Kreis      = Betreuung ungeklärt (bzw. Aufgaben heute fällig oder überfällig)
  * Die App liefert Daten für die nächsten Tage; das Widget wählt daraus den heutigen Tag und aktualisiert sich
  * dadurch auch ohne App-Start, solange die Daten reichen.
  */
@@ -190,7 +190,12 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
                 label = "AUFGABEN";
                 foot = "AKTIV";
                 n = root.optInt("taskN", 0);
-                alert = root.optInt("taskOverdue", 0) > 0; // überfällige Aufgaben: roter Kreis
+                // Rot, sobald heute etwas fällig ist oder schon überfällig ist
+                int overdue = root.optInt("taskOverdue", 0);
+                int dueToday = root.optInt("taskToday", 0);
+                alert = overdue > 0 || dueToday > 0;
+                if (overdue > 0) foot = "ÜBERFÄLLIG";
+                else if (dueToday > 0) foot = "HEUTE FÄLLIG";
             } else {
                 JSONObject d = days.optJSONObject(Math.min(idx + i, days.length() - 1));
                 // Reicht die Datenmenge nicht mehr, bleibt der letzte bekannte Tag stehen

@@ -88,7 +88,7 @@ beim Abgleich, blendet alle Bearbeiten-Funktionen aus (Kopfzeile „nur Lesen“
 ## Homescreen-Widget „Heute“ (Nothing-Stil, nur Grafik)
 Natives Android-Widget (4×1, anpassbar), gezeichnet in der Optik von Nothing OS (Punktmatrix-Schrift Doto, SIL OFL): **drei rollierende Tage** (Heute, +1, +2) und die **Einkaufsliste**
 als Kreise mit Zahlen. *Leerer Ring* = nichts los · *gefüllter Kreis* = es stehen Einträge an (Zahl = Anzahl: Termine, Aufgaben, Geburtstage, Infos, Betreuungsbedarf, Urlaub/Dienstreise) ·
-*roter Kreis* = Betreuung ungeklärt · *Kreis mit rotem Rand* = Betreuung nur per Homeoffice. **Hintergrund wählbar:** Transparent, Glas, Dunkel, Hell (Einstellungen → Darstellung & Widget).
+*roter Kreis* = Betreuung ungeklärt (beim Aufgaben-Kreis: heute fällig oder überfällig) · *Kreis mit rotem Rand* = Betreuung nur per Homeoffice. **Hintergrund wählbar:** Transparent, Glas, Dunkel, Hell (Einstellungen → Darstellung & Widget).
 Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start.
 
 ## Hinweise, wenn der Partner etwas einträgt
