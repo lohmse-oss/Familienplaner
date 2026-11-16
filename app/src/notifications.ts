@@ -31,3 +31,12 @@ export async function scheduleNotifications(cal: Calendar, enabled: boolean): Pr
   });
   return notices.length;
 }
+
+/** Sofort eine Meldung anzeigen (z. B. Änderung des Partners, solange die App im Hintergrund läuft). */
+export async function showNow(title: string, body: string): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  const perm = await LocalNotifications.checkPermissions();
+  if (perm.display !== 'granted') return;
+  await LocalNotifications.schedule({ notifications: [{ id: 900000 + Math.floor(Math.random() * 90000), title, body, schedule: { at: new Date(Date.now() + 800) } }] });
+}

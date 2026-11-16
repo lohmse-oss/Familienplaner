@@ -1,14 +1,11 @@
 import type { ComponentChildren } from 'preact';
-import { PERSONS, type PersonId } from '../core/types';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Coverage, ParentStatus } from '../core/calendar';
+import type { PersonFilter } from '../core/filter';
+import { ALL, PERSONS, type PersonId } from '../core/types';
+import { updateSettings, useStore } from '../store';
+import { Ic } from './icons';
 
-export const STATUS_ICON: Record<ParentStatus, string> = {
-  free: '·',
-  office: '🏢',
-  homeoffice: '🏠',
-  vacation: '🌴',
-  trip: '✈️',
-};
 export const STATUS_LABEL: Record<ParentStatus, string> = {
   free: 'frei',
   office: 'Büro',
@@ -37,7 +34,7 @@ export function Pill({ coverage }: { coverage: Coverage }) {
 }
 
 export function Chips<T extends string>(props: {
-  options: { value: T; label: string; color?: string }[];
+  options: { value: T; label: ComponentChildren; color?: string }[];
   value: T[];
   onChange: (v: T[]) => void;
   multi?: boolean;
@@ -63,15 +60,85 @@ export function Chips<T extends string>(props: {
   );
 }
 
-export function Sheet(props: { title: string; onClose: () => void; children: ComponentChildren; tall?: boolean; footer?: ComponentChildren }) {
+/** Personenfilter für Woche, Jahr und Aufgaben (gilt app-weit, bleibt gespeichert). */
+export function PersonFilterBar() {
+  const { settings } = useStore();
+  const opts: { v: PersonFilter; label: string }[] = [{ v: 'all', label: 'Alle' }, ...ALL.map((p) => ({ v: p as PersonFilter, label: PERSONS[p].name }))];
   return (
-    <div class="backdrop" onClick={props.onClose}>
-      <div class={`sheet ${props.tall ? 'tall' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div class="sheet-head">
-          <h2>{props.title}</h2>
-          <button class="icon-btn" onClick={props.onClose} aria-label="Schließen">
-            ✕
+    <div class="pfilter" role="group" aria-label="Personenfilter">
+      {opts.map((o) => {
+        const on = settings.filter === o.v;
+        const color = o.v === 'all' ? 'var(--accent)' : PERSONS[o.v].color;
+        return (
+          <button key={o.v} class={`pf ${on ? 'on' : ''}`} style={on ? { background: color, borderColor: color, color: '#fff' } : undefined} onClick={() => updateSettings({ filter: on && o.v !== 'all' ? 'all' : o.v })}>
+            {o.v !== 'all' && !on && <span class="dot" style={{ background: color }} />}
+            {o.label}
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Offene Fenster, damit die Android-Zurück-Taste das oberste schließt. */
+export const sheetStack: (() => void)[] = [];
+
+/**
+ * Bottom-Sheet: Griff, Wischen nach unten schließt, weiches Ein-/Ausblenden.
+ * Gezogen wird am Kopfbereich (Griff + Titel), damit der Inhalt normal scrollbar bleibt.
+ */
+export function Sheet(props: { title: string; onClose: () => void; children: ComponentChildren; tall?: boolean; footer?: ComponentChildren }) {
+  const [dy, setDy] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const start = useRef<{ y: number; t: number } | null>(null);
+  const onClose = useRef(props.onClose);
+  onClose.current = props.onClose;
+  const close = useRef(() => {
+    setClosing(true);
+    setTimeout(() => onClose.current(), 170);
+  }).current;
+
+  useEffect(() => {
+    sheetStack.push(close);
+    return () => {
+      const i = sheetStack.indexOf(close);
+      if (i >= 0) sheetStack.splice(i, 1);
+    };
+  }, []);
+
+  const down = (e: PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    start.current = { y: e.clientY, t: Date.now() };
+    setDrag(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const move = (e: PointerEvent) => {
+    if (start.current) setDy(Math.max(0, e.clientY - start.current.y));
+  };
+  const up = (e: PointerEvent) => {
+    if (!start.current) return;
+    const d = Math.max(0, e.clientY - start.current.y);
+    const v = d / (Date.now() - start.current.t + 1);
+    start.current = null;
+    setDrag(false);
+    if (d > 110 || (d > 40 && v > 0.5)) close();
+    else setDy(0);
+  };
+
+  return (
+    <div class="backdrop" style={{ opacity: closing ? 0 : 1 - Math.min(dy / 500, 0.5), transition: drag ? 'none' : 'opacity .17s' }} onClick={close}>
+      <div
+        class={`sheet ${props.tall ? 'tall' : ''}`}
+        style={{ transform: closing ? 'translateY(105%)' : `translateY(${dy}px)`, transition: drag ? 'none' : 'transform .17s ease-out' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div class="sheet-grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+          <i class="grip" />
+          <div class="sheet-head">
+            <h2>{props.title}</h2>
+            <button class="icon-btn" onClick={close} aria-label="Schließen"><Ic n="x" /></button>
+          </div>
         </div>
         <div class="sheet-body">{props.children}</div>
         {props.footer && <div class="sheet-foot">{props.footer}</div>}

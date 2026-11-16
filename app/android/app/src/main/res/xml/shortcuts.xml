@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shop_add"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_cart"
+        android:shortcutShortLabel="@string/shortcut_shop_short"
+        android:shortcutLongLabel="@string/shortcut_shop_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="de.familie.planer://new/shop"
+            android:targetClass="de.familie.planer.MainActivity"
+            android:targetPackage="de.familie.planer" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="event_new"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_event"
+        android:shortcutShortLabel="@string/shortcut_event_short"
+        android:shortcutLongLabel="@string/shortcut_event_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="de.familie.planer://new/event"
+            android:targetClass="de.familie.planer.MainActivity"
+            android:targetPackage="de.familie.planer" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="task_new"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_task"
+        android:shortcutShortLabel="@string/shortcut_task_short"
+        android:shortcutLongLabel="@string/shortcut_task_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="de.familie.planer://new/task"
+            android:targetClass="de.familie.planer.MainActivity"
+            android:targetPackage="de.familie.planer" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="today"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_today"
+        android:shortcutShortLabel="@string/shortcut_today_short"
+        android:shortcutLongLabel="@string/shortcut_today_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="de.familie.planer://today"
+            android:targetClass="de.familie.planer.MainActivity"
+            android:targetPackage="de.familie.planer" />
+    </shortcut>
+</shortcuts>

@@ -46,6 +46,11 @@ export interface Item {
   note?: string;
   entitlement?: number; // config: Urlaubstage im Jahr
   ts?: number; // shop: Zeitpunkt des Eintragens (Reihenfolge)
+  created?: number; // Zeitpunkt des ersten Speicherns (neu vs. geändert)
+  endTime?: string; // event/info: Uhrzeit bis (HH:MM)
+  place?: string; // event/info: Ort
+  link?: string; // event/info: Webadresse
+  contact?: string; // event/info: Kontakt / Telefon
 }
 
 export interface Span {
