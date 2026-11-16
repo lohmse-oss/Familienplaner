@@ -33,20 +33,30 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Versions-Release (Tag v* oder manueller Lauf mit Version): Versionsnummer, sonst 0.1.<Laufnummer>.
+      # Landet als VERSION_NAME im Web-Build und in der APK – steht damit in „Über diese App“.
+      - name: Version ermitteln
+        id: ver
+        run: |
+          v="${{ inputs.version }}"
+          if [ -z "$v" ]; then
+            if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; else v="0.1.$GITHUB_RUN_NUMBER"; fi
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
       - run: npm ci
       - run: npm test
       - name: App bauen
         run: npm run build
         env:
-          # Versions-Release (Tag v* oder manueller Lauf): Tag-/Versionsnummer, sonst 0.1.<Laufnummer> – landet in „Über diese App“
-          VERSION_NAME: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/v') && substring(github.ref_name, 1, 99)) || format('0.1.{0}', github.run_number) }}
+          VERSION_NAME: ${{ steps.ver.outputs.version }}
       - run: npx cap sync android
 
       - name: APK bauen
         working-directory: app/android
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/v') && substring(github.ref_name, 1, 99)) || format('0.1.{0}', github.run_number) }}
+          VERSION_NAME: ${{ steps.ver.outputs.version }}
         run: ./gradlew assembleDebug --no-daemon
 
       - name: APK umbenennen
