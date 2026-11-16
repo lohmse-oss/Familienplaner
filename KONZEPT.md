@@ -32,7 +32,8 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 
 ## Automatische Daten (keine Stammdatenpflege)
 * **Feiertage + Schulferien Sachsen** von [OpenHolidays API](https://www.openholidaysapi.org/) (`DE-SN`), serverseitig täglich aktualisiert und gecacht;
-  bundled Offline-Stand in `app/src/data/holidays.json` (Neuaufbau: `scripts/fetch-holidays.mjs`). Quelle + Stand stehen in der App.
+  bundled Offline-Stand in `app/src/data/holidays.json` (deckt aktuell bis 2029 ab; Neuaufbau: `node scripts/fetch-holidays.mjs 2027-01-01 2031-12-31`, siehe README).
+  Quelle + Stand stehen in der App.
   Enthält auch unterrichtsfreie Tage (z. B. 7.5.2027).
 * **Brückentage** werden berechnet: Zwischen zwei freien Blöcken (Wochenende/Feiertag) liegen 1–4 Arbeitstage und mindestens ein Block
   enthält einen Feiertag. Anzeige „x Urlaubstage → y Tage frei“, Hinweis wenn Ida ohnehin schulfrei hat, Eintragen mit einem Tap.

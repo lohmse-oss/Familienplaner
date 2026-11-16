@@ -29,6 +29,22 @@ function roleOf(code: string, env: Env): Role | null {
   return null;
 }
 
+/* ---------- Rate-Limit für Fehlversuche am Code (best effort, pro Worker-Isolate) ---------- */
+const RL_WINDOW_MS = 60_000;
+const RL_MAX = 20;
+const rlFails = new Map<string, { n: number; reset: number }>();
+function tooManyFails(ip: string): boolean {
+  const now = Date.now();
+  if (rlFails.size > 1000) rlFails.clear();
+  const e = rlFails.get(ip);
+  if (!e || e.reset < now) {
+    rlFails.set(ip, { n: 1, reset: now + RL_WINDOW_MS });
+    return false;
+  }
+  e.n++;
+  return e.n > RL_MAX;
+}
+
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 interface Incoming {
   id: string;
@@ -64,21 +80,27 @@ async function sync(req: Request, env: Env, role: Role): Promise<Response> {
   if (role === 'read' && incoming.length) return json({ error: 'Nur Lesezugriff', role }, 403);
 
   if (incoming.length) {
-    const max = (await env.DB.prepare('SELECT COALESCE(MAX(rev),0) AS m FROM items').first<{ m: number }>())?.m ?? 0;
-    let rev = Math.max(Date.now(), max + 1);
-    const stmts: D1PreparedStatement[] = [];
-    for (const raw of incoming) {
-      if (!valid(raw)) continue;
-      // Last-Write-Wins: nur schreiben, wenn der Eintrag neuer ist als der gespeicherte
-      stmts.push(
-        env.DB.prepare(
-          `INSERT INTO items (id, data, updated, rev) VALUES (?1, ?2, ?3, ?4)
-           ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated = excluded.updated, rev = excluded.rev
-           WHERE excluded.updated > items.updated`,
-        ).bind(raw.id, JSON.stringify(raw), raw.updated, rev++),
-      );
+    // Last-Write-Wins: nur schreiben, wenn der Eintrag neuer ist als der gespeicherte
+    const upsert = (raw: Incoming, rev: number) =>
+      env.DB.prepare(
+        `INSERT INTO items (id, data, updated, rev) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated = excluded.updated, rev = excluded.rev
+         WHERE excluded.updated > items.updated`,
+      ).bind(raw.id, JSON.stringify(raw), raw.updated, rev);
+    const build = async (): Promise<D1PreparedStatement[]> => {
+      const max = (await env.DB.prepare('SELECT COALESCE(MAX(rev),0) AS m FROM items').first<{ m: number }>())?.m ?? 0;
+      let rev = Math.max(Date.now(), max + 1);
+      return incoming.filter(valid).map((raw) => upsert(raw, rev++));
+    };
+    const stmts = await build();
+    if (stmts.length) {
+      try {
+        await env.DB.batch(stmts);
+      } catch {
+        // UNIQUE(rev) verletzt durch parallelen Sync -> einmal mit frischen Revisionen wiederholen
+        await env.DB.batch(await build());
+      }
     }
-    if (stmts.length) await env.DB.batch(stmts);
   }
 
   const rows = await env.DB.prepare('SELECT data, rev FROM items WHERE rev > ?1 ORDER BY rev').bind(since).all<{ data: string; rev: number }>();
@@ -138,7 +160,11 @@ export async function handle(req: Request, env: Env, f: typeof fetch = fetch): P
   if (url.pathname === '/' || url.pathname === '/health') return json({ ok: true, app: 'familienplaner' });
 
   const role = roleOf(req.headers.get('x-family-code') ?? '', env);
-  if (!role) return json({ error: 'Familiencode falsch' }, 401);
+  if (!role) {
+    const ip = req.headers.get('cf-connecting-ip') ?? 'unknown';
+    if (tooManyFails(ip)) return json({ error: 'zu viele Fehlversuche – kurz warten' }, 429);
+    return json({ error: 'Familiencode falsch' }, 401);
+  }
 
   if (url.pathname === '/api/sync' && req.method === 'POST') return sync(req, env, role);
   if (url.pathname === '/api/holidays' && req.method === 'GET') return holidays(env, f);

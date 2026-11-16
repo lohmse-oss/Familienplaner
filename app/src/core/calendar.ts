@@ -1,4 +1,4 @@
-import { addDays, diff, isWeekend, range } from './dates';
+import { addDays, diff, dow, isWeekend, range } from './dates';
 import { CHILDREN, PARENTS, type HolidayData, type Item, type Mode, type PersonId } from './types';
 
 export type ParentStatus = 'free' | 'office' | 'homeoffice' | 'vacation' | 'trip';
@@ -59,7 +59,11 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
     for (const d of range(s.start, s.end)) school.set(d, [...(school.get(d) ?? []), s.name]);
   }
 
-  // Index: Datum → Einträge (Zeiträume werden auf Tage ausgerollt, max. 400 Tage als Schutz vor Fehleingaben)
+  // Index: Datum → Einträge (Zeiträume werden auf Tage ausgerollt, max. 400 Tage als Schutz vor Fehleingaben).
+  // Wiederkehrende Einträge (recur) ohne Serienende laufen bis zum Cap; start ist das erste Vorkommen.
+  const CAP = 400;
+  const matchesRecur = (it: Item, d: string) =>
+    !it.recur || (it.recur === 'weekly' ? dow(d) === dow(it.start) : d.slice(8) === it.start.slice(8));
   const byDay = new Map<string, Item[]>();
   const birthdays: Item[] = [];
   for (const it of items) {
@@ -68,8 +72,10 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
       birthdays.push(it);
       continue;
     }
-    const end = diff(it.start, it.end) > 400 ? addDays(it.start, 400) : it.end;
+    const span = diff(it.start, it.end);
+    const end = span > CAP ? addDays(it.start, CAP) : it.recur && span <= 0 ? addDays(it.start, CAP) : it.end;
     for (const d of range(it.start, end)) {
+      if (!matchesRecur(it, d)) continue;
       const l = byDay.get(d);
       if (l) l.push(it);
       else byDay.set(d, [it]);

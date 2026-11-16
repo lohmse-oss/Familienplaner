@@ -216,7 +216,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         : !rg.end
           ? 'Jetzt den letzten Tag antippen (oder direkt unten eintragen für einen einzelnen Tag).'
           : 'Zeitraum steht. Anderen Start antippen für eine neue Auswahl.';
-  const ferien = hd.school.filter((s) => s.end >= `${year}-01-01` && s.start <= `${year}-12-31` && s.end > s.start);
+  const ferien = hd.school.filter((s) => s.end >= `${year}-01-01` && s.start <= `${year}-12-31` && s.end >= s.start); // auch Einzeltage (z. B. unterrichtsfreie Tage)
   const panel = days.length > 0 || !!editing;
 
   return (

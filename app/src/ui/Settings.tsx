@@ -1,9 +1,10 @@
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { fmt, today } from '../core/dates';
+import { parseIcs } from '../core/ics';
 import { buildNotices } from '../core/notify';
 import { PERSONS, type PersonId } from '../core/types';
-import { sync, updateSettings, useStore } from '../store';
+import { batch, newId, saveItem, sync, updateSettings, useStore } from '../store';
 import { Chips } from './common';
 import { Ic, type IconName } from './icons';
 
@@ -27,7 +28,23 @@ export function Settings() {
   const { settings, sync: st, hd, cal, readOnly } = useStore();
   const [server, setServer] = useState(settings.server);
   const [code, setCode] = useState(settings.code);
+  const [icsText, setIcsText] = useState('');
+  const [icsMsg, setIcsMsg] = useState('');
+  const icsFile = useRef<HTMLInputElement>(null);
   const upcoming = buildNotices(cal, new Date(), today());
+
+  const importIcs = (text: string) => {
+    const evs = parseIcs(text);
+    if (!evs.length) {
+      setIcsMsg('Keine Termine (VEVENT) gefunden.');
+      return;
+    }
+    batch(() => {
+      for (const ev of evs) saveItem({ id: newId(), kind: 'event', sub: 'sonstiges', persons: [], owner: null, ...ev });
+    });
+    setIcsText('');
+    setIcsMsg(`${evs.length} Termin${evs.length === 1 ? '' : 'e'} importiert.`);
+  };
   const partnerName = settings.me === 'betty' ? 'Sebastian' : settings.me === 'sebastian' ? 'Betty' : 'Sebastian und Betty';
 
   const status = {
@@ -88,6 +105,20 @@ export function Settings() {
       <Group icon="year" title="Feiertage & Ferien" summary={`Sachsen · Stand ${fmt(hd.fetchedAt)}`}>
         <p class="hint">Sachsen / Chemnitz · Quelle: {hd.source} · Stand {fmt(hd.fetchedAt)}. Wird automatisch aktualisiert; abweichende Schließtage trägst du als „Betreuungsbedarf“ ein.</p>
       </Group>
+
+      {!readOnly && (
+        <Group icon="addcal" title="Kalender importieren (ICS)" summary="Schul-/Kita-Kalender als .ics">
+          <textarea rows={4} placeholder="ICS-Inhalt hier einfügen …" value={icsText} onInput={(e) => setIcsText((e.target as HTMLTextAreaElement).value)} />
+          <div class="actions">
+            <button class="btn" onClick={() => icsFile.current?.click()}>Datei wählen …</button>
+            <span class="grow" />
+            <button class="btn primary" disabled={!icsText.trim()} onClick={() => importIcs(icsText)}>Importieren</button>
+          </div>
+          <input ref={icsFile} type="file" accept=".ics,text/calendar" style={{ display: 'none' }} onChange={async (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) importIcs(await f.text()); }} />
+          {icsMsg && <p class="hint">{icsMsg}</p>}
+          <p class="hint">Termine aus der Datei landen als „Termin (Sonstiges)“ – Datum, Uhrzeit, Ort/Notiz werden übernommen.</p>
+        </Group>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { search, parseDateQuery } from './search';
 import { parseLink } from '../links';
 import { buildWidgetData } from './widget';
 import { gapRuns, nextGap } from './gaps';
+import { parseIcs } from './ics';
 import { planPresence } from './presence';
 import { buildNotices } from './notify';
 import { budget, vacationReport } from './report';
@@ -272,6 +273,83 @@ describe('Urlaubstage korrekt zählen (Feiertage, 24.12./31.12. halb)', () => {
     expect(before).toMatchObject({ gapEnd: '2026-12-24', days: 4, cost: 3.5, total: 9 });
     const after = b.find((x) => x.gapStart === '2026-12-28')!;
     expect(after).toMatchObject({ gapEnd: '2026-12-31', days: 4, cost: 3.5, total: 10 });
+  });
+});
+
+describe('Wiederkehrende Termine (recur)', () => {
+  it('wöchentlich: gleicher Wochentag ab erstem Vorkommen', () => {
+    const cal = buildCalendar([item({ kind: 'event', sub: 'sonstiges', title: 'Training', persons: ['ida'], start: '2027-03-10', recur: 'weekly' })], data);
+    expect(cal.day('2027-03-10').events.map((e) => e.title)).toEqual(['Training']); // Mi
+    expect(cal.day('2027-03-17').events.map((e) => e.title)).toEqual(['Training']); // nächster Mi
+    expect(cal.day('2027-03-18').events).toHaveLength(0);
+  });
+  it('monatlich: gleicher Kalendertag, Monate ohne diesen Tag auslassen, Serienende respektieren', () => {
+    const cal = buildCalendar([item({ kind: 'event', sub: 'sonstiges', title: 'Club', persons: [], start: '2027-01-31', end: '2027-04-30', recur: 'monthly' })], data);
+    expect(cal.day('2027-01-31').events).toHaveLength(1);
+    expect(cal.day('2027-02-28').events).toHaveLength(0); // Februar hat keinen 31.
+    expect(cal.day('2027-03-31').events).toHaveLength(1);
+    expect(cal.day('2027-05-31').events).toHaveLength(0); // nach Serienende
+  });
+  it('ohne recur bleibt ein einzelner Termin', () => {
+    const cal = buildCalendar([item({ kind: 'event', sub: 'sonstiges', title: 'Einmalig', persons: [], start: '2027-03-10' })], data);
+    expect(cal.day('2027-03-17').events).toHaveLength(0);
+  });
+});
+
+describe('ICS-Import', () => {
+  it('parst VEVENTs: Allday, Uhrzeiten, Escapes, Zeilenfaltung', () => {
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'DTSTART;VALUE=DATE:20270507',
+      'DTEND;VALUE=DATE:20270508',
+      'SUMMARY:Unterrichtsfrei',
+      'END:VEVENT',
+      'BEGIN:VEVENT',
+      'DTSTART:20270512T150000',
+      'DTEND:20270512T163000',
+      'SUMMARY:Elternabend \\\\ Klassenraum 3\\, Obergeschoss',
+      'DESCRIPTION:Unterlagen mitbringen\\nund Stühle',
+      'END:VEVENT',
+      'BEGIN:VEVENT',
+      'DTSTART:20270601T090000Z',
+      'SUMMARY:Sehr langer Terminname der umgebro',
+      ' chen wird',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    const evs = parseIcs(ics);
+    expect(evs).toHaveLength(3);
+    expect(evs[0]).toMatchObject({ title: 'Unterrichtsfrei', start: '2027-05-07', end: '2027-05-07' });
+    expect(evs[0].time).toBeUndefined();
+    expect(evs[1]).toMatchObject({
+      title: 'Elternabend \\ Klassenraum 3, Obergeschoss',
+      start: '2027-05-12',
+      end: '2027-05-12',
+      time: '15:00',
+      endTime: '16:30',
+      note: 'Unterlagen mitbringen\nund Stühle',
+    });
+    expect(evs[2]).toMatchObject({ title: 'Sehr langer Terminname der umgebrochen wird', start: '2027-06-01', time: '09:00' });
+  });
+  it('leeres/kaputtes ICS liefert keine Termine', () => {
+    expect(parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR')).toEqual([]);
+    expect(parseIcs('hallo welt')).toEqual([]);
+  });
+});
+
+describe('Urlaubskonto-Warnung', () => {
+  it('meldet Überziehung (Anspruch < genommen+geplant) für aktuelles Jahr', () => {
+    const cal = buildCalendar(
+      [vac('betty', '2027-03-01', '2027-03-12'), item({ kind: 'config', id: 'config:betty:2027', start: '2027-01-01', entitlement: 5 })],
+      data,
+    );
+    const notices = buildNotices(cal, new Date('2027-06-01T08:00:00'), '2027-06-01');
+    const over = notices.filter((n) => n.title === 'Urlaubskonto überzogen');
+    expect(over).toHaveLength(1);
+    expect(over[0].body).toContain('Betty');
+    expect(over[0].body).toContain('2027');
+    expect(over[0].body).toContain('-5');
   });
 });
 

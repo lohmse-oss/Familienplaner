@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
-import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId } from '../core/types';
+import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
 import { deleteItem, newId, saveItem, useStore } from '../store';
-import { today } from '../core/dates';
+import { diff, today } from '../core/dates';
 import { Chips, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
@@ -84,6 +84,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     }
     if (k !== 'presence') delete out.mode;
     if (!(k === 'presence' && d.mode === 'vacation')) delete out.away;
+    if (k !== 'event' || !out.recur) delete out.recur;
     saveItem(out);
     onClose();
   };
@@ -143,6 +144,13 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
                 <Chips<string> options={[...personOpts(PARENTS), { value: '', label: 'noch offen' }]} value={[d.owner ?? '']} onChange={(v) => set({ owner: (v[0] || null) as PersonId | null })} />
               </>
             )}
+            <label>Wiederholung</label>
+            <Chips<string>
+              options={[{ value: '', label: 'keine' }, ...(Object.keys(RECUR_LABEL) as Recur[]).map((r) => ({ value: r, label: RECUR_LABEL[r] }))]}
+              value={[d.recur ?? '']}
+              onChange={(v) => set({ recur: (v[0] || undefined) as Recur | undefined })}
+            />
+            {d.recur && d.end <= d.start && <p class="hint">Ohne Enddatum wiederholt sich der Termin bis zum Anzeigelimit (400 Tage ab erstem Vorkommen).</p>}
           </>
         )}
 
@@ -183,6 +191,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
           <div>
             <label>{single ? (k === 'task' ? 'Fällig am' : 'Datum') : 'Von'}</label>
             <input type="date" value={d.start} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) set({ start: v, end: d.end < v ? v : d.end }); }} />
+            {diff(d.start, d.end) > 400 && <p class="hint neg">Zeitraum länger als 400 Tage – ab Tag 401 wird der Eintrag nicht mehr angezeigt.</p>}
           </div>
           {!single && (
             <div>

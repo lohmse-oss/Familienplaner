@@ -1,6 +1,7 @@
 import { needsOwner, type Calendar, type DayInfo } from './calendar';
-import { addDays, fmtRange, isoWeek, range, WD, dow } from './dates';
-import { PERSONS } from './types';
+import { addDays, fmtDays, fmtRange, isoWeek, range, WD, dow } from './dates';
+import { budget } from './report';
+import { PARENTS, PERSONS } from './types';
 
 export interface Notice {
   at: Date;
@@ -97,6 +98,17 @@ export function buildNotices(cal: Calendar, now: Date, today: string): Notice[] 
     } else if (d.workday || d.coverage !== 'none') flush(); // Wochenende/Feiertag unterbricht nicht
   }
   flush();
+
+  // Urlaubskonto überzogen? (Anspruch < genommen + geplant) – aktuelles und Folgejahr
+  const ty = Number(today.slice(0, 4));
+  for (const p of PARENTS) {
+    for (const y of [ty, ty + 1]) {
+      const b = budget(cal, p, y, today);
+      if (b.free !== undefined && b.free < 0) {
+        push(local(addDays(today, 1), '09:00'), 'Urlaubskonto überzogen', `${PERSONS[p].name} ${y}: ${fmtDays(b.free)} Tage über dem Konto (Anspruch ${fmtDays(b.entitlement!)}).`);
+      }
+    }
+  }
 
   out.sort((a, b) => a.at.getTime() - b.at.getTime());
   return out.slice(0, 200);

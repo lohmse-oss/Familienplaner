@@ -26,6 +26,8 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
 export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop';
 export type Mode = 'homeoffice' | 'vacation' | 'trip';
 export type EventSub = 'arzt' | 'schule' | 'elternabend' | 'sonstiges';
+export type Recur = 'weekly' | 'monthly';
+export const RECUR_LABEL: Record<Recur, string> = { weekly: 'wöchentlich', monthly: 'monatlich' };
 
 export interface Item {
   id: string;
@@ -51,6 +53,7 @@ export interface Item {
   place?: string; // event/info: Ort
   link?: string; // event/info: Webadresse
   contact?: string; // event/info: Kontakt / Telefon
+  recur?: Recur; // event: Wiederholung (start = erstes Vorkommen; end leer = ohne Serienende)
 }
 
 export interface Span {

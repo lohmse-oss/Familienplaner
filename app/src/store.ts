@@ -353,6 +353,23 @@ export async function sync(): Promise<void> {
       }
     }
     items = [...map.values()];
+    // eigene Änderung per Last-Write-Wins verloren (neuere Version eines anderen Geräts hat gewonnen) -> Hinweis
+    const lost = [...sent]
+      .map((id) => map.get(id))
+      .filter((w): w is Item => !!w && (sentVersions.get(w.id) ?? 0) < w.updated && !!w.by && w.by !== settings.me);
+    if (lost.length) {
+      notice = {
+        id: Date.now(),
+        title: 'Änderung überschrieben',
+        lines: [
+          ...lost.slice(0, 3).map((w) => `${w.title ?? w.kind} – neuere Version von ${PERSONS[w.by!].name}`),
+          ...(lost.length > 3 ? [`… und ${lost.length - 3} weitere`] : []),
+        ],
+      };
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(dismissNotice, 12000);
+      emit();
+    }
     // nur als erledigt markieren, was zwischenzeitlich nicht erneut geändert wurde
     for (const id of sent) if (map.get(id)?.updated === sentVersions.get(id)) dirty.delete(id);
     for (const id of adopted) dirty.delete(id);

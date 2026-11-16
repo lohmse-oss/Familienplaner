@@ -24,8 +24,15 @@ function fakeD1(): D1Database {
 }
 
 const env = (): Env => ({ DB: fakeD1(), FAMILY_CODE: 'geheim', READ_CODE: 'nurlesen' });
-const call = (e: Env, path: string, init: RequestInit & { code?: string } = {}, f?: typeof fetch) =>
-  handle(new Request(`https://x.test${path}`, { ...init, headers: { 'x-family-code': init.code ?? 'geheim', 'content-type': 'application/json' } }), e, f);
+const call = (e: Env, path: string, init: RequestInit & { code?: string; ip?: string } = {}, f?: typeof fetch) =>
+  handle(
+    new Request(`https://x.test${path}`, {
+      ...init,
+      headers: { 'x-family-code': init.code ?? 'geheim', 'content-type': 'application/json', ...(init.ip ? { 'cf-connecting-ip': init.ip } : {}) },
+    }),
+    e,
+    f,
+  );
 const item = (id: string, updated: number, extra = {}) => ({ id, kind: 'event', start: '2027-03-10', end: '2027-03-10', persons: [], updated, ...extra });
 
 describe('Worker', () => {
@@ -35,6 +42,21 @@ describe('Worker', () => {
   it('lehnt falschen Familiencode ab', async () => {
     expect((await call(e, '/api/sync', { method: 'POST', body: '{}', code: 'falsch' })).status).toBe(401);
     expect((await call(e, '/api/holidays', { code: '' })).status).toBe(401);
+  });
+
+  it('limitiert Fehlversuche am Code: nach 20/Minute 429', async () => {
+    const ip = '203.0.113.99';
+    let last = 0;
+    for (let i = 0; i < 20; i++) last = (await call(e, '/api/sync', { method: 'POST', body: '{}', code: 'falsch', ip })).status;
+    expect(last).toBe(401);
+    expect((await call(e, '/api/sync', { method: 'POST', body: '{}', code: 'falsch', ip })).status).toBe(429);
+    // andere IP ist nicht betroffen
+    expect((await call(e, '/api/sync', { method: 'POST', body: '{}', code: 'falsch', ip: '203.0.113.100' })).status).toBe(401);
+  });
+
+  it('rev ist eindeutig (UNIQUE-Index)', async () => {
+    await e.DB.prepare(`INSERT INTO items (id, data, updated, rev) VALUES ('a', '{}', 1, 7)`).run();
+    await expect(e.DB.prepare(`INSERT INTO items (id, data, updated, rev) VALUES ('b', '{}', 1, 7)`).run()).rejects.toThrow();
   });
 
   it('synchronisiert zwischen zwei Geräten', async () => {

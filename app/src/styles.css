@@ -583,3 +583,7 @@ h1, h2, h3 { margin: 0; }
 .kv span { color: var(--muted); }
 .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: .3px; }
 .build-info .card-head { margin-bottom: 2px; }
+
+/* Tagesansicht: kompakte Icon-Buttons zum Anlegen */
+.day-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.day-add .ico-btn { padding: 9px 11px; }

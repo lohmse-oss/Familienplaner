@@ -66,11 +66,15 @@ export function DayContent({ date, edit, add }: Props) {
       ))}
       {d.warnings.map((w) => <div key={w} class="line warn"><Ic n="warn" size={16} /> {w}</div>)}
 
-      {!readOnly && <div class="actions wrap">
-        {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
-          <button key={k.kind} class="btn" onClick={() => add(k.kind, date)}><Ic n={k.icon} size={16} /> {k.label.split(' / ')[0].split(' (')[0]}</button>
-        ))}
-      </div>}
+      {!readOnly && (
+        <div class="day-add">
+          {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
+            <button key={k.kind} class="btn ico-btn" title={k.label} aria-label={k.label} onClick={() => add(k.kind, date)}>
+              <Ic n={k.icon} size={18} />
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }
