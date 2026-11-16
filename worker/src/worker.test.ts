@@ -23,7 +23,7 @@ function fakeD1(): D1Database {
   } as unknown as D1Database;
 }
 
-const env = (): Env => ({ DB: fakeD1(), FAMILY_CODE: 'geheim' });
+const env = (): Env => ({ DB: fakeD1(), FAMILY_CODE: 'geheim', READ_CODE: 'nurlesen' });
 const call = (e: Env, path: string, init: RequestInit & { code?: string } = {}, f?: typeof fetch) =>
   handle(new Request(`https://x.test${path}`, { ...init, headers: { 'x-family-code': init.code ?? 'geheim', 'content-type': 'application/json' } }), e, f);
 const item = (id: string, updated: number, extra = {}) => ({ id, kind: 'event', start: '2027-03-10', end: '2027-03-10', persons: [], updated, ...extra });
@@ -80,5 +80,36 @@ describe('Worker', () => {
     await e.DB.prepare("UPDATE kv SET ts = 0 WHERE k = 'holidays'").run(); // Cache abgelaufen
     const r3 = await call(e, '/api/holidays', {}, down);
     expect(r3.status).toBe(200); // veralteter Stand statt Fehler
+  });
+
+  it('liefert Revision und lesbare Beschreibung der Änderungen mit (für Hinweise)', async () => {
+    const trip = item('t1', 2000, { kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13', end: '2027-07-14', title: 'Messe Köln', by: 'sebastian', created: 1500 });
+    const shop = item('s1', 2100, { kind: 'shop', title: 'Milch', by: 'sebastian' });
+    await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [trip, shop] }) });
+    const r = await (await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [] }) })).json() as { items: { id: string; _rev: number; _text?: string; _verb?: string }[] };
+    const t = r.items.find((x) => x.id === 't1')!;
+    expect(t._verb).toBe('new');
+    expect(t._text).toBe('Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln');
+    expect(typeof t._rev).toBe('number');
+    expect(r.items.find((x) => x.id === 's1')!._text).toBeUndefined(); // Einkauf wird nicht gemeldet
+  });
+
+  it('Lesecode: darf abgleichen und Ferien laden, aber nichts schreiben', async () => {
+    await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ items: [item('1', 100, { title: 'Arzt' })] }) });
+    const read = await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [] }), code: 'nurlesen' });
+    expect(read.status).toBe(200);
+    const data = await read.json() as { role: string; items: { id: string }[] };
+    expect(data.role).toBe('read');
+    expect(data.items).toHaveLength(1);
+    const write = await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ items: [item('2', 200)] }), code: 'nurlesen' });
+    expect(write.status).toBe(403);
+    const all = await (await call(e, '/api/sync', { method: 'POST', body: '{"since":0}' })).json() as { role: string; items: unknown[] };
+    expect(all.role).toBe('write');
+    expect(all.items).toHaveLength(1); // der abgelehnte Eintrag wurde nicht gespeichert
+  });
+  it('ohne gesetzten Lesecode bleibt nur der Familiencode gültig', async () => {
+    const e2: Env = { DB: fakeD1(), FAMILY_CODE: 'geheim' };
+    expect((await call(e2, '/api/sync', { method: 'POST', body: '{}', code: 'nurlesen' })).status).toBe(401);
+    expect((await call(e2, '/api/sync', { method: 'POST', body: '{}', code: '' })).status).toBe(401);
   });
 });

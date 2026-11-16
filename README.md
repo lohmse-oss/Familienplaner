@@ -31,6 +31,15 @@ Der Build läuft in GitHub Actions (`.github/workflows/android.yml`) – lokal i
 Beim ersten Start: *Mehr* → „Dieses Handy gehört“ wählen → Familiencode eintragen (die Server-Adresse ist in `app/src/store.ts` als `DEFAULT_SERVER` voreingestellt) → *Speichern & verbinden*.
 Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
 
+**Widget:** Homescreen lange drücken → Widgets → „Familienplaner Heute“ (Nothing-Stil, nur Grafik; Hintergrund transparent/Glas/dunkel/hell unter *Mehr → Einstellungen → Darstellung & Widget*).
+
+**Hinweise vom Partner:** Beim ersten Start die Benachrichtigungen erlauben. In Android ggf. den Akku-Sparmodus für die App lockern, damit der Hintergrund-Abgleich (ca. alle 15 Min.) zuverlässig läuft.
+
+**Lesezugriff (z. B. Ida):** APK auf ihrem Handy installieren, unter *Mehr → Einstellungen → Ich & Zugriff* „Ida“ wählen und unter *Synchronisierung* den **Lese-Code** eintragen.
+Der Lese-Code wird beim Server als Secret gesetzt: `npx wrangler secret put READ_CODE`. Mit ihm kann nur gelesen werden, Schreiben lehnt der Server ab.
+
+Der Server (`worker/`) muss nach Änderungen neu deployt werden: `cd worker && npx wrangler deploy`.
+
 ## Entwicklung
 ```bash
 cd app && npm install
