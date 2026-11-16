@@ -69,3 +69,31 @@ export const daysInYear = (y: number) => (y % 4 === 0 && (y % 100 !== 0 || y % 4
 
 /** 12 → "12", 12.5 → "12,5" */
 export const fmtDays = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');
+
+const mkDate = (y: number, m: number, d: number): string | null => {
+  if (y < 1000 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d ? iso(dt) : null; // z. B. 31.02. → null
+};
+
+/** Parst Nutzereingaben fürs Datum: "7.5.1955", "07.05.1955", "1955-05-07" → ISO "YYYY-MM-DD"; sonst null. */
+export function parseUserDate(s: string): string | null {
+  const t = s.trim();
+  let m = t.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return mkDate(+m[3], +m[2], +m[1]);
+  m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return mkDate(+m[1], +m[2], +m[3]);
+  return null;
+}
+
+/**
+ * Alter am Tag `on` zum Geburtsdatum `birth`. Das Jahr des Geburtsdatums wird NUR fürs Alter genutzt –
+ * im Kalender zählt bei Geburtstagen weiterhin nur Tag/Monat. Ohne sinnvolles Geburtsjahr (< 1900) → -1.
+ */
+export function ageOn(birth: string, on: string): number {
+  const by = Number(birth.slice(0, 4));
+  if (!Number.isFinite(by) || by < 1900) return -1;
+  let age = Number(on.slice(0, 4)) - by;
+  if (on.slice(5) < birth.slice(5)) age--;
+  return age;
+}

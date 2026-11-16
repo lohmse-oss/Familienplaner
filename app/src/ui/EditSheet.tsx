@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
 import { deleteItem, newId, saveItem, useStore } from '../store';
 import { diff, today } from '../core/dates';
-import { Chips, Sheet } from './common';
+import { Chips, DateInput, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
 export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; label: string; icon: IconName; hint: string }[] = [
@@ -173,6 +173,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
           <>
             <label>Wer hat Geburtstag?</label>
             <input type="text" placeholder="z. B. Oma Helga" value={d.title ?? ''} onInput={(e) => set({ title: (e.target as HTMLInputElement).value })} />
+            <p class="hint">Geburtsdatum inkl. Jahr eintragen (auch als Text, z. B. 7.5.1955) – das Jahr wird nur für die Altersanzeige verwendet; im Kalender zählt weiterhin nur Tag/Monat.</p>
           </>
         )}
 
@@ -185,14 +186,14 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
 
         <div class="row">
           <div>
-            <label>{single ? (k === 'task' ? 'Fällig am' : 'Datum') : 'Von'}</label>
-            <input type="date" value={d.start} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) set({ start: v, end: d.end < v ? v : d.end }); }} />
+            <label>{single ? (k === 'task' ? 'Fällig am' : k === 'birthday' ? 'Geburtsdatum' : 'Datum') : 'Von'}</label>
+            <DateInput value={d.start} onChange={(v) => set({ start: v, end: d.end < v ? v : d.end })} />
             {diff(d.start, d.end) > 400 && <p class="hint neg">Zeitraum länger als 400 Tage – ab Tag 401 wird der Eintrag nicht mehr angezeigt.</p>}
           </div>
           {!single && (
             <div>
               <label>Bis (einschließlich)</label>
-              <input type="date" value={d.end} min={d.start} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) set({ end: v }); }} />
+              <DateInput value={d.end} min={d.start} onChange={(v) => set({ end: v })} />
             </div>
           )}
           {k === 'event' && (

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
 import { buildCalendar } from './calendar';
-import { addDays, contiguousRuns, dayOfYear, dow, isoWeek, planningYear, weekStart } from './dates';
+import { addDays, ageOn, contiguousRuns, dayOfYear, dow, isoWeek, parseUserDate, planningYear, weekStart } from './dates';
 import { annotateChanges, describeChange } from './describe';
 import { marksOf } from './layers';
 import { relevant } from './filter';
@@ -335,6 +335,34 @@ describe('ICS-Import', () => {
   it('leeres/kaputtes ICS liefert keine Termine', () => {
     expect(parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR')).toEqual([]);
     expect(parseIcs('hallo welt')).toEqual([]);
+  });
+});
+
+describe('Datumseingabe (Text) & Alter', () => {
+  it('parseUserDate: TT.MM.JJJJ und JJJJ-MM-TT, ungültige Daten → null', () => {
+    expect(parseUserDate('7.5.1955')).toBe('1955-05-07');
+    expect(parseUserDate('07.05.1955')).toBe('1955-05-07');
+    expect(parseUserDate('1955-05-07')).toBe('1955-05-07');
+    expect(parseUserDate('31.02.2027')).toBeNull();
+    expect(parseUserDate('32.01.2027')).toBeNull();
+    expect(parseUserDate('13.13.2027')).toBeNull();
+    expect(parseUserDate('hallo')).toBeNull();
+    expect(parseUserDate('')).toBeNull();
+  });
+  it('ageOn: Alter am Stichtag; Geburtsjahr nur fürs Alter (Kalender zählt nur MM-TT)', () => {
+    expect(ageOn('1955-05-07', '2027-05-06')).toBe(71);
+    expect(ageOn('1955-05-07', '2027-05-07')).toBe(72);
+    expect(ageOn('1955-05-07', '2027-12-31')).toBe(72);
+    expect(ageOn('1955-05-07', '1955-05-06')).toBe(-1); // Tag vor der Geburt
+    expect(ageOn('2027-05-07', '2027-05-07')).toBe(0);
+    expect(ageOn('2027-05-07', '2027-05-06')).toBe(-1);
+    expect(ageOn('2027-05-07', '2026-12-31')).toBe(-1); // Geburtsjahr in der Zukunft → kein Alter
+  });
+  it('Geburtstag im Kalender jährlich am MM-TT – Jahr spielt keine Rolle', () => {
+    const cal = buildCalendar([item({ kind: 'birthday', title: 'Oma', persons: [], start: '1955-05-07' })], data);
+    expect(cal.day('2027-05-07').birthdays.map((b) => b.title)).toEqual(['Oma']);
+    expect(cal.day('2027-05-08').birthdays).toHaveLength(0);
+    expect(cal.day('1955-05-07').birthdays).toHaveLength(1);
   });
 });
 

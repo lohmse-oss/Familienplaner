@@ -4,7 +4,7 @@ import { addDays, dow, isoWeek, MONTHS, range, today, weekStart, WD } from '../c
 import { marksOf, type Layers } from '../core/layers';
 import { ALL, PERSONS, type PersonId } from '../core/types';
 import { useStore } from '../store';
-import { STATUS_LABEL } from './common';
+import { DateInput, STATUS_LABEL } from './common';
 import { Ic, StatusIc } from './icons';
 
 const FIRST_DAYS = 70; // anfangs angezeigte Tage
@@ -130,7 +130,7 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const bar = (
     <div class="tl-bar">
       <button class="btn small today-btn" onClick={() => jump(t)}><Ic n="today" size={15} /> Heute</button>
-      <input type="date" aria-label="Zu Datum springen" value="" onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) jump(v); }} />
+      <DateInput value="" ariaLabel="Zu Datum springen" onChange={(v) => jump(v)} />
       <span class="grow" />
     </div>
   );

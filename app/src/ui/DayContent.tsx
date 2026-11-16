@@ -1,5 +1,5 @@
 import { needsOwner } from '../core/calendar';
-import { fmt, dow, WD_LONG } from '../core/dates';
+import { ageOn, fmt, dow, WD_LONG } from '../core/dates';
 import { PARENTS, PERSONS, type Item, type Kind, type Mode } from '../core/types';
 import { setPresence, useStore } from '../store';
 import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
@@ -51,7 +51,14 @@ export function DayContent({ date, edit, add }: Props) {
       ))}
 
       {d.needs.map((n) => <div key={n.child + n.reason} class="line need"><Dot p={n.child} /><span><b>{PERSONS[n.child].name}</b>: {n.reason} – Betreuung nötig</span></div>)}
-      {d.birthdays.map((b) => <div key={b.id} class="line link-row" onClick={() => edit(b)}><Ic n="cake" /> <span class="grow">{b.title}</span></div>)}
+      {d.birthdays.map((b) => {
+        const age = ageOn(b.start, date);
+        return (
+          <div key={b.id} class="line link-row" onClick={() => edit(b)}>
+            <Ic n="cake" /> <span class="grow">{b.title}{age >= 0 ? ` · ${age} J.` : ''}</span>
+          </div>
+        );
+      })}
 
       <h3 class="section">Einträge</h3>
       {items.length === 0 && <div class="line muted">Nichts eingetragen.</div>}

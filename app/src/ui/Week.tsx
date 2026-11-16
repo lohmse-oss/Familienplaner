@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import type { DayInfo } from '../core/calendar';
 import { needsOwner } from '../core/calendar';
-import { addDays, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
+import { addDays, ageOn, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { relevant, type PersonFilter } from '../core/filter';
 import type { Layers } from '../core/layers';
 import { ALL, PARENTS, PERSONS, type Item, type Kind, type Mode, type PersonId } from '../core/types';
@@ -296,7 +296,10 @@ function AgendaDay({ d, c, today: t, openDay, edit }: { d: DayInfo; c: ReturnTyp
       ))}
       {c.info.map((i) => <div key={i.id} class="ag-line info" onClick={() => edit(i)}><Ic n="info" size={16} /> {i.title}</div>)}
       {c.tasks.map((x) => <div key={x.id} class={`ag-line ${x.done ? 'done' : ''}`} onClick={() => edit(x)}><Ic n="tasks" size={16} /> {x.title}{x.owner ? <PersonTag p={x.owner} /> : null}</div>)}
-      {c.birthdays.map((b) => <div key={b.id} class="ag-line" onClick={() => edit(b)}><Ic n="cake" size={16} /> {b.title}</div>)}
+      {c.birthdays.map((b) => {
+        const age = ageOn(b.start, d.date);
+        return <div key={b.id} class="ag-line" onClick={() => edit(b)}><Ic n="cake" size={16} /> {b.title}{age >= 0 ? ` · ${age} J.` : ''}</div>;
+      })}
       {c.warnings.map((w) => <div key={w} class="ag-line need"><Ic n="warn" size={16} /> {w}</div>)}
     </section>
   );
