@@ -392,7 +392,9 @@ describe('Widget-Daten', () => {
     );
     const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5), 'glass');
     expect(w.days).toHaveLength(14);
-    expect(w).toMatchObject({ style: 'glass', updated: 'Stand 08:05', shopN: 2, taskN: 3, taskToday: 1, taskOverdue: 1 });
+    expect(w).toMatchObject({ style: 'glass', scaleNothing: 1.75, scaleStandard: 1, updated: 'Stand 08:05', shopN: 2, taskN: 3, taskToday: 1, taskOverdue: 1 });
+    // Skalierung individuell übergebbar
+    expect(buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5), 'dark', { nothing: 2, standard: 0.75 })).toMatchObject({ scaleNothing: 2, scaleStandard: 0.75 });
     expect(w.days.slice(0, 3)).toEqual([
       { date: '2027-07-12', n: 3, cov: 'maybe' }, // Elternabend + Aufgabe fällig + Betreuungsbedarf Ida (Sommerferien)
       { date: '2027-07-13', n: 2, cov: 'gap' }, // Dienstreise Sebastian + Betreuungsbedarf

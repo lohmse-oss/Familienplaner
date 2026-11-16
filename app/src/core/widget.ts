@@ -11,6 +11,8 @@ export interface WidgetDay {
 }
 export interface WidgetData {
   style: WidgetStyle;
+  scaleNothing: number; // Schriftgröße Nothing-Widget (1 = normal, Default 1.75)
+  scaleStandard: number; // Schriftgröße Standard-Widget (1 = normal)
   updated: string; // "Stand 14:05"
   days: WidgetDay[]; // heute + nächste Tage – das Widget zeigt ab dem heutigen Eintrag drei Tage (rollierend)
   shopN: number; // offene Artikel der Einkaufsliste
@@ -18,11 +20,15 @@ export interface WidgetData {
   taskToday: number; // davon heute fällig
   taskOverdue: number; // davon überfällig (vor heute)
 }
+export interface WidgetScales {
+  nothing: number;
+  standard: number;
+}
 
 const HORIZON = 14;
 
-/** Daten für das Homescreen-Widget (nur Grafik: Kreise mit Zahlen). Reine Funktion, damit sie testbar bleibt. */
-export function buildWidgetData(cal: Calendar, today: string, now: Date, style: WidgetStyle = 'dark'): WidgetData {
+/** Daten für das Homescreen-Widget. Reine Funktion, damit sie testbar bleibt. */
+export function buildWidgetData(cal: Calendar, today: string, now: Date, style: WidgetStyle = 'dark', scales: WidgetScales = { nothing: 1.75, standard: 1 }): WidgetData {
   const days: WidgetDay[] = [];
   for (let i = 0; i < HORIZON; i++) {
     const date = addDays(today, i);
@@ -37,5 +43,5 @@ export function buildWidgetData(cal: Calendar, today: string, now: Date, style: 
   const taskToday = tasks.filter((i) => i.start === today).length;
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
-  return { style, updated: `Stand ${hh}:${mm}`, days, shopN, taskN: tasks.length, taskToday, taskOverdue };
+  return { style, scaleNothing: scales.nothing, scaleStandard: scales.standard, updated: `Stand ${hh}:${mm}`, days, shopN, taskN: tasks.length, taskToday, taskOverdue };
 }

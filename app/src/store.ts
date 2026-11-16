@@ -15,6 +15,7 @@ import { PERSONS, type HolidayData, type Item, type Mode, type PersonId } from '
 
 export interface Settings {
   widgetStyle: WidgetStyle;
+  widgetScale: { nothing: number; standard: number }; // Schriftgröße je Widget-Design (1 = normal; Nothing-Default 1.75)
   notifyPartner: boolean; // Hinweis, wenn der Partner etwas einträgt
   theme: 'system' | 'light' | 'dark';
   filter: PersonFilter; // Personenfilter für Kalender und Aufgaben
@@ -59,7 +60,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', widgetScale: { nothing: 1.75, standard: 1 }, notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {
@@ -298,7 +299,7 @@ function scheduleSoon() {
   clearTimeout(schedTimer);
   schedTimer = setTimeout(() => {
     void scheduleNotifications(getCalendar(), settings.notify).catch(() => {});
-    void pushWidget(getCalendar(), settings.widgetStyle).catch(() => {});
+    void pushWidget(getCalendar(), settings.widgetStyle, settings.widgetScale).catch(() => {});
   }, 1500);
 }
 

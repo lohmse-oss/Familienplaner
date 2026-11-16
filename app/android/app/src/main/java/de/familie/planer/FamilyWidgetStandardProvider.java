@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.widget.RemoteViews;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,6 +38,22 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
     }
 
     static RemoteViews build(Context ctx) {
+        try {
+            return buildInner(ctx);
+        } catch (Exception e) {
+            // nie "Widget kann nicht geladen werden" riskieren – Fallback-Kachel
+            RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_standard);
+            v.setTextViewText(R.id.widget_title, "Familienplaner");
+            v.setTextViewText(R.id.widget_today, "App öffnen");
+            v.setTextViewText(R.id.widget_updated, "");
+            v.setTextViewText(R.id.widget_counts, "");
+            PendingIntent pi = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            v.setOnClickPendingIntent(R.id.widget_root_std, pi);
+            return v;
+        }
+    }
+
+    private static RemoteViews buildInner(Context ctx) {
         String style = "dark";
         JSONObject root = null;
         try {
@@ -58,6 +75,12 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
         else if ("glass".equals(style)) v.setInt(R.id.widget_root_std, "setBackgroundResource", R.drawable.widget_bg_glass);
         else if ("transparent".equals(style)) v.setInt(R.id.widget_root_std, "setBackgroundColor", Color.TRANSPARENT);
         else v.setInt(R.id.widget_root_std, "setBackgroundResource", R.drawable.widget_bg_dark);
+
+        float scale = (float) (root != null ? root.optDouble("scaleStandard", 1.0) : 1.0);
+        v.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_SP, 16f * scale);
+        v.setTextViewTextSize(R.id.widget_updated, TypedValue.COMPLEX_UNIT_SP, 12f * scale);
+        v.setTextViewTextSize(R.id.widget_today, TypedValue.COMPLEX_UNIT_SP, 14f * scale);
+        v.setTextViewTextSize(R.id.widget_counts, TypedValue.COMPLEX_UNIT_SP, 14f * scale);
 
         v.setTextViewText(R.id.widget_title, "Familienplaner");
         v.setTextColor(R.id.widget_title, ink);

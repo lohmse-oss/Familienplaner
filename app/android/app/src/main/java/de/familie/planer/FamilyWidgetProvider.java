@@ -182,16 +182,17 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
 
         JSONArray days = root != null ? root.optJSONArray("days") : null;
         int idx = days != null ? todayIndex(days) : -1;
+        float scale = (float) (root != null ? root.optDouble("scaleNothing", 1.75) : 1.75); // Schriftgröße (Default 175 %)
         if (idx < 0) {
             text.setColor(dim);
-            text.setTextSize(h * 0.35f); // 1,75x
+            text.setTextSize(h * 0.2f * scale);
             centered(c, text, "APP ÖFFNEN", w / 2f, h / 2f);
             return bmp;
         }
 
         float pad = h * 0.06f;
         float cellW = (w - 2 * pad) / 5f;
-        float labelSize = Math.min(h * 0.14f, cellW * 0.26f) * 1.75f; // 1,75x größer
+        float labelSize = Math.min(h * 0.14f, cellW * 0.26f) * scale;
         float r = Math.min(cellW * 0.40f, h * 0.29f);
         float cy = h * 0.55f;
 
@@ -255,10 +256,10 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
                     c.drawCircle(cx, cy, r - sw * 0.4f, shape);
                 }
                 String num = String.valueOf(n);
-                float numSize = num.length() == 1 ? r * 2.0f : num.length() == 2 ? r * 1.66f : r * 1.22f; // ~1,75x größer
+                float numSize = (num.length() == 1 ? r * 1.15f : num.length() == 2 ? r * 0.95f : r * 0.7f) * scale;
                 text.setColor(gap ? Color.WHITE : onInk);
                 text.clearShadowLayer();
-                centeredFit(c, text, num, cx, cy, numSize, r * 1.7f); // 1,75x, passt aber notfalls in den Kreis
+                centeredFit(c, text, num, cx, cy, numSize, r * 1.7f); // skaliert, passt aber notfalls in den Kreis
                 if (shadow) text.setShadowLayer(h * 0.03f, 0, h * 0.01f, 0x99000000);
             }
         }
