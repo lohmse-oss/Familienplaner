@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Coverage, ParentStatus } from '../core/calendar';
+import { parseUserDate } from '../core/dates';
 import { ALL, PERSONS, type PersonId } from '../core/types';
 import { updateSettings, useStore } from '../store';
 import { Ic } from './icons';
@@ -84,6 +85,37 @@ export function PersonFilterBar() {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Datumsauswahl: Kalender-Picker UND freie Texteingabe (TT.MM.JJJJ oder JJJJ-MM-TT).
+ * Ungültige Texteingaben werden rot markiert, bis ein gültiges Datum erkannt wird.
+ */
+export function DateInput({ value, onChange, min, ariaLabel }: { value: string; onChange: (v: string) => void; min?: string; ariaLabel?: string }) {
+  const [text, setText] = useState('');
+  const [err, setErr] = useState(false);
+  return (
+    <span class="date-input">
+      <input type="date" value={value} min={min} aria-label={ariaLabel} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) { onChange(v); setText(''); setErr(false); } }} />
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="TT.MM.JJJJ"
+        aria-label={ariaLabel ? `${ariaLabel} (als Text)` : 'Datum als Text'}
+        value={text}
+        onInput={(e) => {
+          const raw = (e.target as HTMLInputElement).value;
+          setText(raw);
+          const v = parseUserDate(raw);
+          if (v) {
+            onChange(v);
+            setErr(false);
+          } else setErr(raw.trim().length > 0);
+        }}
+      />
+      {err && <small class="neg">Format: TT.MM.JJJJ oder JJJJ-MM-TT</small>}
+    </span>
   );
 }
 
