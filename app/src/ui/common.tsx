@@ -33,7 +33,7 @@ export function Pill({ coverage }: { coverage: Coverage }) {
 }
 
 export function Chips<T extends string>(props: {
-  options: { value: T; label: ComponentChildren; color?: string }[];
+  options: { value: T; label: ComponentChildren; color?: string; title?: string }[];
   value: T[];
   onChange: (v: T[]) => void;
   multi?: boolean;
@@ -46,12 +46,14 @@ export function Chips<T extends string>(props: {
           <button
             type="button"
             class={`chip ${on ? 'on' : ''}`}
+            title={o.title}
             style={on && o.color ? { background: o.color, borderColor: o.color, color: '#fff' } : undefined}
             onClick={() =>
               props.onChange(props.multi ? (on ? props.value.filter((v) => v !== o.value) : [...props.value, o.value]) : [o.value])
             }
           >
             {o.label}
+            {o.title && on ? ` ${o.title}` : ''}
           </button>
         );
       })}

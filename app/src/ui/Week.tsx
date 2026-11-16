@@ -209,7 +209,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
                 <button class="link" onClick={() => setSel(null)}>schließen</button>
               </div>
               <Chips<Mode | 'office'>
-                options={MODES.map((m) => ({ value: m, label: <><StatusIc s={m === 'office' ? 'office' : m} size={15} /> {m === 'office' ? 'Büro' : STATUS_LABEL[m]}</> }))}
+                options={MODES.map((m) => ({ value: m, label: <StatusIc s={m === 'office' ? 'office' : m} size={16} />, title: m === 'office' ? 'Büro' : STATUS_LABEL[m] }))}
                 value={current && current !== 'free' ? [current as Mode | 'office'] : []}
                 onChange={(v) => apply(v[0])}
               />

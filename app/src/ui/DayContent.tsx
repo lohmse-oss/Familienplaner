@@ -41,7 +41,8 @@ export function DayContent({ date, edit, add }: Props) {
             options={MODES.map((m) => ({
               value: m,
               color: PERSONS[p].color,
-              label: <><StatusIc s={m === 'office' ? 'office' : m} size={15} /> {m === 'office' ? 'Büro' : STATUS_LABEL[m]}</>,
+              label: <StatusIc s={m === 'office' ? 'office' : m} size={16} />,
+              title: m === 'office' ? 'Büro' : STATUS_LABEL[m], // Text erst beim Klick (ausgewählt) bzw. per title
             }))}
             value={[d.parents[p].status === 'free' ? 'office' : (d.parents[p].status as Mode | 'office')]}
             onChange={(v) => setPresence(p, date, v[0])}
