@@ -3,9 +3,11 @@ import { planningYear, today, weekStart } from './core/dates';
 import type { Item, Kind, PersonId } from './core/types';
 import type { Tab } from './nav';
 import { useStore } from './store';
+import { Birthdays } from './ui/Birthdays';
 import { DaySheet } from './ui/DaySheet';
 import { EditSheet, KindPicker } from './ui/EditSheet';
 import { Home } from './ui/Home';
+import { More } from './ui/More';
 import { Planner } from './ui/Planner';
 import { Settings } from './ui/Settings';
 import { Shop } from './ui/Shop';
@@ -20,8 +22,10 @@ const TITLES: Record<Tab, string> = {
   year: 'Jahresforecast',
   vacation: 'Urlaubsverwaltung',
   shop: 'Einkaufsliste',
-  tasks: 'Aufgaben & Geburtstage',
+  tasks: 'Aufgaben',
+  birthdays: 'Geburtstage',
   settings: 'Einstellungen',
+  more: 'Mehr',
 };
 
 type Sheet =
@@ -50,7 +54,7 @@ export function App() {
     if (t === 'week') setWeekOf(weekStart(today()));
     setTab(t);
   };
-  const showFab = tab === 'week' || tab === 'year' || tab === 'tasks';
+  const showFab = tab === 'week' || tab === 'year' || tab === 'tasks' || tab === 'birthdays';
 
   return (
     <div class="app">
@@ -70,7 +74,9 @@ export function App() {
         {tab === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
         {tab === 'shop' && <Shop />}
         {tab === 'tasks' && <Tasks edit={edit} />}
+        {tab === 'birthdays' && <Birthdays edit={edit} add={() => setSheet({ t: 'edit', item: { kind: 'birthday' } })} />}
         {tab === 'settings' && <Settings />}
+        {tab === 'more' && <More go={go} />}
       </main>
 
       {showFab && <button class="fab" aria-label="Neuer Eintrag" onClick={() => setSheet({ t: 'pick' })}>＋</button>}
@@ -81,8 +87,8 @@ export function App() {
         <button class={`home-btn ${tab === 'home' ? 'on' : ''}`} onClick={() => go('home')} aria-label="Startseite">
           <span>🏠</span>
         </button>
-        <TabBtn on={tab === 'vacation'} icon="🌴" label="Urlaub" onClick={() => go('vacation')} />
-        <TabBtn on={tab === 'shop'} icon="🛒" label="Einkauf" onClick={() => go('shop')} />
+        <TabBtn on={tab === 'tasks'} icon="☑" label="Aufgaben" onClick={() => go('tasks')} />
+        <TabBtn on={tab === 'more'} icon="⋯" label="Mehr" onClick={() => go('more')} />
       </nav>
 
       {sheet?.t === 'day' && (

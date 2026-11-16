@@ -20,6 +20,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
 
   const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
   const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
+  const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted).length;
   const free = PARENTS.map((p) => ({ p, b: budget(cal, p, py, t) }));
   const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ' frei';
 
@@ -28,7 +29,8 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
     { tab: 'year', icon: '🗓️', title: 'Jahresforecast', sub: 'Ferien, Brücken, offene Betreuung' },
     { tab: 'vacation', icon: '🌴', title: 'Urlaubsverwaltung', sub: freeText },
     { tab: 'shop', icon: '🛒', title: 'Einkaufsliste', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
-    { tab: 'tasks', icon: '☑', title: 'Aufgaben & Geburtstage', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
+    { tab: 'tasks', icon: '☑', title: 'Aufgaben', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
+    { tab: 'birthdays', icon: '🎂', title: 'Geburtstage', sub: `${bdays} eingetragen` },
     { tab: 'settings', icon: '⚙️', title: 'Einstellungen', sub: 'Sync, Benachrichtigungen' },
   ];
 

@@ -1,10 +1,10 @@
 import { useState } from 'preact/hooks';
-import type { DayInfo } from '../core/calendar';
 import { needsOwner } from '../core/calendar';
 import { addDays, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { PARENTS, PERSONS, type Item, type Mode, type PersonId } from '../core/types';
 import { setPresenceRange, useStore } from '../store';
-import { Chips, Dot, PersonTag, Pill, STATUS_ICON } from './common';
+import { AgendaDay } from './DayAgenda';
+import { Chips, STATUS_ICON } from './common';
 
 interface Props {
   weekOf: string;
@@ -157,7 +157,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan }: Props) {
       {/* Agenda: nur Tage mit Inhalt, jeweils kompakt */}
       <h3 class="section">Diese Woche</h3>
       {agenda.length === 0 && <div class="empty">Keine Termine oder Betreuungsthemen in dieser Woche.</div>}
-      {agenda.map((d) => <AgendaDay key={d.date} d={d} today={t} openDay={openDay} edit={edit} />)}
+      {agenda.map((d) => <AgendaDay key={d.date} d={d} today={t} onOpen={openDay} edit={edit} />)}
     </div>
   );
 }
@@ -171,34 +171,4 @@ function MxRow({ label, color, children }: { label: string; color: string; child
   );
 }
 
-function AgendaDay({ d, today: t, openDay, edit }: { d: DayInfo; today: string; openDay: (d: string) => void; edit: (it: Item) => void }) {
-  const needLine = d.needs.length && !d.cover.length;
-  return (
-    <section class={`ag ${d.date === t ? 'is-today' : ''}`}>
-      <header class="ag-head" onClick={() => openDay(d.date)}>
-        <b>{WD[dow(d.date)]} {fmtShort(d.date)}</b>
-        {d.holiday && <span class="badge badge-holiday">{d.holiday}</span>}
-        {d.school.map((s) => <span key={s} class="badge badge-school">{s}</span>)}
-        <span class="grow" />
-        <Pill coverage={d.coverage} />
-      </header>
-      {needLine ? (
-        <div class={`ag-line ${d.coverage === 'gap' ? 'need' : ''}`}>
-          {d.needs.map((n) => <span key={n.child + n.reason}><Dot p={n.child} />{PERSONS[n.child].name}: {n.reason} </span>)}
-        </div>
-      ) : null}
-      {d.cover.map((c) => <div key={c.id} class="ag-line cover" onClick={() => edit(c)}>🤝 Betreuung durch {c.title}</div>)}
-      {d.events.map((e) => (
-        <div key={e.id} class="ag-line" onClick={() => edit(e)}>
-          <span class="time">{e.time ?? '·'}</span>
-          <span class="grow">{e.title}{e.persons.map((p) => <Dot key={p} p={p} />)}</span>
-          {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
-        </div>
-      ))}
-      {d.info.map((i) => <div key={i.id} class="ag-line info" onClick={() => edit(i)}>ℹ️ {i.title}</div>)}
-      {d.tasks.map((x) => <div key={x.id} class={`ag-line ${x.done ? 'done' : ''}`} onClick={() => edit(x)}>☑ {x.title}{x.owner ? <PersonTag p={x.owner} /> : null}</div>)}
-      {d.birthdays.map((b) => <div key={b.id} class="ag-line" onClick={() => edit(b)}>🎂 {b.title}</div>)}
-      {d.warnings.map((w) => <div key={w} class="ag-line need">⚠ {w}</div>)}
-    </section>
-  );
-}
+
