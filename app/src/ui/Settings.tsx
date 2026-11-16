@@ -111,6 +111,12 @@ export function Settings() {
           value={[String(settings.widgetScale.standard)]}
           onChange={(v) => updateSettings({ widgetScale: { ...settings.widgetScale, standard: Number(v[0]) } })}
         />
+        <label>Zahlen in den Kreisen: „Heute“ (Nothing-Stil)</label>
+        <Chips<string>
+          options={['1', '1.25', '1.5', '1.75', '2', '2.5'].map((s) => ({ value: s, label: `${Math.round(Number(s) * 100)} %` }))}
+          value={[String(settings.widgetScale.circle)]}
+          onChange={(v) => updateSettings({ widgetScale: { ...settings.widgetScale, circle: Number(v[0]) } })}
+        />
         <p class="hint">Zwei Widget-Designs: „Familienplaner Heute“ (Nothing-Stil: Kreise mit Zahlen) und „Familienplaner Heute (Standard)“ (Text-Kachel). Hinzufügen: Homescreen lange drücken → Widgets. Hintergrund und Schriftgröße gelten je Design separat.</p>
       </Group>
 

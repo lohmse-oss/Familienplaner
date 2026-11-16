@@ -11,8 +11,9 @@ export interface WidgetDay {
 }
 export interface WidgetData {
   style: WidgetStyle;
-  scaleNothing: number; // Schriftgröße Nothing-Widget (1 = normal, Default 1.75)
+  scaleNothing: number; // Schriftgröße Nothing-Widget Label/Fuß (1 = normal, Default 1.75)
   scaleStandard: number; // Schriftgröße Standard-Widget (1 = normal)
+  scaleCircle: number; // Zahlen in den Kreisen des Nothing-Widgets (Default 1.75)
   updated: string; // "Stand 14:05"
   days: WidgetDay[]; // heute + nächste Tage – das Widget zeigt ab dem heutigen Eintrag drei Tage (rollierend)
   shopN: number; // offene Artikel der Einkaufsliste
@@ -23,12 +24,14 @@ export interface WidgetData {
 export interface WidgetScales {
   nothing: number;
   standard: number;
+  circle: number;
 }
+export const DEFAULT_WIDGET_SCALES: WidgetScales = { nothing: 1.75, standard: 1, circle: 1.75 };
 
 const HORIZON = 14;
 
 /** Daten für das Homescreen-Widget. Reine Funktion, damit sie testbar bleibt. */
-export function buildWidgetData(cal: Calendar, today: string, now: Date, style: WidgetStyle = 'dark', scales: WidgetScales = { nothing: 1.75, standard: 1 }): WidgetData {
+export function buildWidgetData(cal: Calendar, today: string, now: Date, style: WidgetStyle = 'dark', scales: WidgetScales = DEFAULT_WIDGET_SCALES): WidgetData {
   const days: WidgetDay[] = [];
   for (let i = 0; i < HORIZON; i++) {
     const date = addDays(today, i);
@@ -43,5 +46,5 @@ export function buildWidgetData(cal: Calendar, today: string, now: Date, style: 
   const taskToday = tasks.filter((i) => i.start === today).length;
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
-  return { style, scaleNothing: scales.nothing, scaleStandard: scales.standard, updated: `Stand ${hh}:${mm}`, days, shopN, taskN: tasks.length, taskToday, taskOverdue };
+  return { style, scaleNothing: scales.nothing, scaleStandard: scales.standard, scaleCircle: scales.circle, updated: `Stand ${hh}:${mm}`, days, shopN, taskN: tasks.length, taskToday, taskOverdue };
 }

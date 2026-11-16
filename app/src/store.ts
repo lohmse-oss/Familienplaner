@@ -15,7 +15,7 @@ import { PERSONS, type HolidayData, type Item, type Mode, type PersonId } from '
 
 export interface Settings {
   widgetStyle: WidgetStyle;
-  widgetScale: { nothing: number; standard: number }; // Schriftgröße je Widget-Design (1 = normal; Nothing-Default 1.75)
+  widgetScale: { nothing: number; standard: number; circle: number }; // Schriftgröße: Nothing-Label, Standard-Widget, Kreis-Zahlen (1 = normal; Default 175 %/100 %/175 %)
   notifyPartner: boolean; // Hinweis, wenn der Partner etwas einträgt
   theme: 'system' | 'light' | 'dark';
   filter: PersonFilter; // Personenfilter für Kalender und Aufgaben
@@ -60,7 +60,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { widgetStyle: 'dark', widgetScale: { nothing: 1.75, standard: 1 }, notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', widgetScale: { nothing: 1.75, standard: 1, circle: 1.75 }, notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {
@@ -75,6 +75,8 @@ if ((settings as unknown as { weekView?: string }).weekView === 'day' && setting
 // ältere Versionen: timeLayout (Zeilen/Spalten) entfällt, Personenfilter war Einzelauswahl
 delete (settings as unknown as Record<string, unknown>).timeLayout;
 if (typeof settings.filter === 'string' && settings.filter !== 'all') settings.filter = [settings.filter as PersonId];
+// ältere Version: widgetScale ohne circle-Wert -> Default ergänzen
+settings.widgetScale = { nothing: 1.75, standard: 1, circle: 1.75, ...(settings.widgetScale as Partial<typeof settings.widgetScale>) };
 applyLook();
 const configured = () => !!settings.server && !!settings.code;
 let syncState: SyncState = { status: configured() ? 'idle' : 'off' };

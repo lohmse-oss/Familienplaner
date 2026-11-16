@@ -14,9 +14,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Homescreen-Widget im Standard-Android-Stil: Text-Kachel mit Titel, heutigem Tag (Einträge + Ampel),
- * Einkauf und Aufgaben. Nutzt dieselben Daten wie das Nothing-Widget (SharedPreferences).
- * Antippen öffnet die App.
+ * Homescreen-Widget im Standard-Android-Stil: moderne Kachel mit Icons – Titel mit App-Icon,
+ * heutiger Tag (Einträge + Ampel), darunter Einkauf und Aufgaben mit Icon und Zahl.
+ * Nutzt dieselben Daten wie das Nothing-Widget (SharedPreferences). Antippen öffnet die App.
+ * Nur RemoteViews-erlaubte Views (LinearLayout/TextView/ImageView) – sonst "Widget kann nicht geladen werden".
  */
 public class FamilyWidgetStandardProvider extends AppWidgetProvider {
 
@@ -46,7 +47,8 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
             v.setTextViewText(R.id.widget_title, "Familienplaner");
             v.setTextViewText(R.id.widget_today, "App öffnen");
             v.setTextViewText(R.id.widget_updated, "");
-            v.setTextViewText(R.id.widget_counts, "");
+            v.setTextViewText(R.id.widget_shop, "");
+            v.setTextViewText(R.id.widget_tasks, "");
             PendingIntent pi = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             v.setOnClickPendingIntent(R.id.widget_root_std, pi);
             return v;
@@ -80,7 +82,11 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
         v.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_SP, 16f * scale);
         v.setTextViewTextSize(R.id.widget_updated, TypedValue.COMPLEX_UNIT_SP, 12f * scale);
         v.setTextViewTextSize(R.id.widget_today, TypedValue.COMPLEX_UNIT_SP, 14f * scale);
-        v.setTextViewTextSize(R.id.widget_counts, TypedValue.COMPLEX_UNIT_SP, 14f * scale);
+        v.setTextViewTextSize(R.id.widget_shop, TypedValue.COMPLEX_UNIT_SP, 13f * scale);
+        v.setTextViewTextSize(R.id.widget_tasks, TypedValue.COMPLEX_UNIT_SP, 13f * scale);
+        v.setInt(R.id.widget_icon, "setColorFilter", ink);
+        v.setInt(R.id.widget_ic_shop, "setColorFilter", dim);
+        v.setInt(R.id.widget_ic_tasks, "setColorFilter", dim);
 
         v.setTextViewText(R.id.widget_title, "Familienplaner");
         v.setTextColor(R.id.widget_title, ink);
@@ -92,10 +98,12 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
         JSONObject d = idx >= 0 ? days.optJSONObject(idx) : null;
         boolean alert = false;
         String todayLine;
-        String countsLine;
+        String shopLine;
+        String tasksLine;
         if (d == null) {
             todayLine = "App öffnen für Details";
-            countsLine = "";
+            shopLine = "";
+            tasksLine = "";
         } else {
             String cov = d.optString("cov", "none");
             String covText = "ok".equals(cov) ? "Betreuung gesichert" : "maybe".equals(cov) ? "nur Homeoffice" : "gap".equals(cov) ? "Betreuung ungeklärt!" : "keine Betreuung nötig";
@@ -105,16 +113,22 @@ public class FamilyWidgetStandardProvider extends AppWidgetProvider {
             int shopN = root.optInt("shopN", 0);
             int taskN = root.optInt("taskN", 0);
             int overdue = root.optInt("taskOverdue", 0);
-            countsLine = "Einkauf: " + shopN + " offen · Aufgaben: " + taskN + " aktiv";
+            shopLine = shopN == 0 ? "alles besorgt" : shopN + (shopN == 1 ? " Artikel offen" : " Artikel offen");
+            tasksLine = taskN + (taskN == 1 ? " aktiv" : " aktiv");
             if (overdue > 0) {
-                countsLine += " · " + overdue + " überfällig!";
+                tasksLine += " · " + overdue + " überfällig!";
                 alert = true;
             }
         }
         v.setTextViewText(R.id.widget_today, todayLine);
         v.setTextColor(R.id.widget_today, alert ? accent : ink);
-        v.setTextViewText(R.id.widget_counts, countsLine);
-        v.setTextColor(R.id.widget_counts, alert ? accent : dim);
+        v.setTextViewText(R.id.widget_shop, shopLine);
+        v.setTextColor(R.id.widget_shop, dim);
+        v.setTextViewText(R.id.widget_tasks, tasksLine);
+        v.setTextColor(R.id.widget_tasks, alert ? accent : dim);
+        if (alert) {
+            v.setInt(R.id.widget_ic_tasks, "setColorFilter", accent);
+        }
 
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         v.setOnClickPendingIntent(R.id.widget_root_std, pi);

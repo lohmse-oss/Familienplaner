@@ -56,7 +56,7 @@ export function DayContent({ date, edit, add }: Props) {
       {items.length === 0 && <div class="line muted">Nichts eingetragen.</div>}
       {items.map((i) => (
         <div key={i.id} class="entry">
-          <div class="line link-row" onClick={() => edit(i)}>
+          <div class={`line link-row ${i.kind === 'task' && i.done ? 'done' : ''}`} onClick={() => edit(i)}>
             <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
             <span class="grow">{i.time ? i.time + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
             {i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}

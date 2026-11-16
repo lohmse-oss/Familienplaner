@@ -94,7 +94,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
             {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
           </div>
         ))}
-        {d.tasks.filter((x) => !x.done).map((x) => <div key={x.id} class="line"><Ic n="tasks" size={16} /> {x.title}</div>)}
+        {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><Ic n="tasks" size={16} /> {x.title}</div>)}
         {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>

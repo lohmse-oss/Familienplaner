@@ -182,7 +182,8 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
 
         JSONArray days = root != null ? root.optJSONArray("days") : null;
         int idx = days != null ? todayIndex(days) : -1;
-        float scale = (float) (root != null ? root.optDouble("scaleNothing", 1.75) : 1.75); // Schriftgröße (Default 175 %)
+        float scale = (float) (root != null ? root.optDouble("scaleNothing", 1.75) : 1.75); // Schriftgröße Label/Fuß (Default 175 %)
+        float circleScale = (float) (root != null ? root.optDouble("scaleCircle", root.optDouble("scaleNothing", 1.75)) : 1.75); // Zahlen in den Kreisen separat einstellbar
         if (idx < 0) {
             text.setColor(dim);
             text.setTextSize(h * 0.2f * scale);
@@ -256,7 +257,7 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
                     c.drawCircle(cx, cy, r - sw * 0.4f, shape);
                 }
                 String num = String.valueOf(n);
-                float numSize = (num.length() == 1 ? r * 1.15f : num.length() == 2 ? r * 0.95f : r * 0.7f) * scale;
+                float numSize = (num.length() == 1 ? r * 1.15f : num.length() == 2 ? r * 0.95f : r * 0.7f) * circleScale;
                 text.setColor(gap ? Color.WHITE : onInk);
                 text.clearShadowLayer();
                 centeredFit(c, text, num, cx, cy, numSize, r * 1.7f); // skaliert, passt aber notfalls in den Kreis
