@@ -114,7 +114,7 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
     }
 
     /** Heutiger Index in den Tagesdaten oder -1. */
-    private static int todayIndex(JSONArray days) {
+    static int todayIndex(JSONArray days) {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).format(new Date());
         for (int i = 0; i < days.length(); i++) {
             if (today.equals(days.optJSONObject(i).optString("date"))) return i;
@@ -122,7 +122,7 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
         return -1;
     }
 
-    private static String weekday(String isoDate) {
+    static String weekday(String isoDate) {
         try {
             Date d = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).parse(isoDate);
             String s = new SimpleDateFormat("EEE", Locale.GERMANY).format(d);
@@ -132,7 +132,7 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    private static String shortDate(String isoDate) {
+    static String shortDate(String isoDate) {
         return isoDate.length() >= 10 ? isoDate.substring(8, 10) + "." + isoDate.substring(5, 7) + "." : "";
     }
 
@@ -184,16 +184,16 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
         int idx = days != null ? todayIndex(days) : -1;
         if (idx < 0) {
             text.setColor(dim);
-            text.setTextSize(h * 0.2f);
+            text.setTextSize(h * 0.35f); // 1,75x
             centered(c, text, "APP ÖFFNEN", w / 2f, h / 2f);
             return bmp;
         }
 
         float pad = h * 0.06f;
         float cellW = (w - 2 * pad) / 5f;
-        float labelSize = Math.min(h * 0.14f, cellW * 0.26f);
-        float r = Math.min(cellW * 0.36f, h * 0.27f);
-        float cy = h * 0.52f;
+        float labelSize = Math.min(h * 0.14f, cellW * 0.26f) * 1.75f; // 1,75x größer
+        float r = Math.min(cellW * 0.40f, h * 0.29f);
+        float cy = h * 0.55f;
 
         for (int i = 0; i < 5; i++) {
             float cx = pad + cellW * (i + 0.5f);
@@ -229,9 +229,9 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
             // Beschriftung oben und unten
             float maxW = cellW * 0.94f;
             text.setColor(i == 0 ? ink : dim);
-            centeredFit(c, text, label, cx, h * 0.15f, labelSize, maxW);
+            centeredFit(c, text, label, cx, h * 0.12f, labelSize, maxW);
             text.setColor(dim);
-            centeredFit(c, text, foot, cx, h * 0.90f, labelSize * 0.8f, maxW);
+            centeredFit(c, text, foot, cx, h * 0.93f, labelSize * 0.8f, maxW);
 
             // Kreis
             float sw = Math.max(2f, r * 0.14f);
@@ -255,10 +255,10 @@ public class FamilyWidgetProvider extends AppWidgetProvider {
                     c.drawCircle(cx, cy, r - sw * 0.4f, shape);
                 }
                 String num = String.valueOf(n);
+                float numSize = num.length() == 1 ? r * 2.0f : num.length() == 2 ? r * 1.66f : r * 1.22f; // ~1,75x größer
                 text.setColor(gap ? Color.WHITE : onInk);
-                text.setTextSize(num.length() == 1 ? r * 1.15f : num.length() == 2 ? r * 0.95f : r * 0.7f);
                 text.clearShadowLayer();
-                centered(c, text, num, cx, cy);
+                centeredFit(c, text, num, cx, cy, numSize, r * 1.7f); // 1,75x, passt aber notfalls in den Kreis
                 if (shadow) text.setShadowLayer(h * 0.03f, 0, h * 0.01f, 0x99000000);
             }
         }

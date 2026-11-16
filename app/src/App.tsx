@@ -320,7 +320,6 @@ export function App() {
         <KindPicker
           onClose={close}
           onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : tab === 'cal' ? { start: today(), end: today() } : {}) } })}
-          onPlan={() => plan()}
           onShop={() => { close(); nav('shop'); setFocusShop((n) => n + 1); }}
         />
       )}

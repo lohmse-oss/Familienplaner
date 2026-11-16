@@ -23,14 +23,10 @@ const CARE_PRESETS: { label: string; child?: PersonId }[] = [
   { label: 'Sonstiges' },
 ];
 
-export function KindPicker({ onPick, onClose, onPlan, onShop }: { onPick: (k: Kind) => void; onClose: () => void; onPlan: () => void; onShop: () => void }) {
+export function KindPicker({ onPick, onClose, onShop }: { onPick: (k: Kind) => void; onClose: () => void; onShop: () => void }) {
   return (
     <Sheet title="Neuer Eintrag" onClose={onClose}>
       <div class="kinds">
-        <button class="kind featured" onClick={onPlan}>
-          <span class="ic"><Ic n="year" size={24} /></span>
-          <span><b>Mehrere Tage auswählen</b><small>Urlaub, Homeoffice, Dienstreise, Schließtage über einen Zeitraum</small></span>
-        </button>
         <button class="kind" onClick={onShop}>
           <span class="ic"><Ic n="cart" size={24} /></span>
           <span><b>Artikel zur Einkaufsliste</b><small>direkt eintippen</small></span>

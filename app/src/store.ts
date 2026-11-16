@@ -52,6 +52,8 @@ const write = (k: string, v: unknown) => {
 };
 
 let items: Item[] = read(LS.items, []);
+// ältere Version: Terminkategorie 'elternabend' -> 'schule'
+for (const i of items) if ((i.sub as string) === 'elternabend') i.sub = 'schule';
 let dirty = new Set<string>(read<string[]>(LS.dirty, []));
 let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);

@@ -99,7 +99,7 @@ export function Settings() {
           value={[settings.widgetStyle]}
           onChange={(v) => updateSettings({ widgetStyle: v[0] })}
         />
-        <p class="hint">Widget im Stil von Nothing OS: Kreise für die nächsten drei Tage und die Einkaufsliste. Hinzufügen: Homescreen lange drücken → Widgets → „Familienplaner Heute“.</p>
+        <p class="hint">Zwei Widget-Designs: „Familienplaner Heute“ (Nothing-Stil: Kreise mit Zahlen) und „Familienplaner Heute (Standard)“ (Text-Kachel). Hinzufügen: Homescreen lange drücken → Widgets. Der Hintergrund (diese Einstellung) gilt für beide.</p>
       </Group>
 
       <Group icon="year" title="Feiertage & Ferien" summary={`Sachsen · Stand ${fmt(hd.fetchedAt)}`}>

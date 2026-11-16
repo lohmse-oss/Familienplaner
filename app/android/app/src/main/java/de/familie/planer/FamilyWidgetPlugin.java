@@ -34,6 +34,7 @@ public class FamilyWidgetPlugin extends Plugin {
             .putString(FamilyWidgetProvider.KEY_DATA, json)
             .apply();
         FamilyWidgetProvider.refreshAll(ctx);
+        FamilyWidgetStandardProvider.refreshAll(ctx);
         call.resolve();
     }
 

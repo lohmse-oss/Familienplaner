@@ -25,7 +25,7 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  */
 export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop';
 export type Mode = 'homeoffice' | 'vacation' | 'trip';
-export type EventSub = 'arzt' | 'schule' | 'elternabend' | 'sonstiges';
+export type EventSub = 'arzt' | 'schule' | 'feier' | 'sport' | 'sonstiges';
 export type Recur = 'weekly' | 'monthly';
 export const RECUR_LABEL: Record<Recur, string> = { weekly: 'wöchentlich', monthly: 'monatlich' };
 
@@ -77,7 +77,8 @@ export const MODE_LABEL: Record<Mode | 'office', string> = {
 };
 export const SUB_LABEL: Record<EventSub, string> = {
   arzt: 'Arzt',
-  schule: 'Schule / Klassenarbeit',
-  elternabend: 'Elternabend',
+  schule: 'Schule',
+  feier: 'Feier',
+  sport: 'Sport & Freizeit',
   sonstiges: 'Sonstiges',
 };

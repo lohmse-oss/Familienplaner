@@ -5,6 +5,8 @@
     <string name="package_name">de.familie.planer</string>
     <string name="custom_url_scheme">de.familie.planer</string>
     <string name="widget_description">Nächste drei Tage und Einkaufsliste als Kreise mit Zahlen</string>
+    <string name="widget_standard_name">Familienplaner Heute (Standard)</string>
+    <string name="widget_standard_description">Heute, Betreuung, Einkauf und Aufgaben als Text-Kachel</string>
     <string name="shortcut_today_short">Heute</string>
     <string name="shortcut_today_long">Kalender: heute</string>
     <string name="shortcut_event_short">Neuer Termin</string>

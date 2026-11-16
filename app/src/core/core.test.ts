@@ -379,7 +379,7 @@ describe('Widget-Daten', () => {
         item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], start: '2027-07-13', end: '2027-07-14' }),
         item({ kind: 'presence', mode: 'homeoffice', persons: ['betty'], start: '2027-07-12' }),
         item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt', time: '15:30', persons: ['irma'], start: '2027-07-14' }),
-        item({ kind: 'event', sub: 'elternabend', title: 'Elternabend', time: '18:00', persons: ['irma'], owner: 'betty', start: '2027-07-12' }),
+        item({ kind: 'event', sub: 'schule', title: 'Elternabend', time: '18:00', persons: ['irma'], owner: 'betty', start: '2027-07-12' }),
         item({ kind: 'shop', title: 'Milch', ts: 2, start: '2027-07-10' }),
         item({ kind: 'shop', title: 'Brot', ts: 1, start: '2027-07-10' }),
         item({ kind: 'shop', title: 'Eier', ts: 0, done: true, start: '2027-07-10' }),
