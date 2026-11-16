@@ -277,13 +277,20 @@ describe('Urlaubstage korrekt zählen (Feiertage, 24.12./31.12. halb)', () => {
 
 describe('Personenfilter', () => {
   const ev = (persons: PersonId[], owner: PersonId | null = null) => item({ kind: 'event', start: '2027-03-10', persons, owner });
-  it('alle zeigt alles, Person zeigt Betroffene, Zuständige und Familien-Einträge', () => {
+  it('alle zeigt alles, eine Person zeigt Betroffene, Zuständige und Familien-Einträge', () => {
     expect(relevant(ev(['irma']), 'all')).toBe(true);
-    expect(relevant(ev(['irma']), 'irma')).toBe(true);
-    expect(relevant(ev(['irma']), 'ida')).toBe(false);
-    expect(relevant(ev(['irma'], 'betty'), 'betty')).toBe(true); // Betty kümmert sich
-    expect(relevant(ev(['irma'], 'betty'), 'sebastian')).toBe(false);
-    expect(relevant(ev([]), 'ida')).toBe(true); // Familie
+    expect(relevant(ev(['irma']), ['irma'])).toBe(true);
+    expect(relevant(ev(['irma']), ['ida'])).toBe(false);
+    expect(relevant(ev(['irma'], 'betty'), ['betty'])).toBe(true); // Betty kümmert sich
+    expect(relevant(ev(['irma'], 'betty'), ['sebastian'])).toBe(false);
+    expect(relevant(ev([]), ['ida'])).toBe(true); // Familie
+  });
+  it('Mehrfachauswahl: Eintrag genügt, wenn eine der gewählten Personen betroffen ist', () => {
+    expect(relevant(ev(['irma']), ['ida', 'irma'])).toBe(true);
+    expect(relevant(ev(['irma', 'ida']), ['ida', 'betty'])).toBe(true);
+    expect(relevant(ev(['irma']), ['ida', 'betty'])).toBe(false);
+    expect(relevant(ev([], 'betty'), ['sebastian', 'betty'])).toBe(true);
+    expect(relevant(ev([]), [])).toBe(true); // leere Auswahl = alle
   });
 });
 

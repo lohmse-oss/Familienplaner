@@ -3,7 +3,7 @@ import type { DayInfo } from '../core/calendar';
 import { addDays, dow, isoWeek, MONTHS, range, today, weekStart, WD } from '../core/dates';
 import { marksOf, type Layers } from '../core/layers';
 import { ALL, PERSONS, type PersonId } from '../core/types';
-import { updateSettings, useStore } from '../store';
+import { useStore } from '../store';
 import { STATUS_LABEL } from './common';
 import { Ic, StatusIc } from './icons';
 
@@ -82,20 +82,19 @@ function DateCell({ d, t, compact, L }: { d: DayInfo; t: string; compact?: boole
 }
 
 /**
- * Verlauf: fortlaufende Tage ohne Wochenumbruch, die vier Personen nebeneinander.
- * Tage als Zeilen (Personen als Spalten) oder umgekehrt. Lädt beim Weiterscrollen automatisch weitere Tage nach.
+ * Verlauf: fortlaufende Tage ohne Wochenumbruch; Personen als Zeilen, Tage als Spalten.
+ * Lädt beim Weiterscrollen automatisch weitere Tage nach.
  */
 export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const { cal, settings } = useStore();
   const t = today();
   const L = settings.layers;
-  const layout = settings.timeLayout;
   const [from, setFrom] = useState(weekStart(t));
   const [to, setTo] = useState(addDays(weekStart(t), FIRST_DAYS));
   const sentinel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
-  const persons = settings.filter === 'all' ? ALL : [settings.filter];
+  const persons = settings.filter === 'all' ? ALL : settings.filter;
   const dates = useMemo(() => [...range(from, to)], [from, to]);
   const maxTo = addDays(t, MAX_AHEAD);
 
@@ -103,7 +102,7 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   useEffect(() => {
     const id = setTimeout(() => document.getElementById(`tl-${t}`)?.scrollIntoView({ block: 'start', inline: 'start' }), 60);
     return () => clearTimeout(id);
-  }, [layout]);
+  }, []);
 
   // Weiterscrollen: am Ende automatisch Tage nachladen
   useEffect(() => {
@@ -113,11 +112,11 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) setTo((cur) => (cur >= maxTo ? cur : addDays(cur, STEP)));
       },
-      { root: layout === 'cols' ? scroller.current : null, rootMargin: '400px' },
+      { root: scroller.current, rootMargin: '400px' },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [layout, to]);
+  }, [to]);
 
   const jump = (d: string) => {
     const loaded = d >= from && d <= to; // schon geladen: nur hinscrollen
@@ -134,72 +133,35 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
       <button class="btn small today-btn" onClick={() => jump(t)}><Ic n="today" size={15} /> Heute</button>
       <input type="date" aria-label="Zu Datum springen" value="" onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) jump(v); }} />
       <span class="grow" />
-      <div class="seg-ctl" role="group" aria-label="Anordnung">
-        <button class={layout === 'rows' ? 'on' : ''} onClick={() => updateSettings({ timeLayout: 'rows' })} title="Tage als Zeilen"><Ic n="rows" size={15} /> Zeilen</button>
-        <button class={layout === 'cols' ? 'on' : ''} onClick={() => updateSettings({ timeLayout: 'cols' })} title="Tage als Spalten"><Ic n="cols" size={15} /> Spalten</button>
-      </div>
     </div>
   );
 
-  if (layout === 'cols') {
-    return (
-      <div class="page timeline">
-        {bar}
-        <div class="tl-hscroll" ref={scroller}>
-          <div class="tl-cols">
-            <div class="tl-crow tl-chead">
-              <div class="tl-cname" />
-              {dates.map((date) => (
-                <div key={date} class={`tl-ccol ${date.slice(8) === '01' ? 'month-start' : ''}`}>
-                  {date.slice(8) === '01' && <i class="tl-cmonth">{MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)} {date.slice(2, 4)}</i>}
-                  <DateCell d={cal.day(date)} t={t} L={L} />
-                </div>
-              ))}
-              <div ref={sentinel} class="tl-sentinel" />
-            </div>
-            {persons.map((p) => (
-              <div key={p} class="tl-crow">
-                <div class="tl-cname" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>
-                {dates.map((date) => (
-                  <div key={date} class={`tl-ccol ${cal.day(date).weekend ? 'we' : ''}`} onClick={() => openDay(date)}><PersonCell p={p} d={cal.day(date)} L={L} /></div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        <p class="hint">Nach rechts wischen oder scrollen für weitere Tage. Tag antippen für Details.</p>
-      </div>
-    );
-  }
-
-  let lastMonth = '';
   return (
     <div class="page timeline">
       {bar}
-      <button class="btn small wide-btn" onClick={() => { const a = addDays(from, -30); setFrom(a); }}><Ic n="up" size={14} /> Frühere Tage laden</button>
-      <div class="tl-rows" style={{ '--n': persons.length } as preact.JSX.CSSProperties}>
-        <div class="tl-row tl-head">
-          <div class="tl-hd">Tag</div>
-          {persons.map((p) => <div key={p} class="tl-hp" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>)}
-        </div>
-        {dates.map((date) => {
-          const d = cal.day(date);
-          const ym = date.slice(0, 7);
-          const header = ym !== lastMonth;
-          lastMonth = ym;
-          return (
-            <div key={date} class="tl-group">
-              {header && <div class="tl-month">{MONTHS[Number(date.slice(5, 7)) - 1]} {date.slice(0, 4)}</div>}
-              <div class={`tl-row ${d.weekend ? 'we' : ''}`} onClick={() => openDay(date)}>
-                <DateCell d={d} t={t} L={L} />
-                {persons.map((p) => <PersonCell key={p} p={p} d={d} L={L} />)}
+      <div class="tl-hscroll" ref={scroller}>
+        <div class="tl-cols">
+          <div class="tl-crow tl-chead">
+            <div class="tl-cname" />
+            {dates.map((date) => (
+              <div key={date} class={`tl-ccol ${date.slice(8) === '01' ? 'month-start' : ''}`}>
+                {date.slice(8) === '01' && <i class="tl-cmonth">{MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)} {date.slice(2, 4)}</i>}
+                <DateCell d={cal.day(date)} t={t} L={L} />
               </div>
+            ))}
+            <div ref={sentinel} class="tl-sentinel" />
+          </div>
+          {persons.map((p) => (
+            <div key={p} class="tl-crow">
+              <div class="tl-cname" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>
+              {dates.map((date) => (
+                <div key={date} class={`tl-ccol ${cal.day(date).weekend ? 'we' : ''}`} onClick={() => openDay(date)}><PersonCell p={p} d={cal.day(date)} L={L} /></div>
+              ))}
             </div>
-          );
-        })}
-        <div ref={sentinel} class="tl-sentinel" />
+          ))}
+        </div>
       </div>
-      <p class="hint">Weiter scrollen lädt automatisch weitere Tage. Zeile antippen für Details.</p>
+      <p class="hint">Nach rechts wischen oder scrollen für weitere Tage. Tag antippen für Details.</p>
     </div>
   );
 }

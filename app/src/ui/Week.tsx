@@ -4,7 +4,7 @@ import { needsOwner } from '../core/calendar';
 import { addDays, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { relevant, type PersonFilter } from '../core/filter';
 import type { Layers } from '../core/layers';
-import { PARENTS, PERSONS, type Item, type Kind, type Mode, type PersonId } from '../core/types';
+import { ALL, PARENTS, PERSONS, type Item, type Kind, type Mode, type PersonId } from '../core/types';
 import { haptic } from '../haptics';
 import { setPresenceRange, updateSettings, useStore } from '../store';
 import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
@@ -25,12 +25,14 @@ type Sel = { p: PersonId; date: string } | null;
 type Scope = 'day' | 'rest' | 'week';
 const MODES: (Mode | 'office')[] = ['office', 'homeoffice', 'vacation', 'trip'];
 
-/** Inhalt eines Tages nach Personenfilter */
+/** Inhalt eines Tages nach Personenfilter (Mehrfachauswahl) */
 function filtered(d: DayInfo, f: PersonFilter, L: Layers) {
-  const kid = f === 'ida' || f === 'irma';
+  const sel = f === 'all' ? ALL : f;
+  const kids = sel.filter((p) => !PERSONS[p].adult);
+  const childFilter = f !== 'all' && kids.length > 0;
   return {
-    needs: kid ? d.needs.filter((n) => n.child === f) : d.needs,
-    cover: d.cover.filter((c) => f === 'all' || !PERSONS[f].adult ? relevant(c, f) : true),
+    needs: childFilter ? d.needs.filter((n) => kids.includes(n.child)) : d.needs,
+    cover: d.cover.filter((c) => (childFilter ? relevant(c, f) : true)),
     events: L.events ? d.events.filter((e) => relevant(e, f)) : [],
     info: L.events ? d.info.filter((i) => relevant(i, f)) : [],
     tasks: L.tasks ? d.tasks.filter((t) => relevant(t, f)) : [],
@@ -92,7 +94,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
     haptic('success');
   };
   const current = sel ? cal.day(sel.date).parents[sel.p].status : null;
-  const showRow = (p: PersonId) => f === 'all' || f === p;
+  const showRow = (p: PersonId) => f === 'all' || f.includes(p);
 
   return (
     <div
@@ -224,7 +226,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
           </div>
           <div>
           <h3 class="section">Diese Woche</h3>
-          {agenda.length === 0 && <div class="empty"><Ic n="check" size={22} /><br />Keine Termine oder Betreuungsthemen{f !== 'all' ? ` für ${PERSONS[f].name}` : ''} in dieser Woche.</div>}
+          {agenda.length === 0 && <div class="empty"><Ic n="check" size={22} /><br />Keine Termine oder Betreuungsthemen{f !== 'all' ? ` für ${f.map((p) => PERSONS[p].name).join(', ')}` : ''} in dieser Woche.</div>}
           {agenda.map(({ d, c }) => <AgendaDay key={d.date} d={d} c={c} today={t} openDay={openDay} edit={edit} />)}
           </div>
         </div>
@@ -248,7 +250,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
             })}
           </div>
           <section class="card day-card">
-            <DayContent date={dayDate} edit={edit} add={add} plan={(d) => plan([d])} />
+            <DayContent date={dayDate} edit={edit} add={add} />
           </section>
         </>
       )}

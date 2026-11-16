@@ -1,7 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Coverage, ParentStatus } from '../core/calendar';
-import type { PersonFilter } from '../core/filter';
 import { ALL, PERSONS, type PersonId } from '../core/types';
 import { updateSettings, useStore } from '../store';
 import { Ic } from './icons';
@@ -61,18 +60,26 @@ export function Chips<T extends string>(props: {
 }
 
 /** Personenfilter für Woche, Jahr und Aufgaben (gilt app-weit, bleibt gespeichert). */
+/** Personenfilter mit Mehrfachauswahl: mehrere Familienmitglieder gleichzeitig wählbar, „Alle“ setzt zurück. */
 export function PersonFilterBar() {
   const { settings } = useStore();
-  const opts: { v: PersonFilter; label: string }[] = [{ v: 'all', label: 'Alle' }, ...ALL.map((p) => ({ v: p as PersonFilter, label: PERSONS[p].name }))];
+  const f = settings.filter;
+  const sel = f === 'all' ? ALL : f;
+  const toggle = (p: PersonId) => {
+    const next = sel.includes(p) ? sel.filter((x) => x !== p) : [...sel, p];
+    updateSettings({ filter: next.length === 0 || next.length === ALL.length ? 'all' : next });
+  };
   return (
     <div class="pfilter" role="group" aria-label="Personenfilter">
-      {opts.map((o) => {
-        const on = settings.filter === o.v;
-        const color = o.v === 'all' ? 'var(--accent)' : PERSONS[o.v].color;
+      <button class={`pf ${f === 'all' ? 'on' : ''}`} style={f === 'all' ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' } : undefined} onClick={() => updateSettings({ filter: 'all' })}>
+        Alle
+      </button>
+      {ALL.map((p) => {
+        const on = sel.includes(p);
         return (
-          <button key={o.v} class={`pf ${on ? 'on' : ''}`} style={on ? { background: color, borderColor: color, color: '#fff' } : undefined} onClick={() => updateSettings({ filter: on && o.v !== 'all' ? 'all' : o.v })}>
-            {o.v !== 'all' && !on && <span class="dot" style={{ background: color }} />}
-            {o.label}
+          <button key={p} class={`pf ${on ? 'on' : ''}`} style={on ? { background: PERSONS[p].color, borderColor: PERSONS[p].color, color: '#fff' } : undefined} onClick={() => toggle(p)}>
+            {!on && <span class="dot" style={{ background: PERSONS[p].color }} />}
+            {PERSONS[p].name}
           </button>
         );
       })}

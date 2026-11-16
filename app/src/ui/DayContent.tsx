@@ -13,11 +13,10 @@ interface Props {
   date: string;
   edit: (it: Item) => void;
   add: (k: Kind, date: string) => void;
-  plan: (d: string) => void;
 }
 
 /** Alle Details eines Tages: Status der Eltern, Betreuung, Einträge – im Tagesblatt und in der Tagesansicht der Woche. */
-export function DayContent({ date, edit, add, plan }: Props) {
+export function DayContent({ date, edit, add }: Props) {
   const { cal, readOnly } = useStore();
   const d = cal.day(date);
   const items = cal.items.filter((i) => i.kind !== 'config' && i.kind !== 'shop' && i.kind !== 'birthday' && i.start <= date && i.end >= date);
@@ -68,7 +67,6 @@ export function DayContent({ date, edit, add, plan }: Props) {
       {d.warnings.map((w) => <div key={w} class="line warn"><Ic n="warn" size={16} /> {w}</div>)}
 
       {!readOnly && <div class="actions wrap">
-        <button class="btn primary" onClick={() => plan(date)}><Ic n="year" size={16} /> Mehrere Tage …</button>
         {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
           <button key={k.kind} class="btn" onClick={() => add(k.kind, date)}><Ic n={k.icon} size={16} /> {k.label.split(' / ')[0].split(' (')[0]}</button>
         ))}

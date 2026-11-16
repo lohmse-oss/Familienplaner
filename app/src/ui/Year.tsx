@@ -65,12 +65,15 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
 
   const bridges = useMemo(() => findBridges(cal, year), [cal, year]);
   const bridgeDays = useMemo(() => new Set(bridges.flatMap((b) => [...range(b.gapStart, b.gapEnd)])), [bridges]);
-  const gaps = useMemo(() => gapRuns(cal, `${year}-01-01`, `${year}-12-31`).filter((g) => settings.filter === 'ida' || settings.filter === 'irma' ? g.who.includes(PERSONS[settings.filter].name) : true), [cal, year, settings.filter]);
+  const gaps = useMemo(() => {
+    const kids = settings.filter === 'all' ? [] : settings.filter.filter((p) => !PERSONS[p].adult);
+    return gapRuns(cal, `${year}-01-01`, `${year}-12-31`).filter((g) => kids.length === 0 || kids.some((p) => g.who.includes(PERSONS[p].name)));
+  }, [cal, year, settings.filter]);
   const periods = useMemo(() => PARENTS.flatMap((p) => vacationReport(cal, p, year).periods.map((x) => ({ person: p, ...x }))), [cal, year]);
   const bands = useMemo(() => {
     const out: Record<string, Map<string, Mode>> = {};
     for (const p of PARENTS) {
-      if (settings.filter !== 'all' && settings.filter !== p) {
+      if (settings.filter !== 'all' && !settings.filter.includes(p)) {
         out[p] = new Map();
         continue;
       }

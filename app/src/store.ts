@@ -20,7 +20,6 @@ export interface Settings {
   filter: PersonFilter; // Personenfilter für Kalender und Aufgaben
   calView: CalView; // zuletzt genutzte Kalenderansicht
   layers: Layers; // im Kalender sichtbare Ebenen (Termine, Aufgaben, Geburtstage)
-  timeLayout: 'rows' | 'cols'; // Verlauf: Tage als Zeilen oder als Spalten
   role: 'write' | 'read'; // vom Server: Vollzugriff oder nur Lesen
   me: PersonId; // wer nutzt dieses Handy
   server: string; // z. B. https://familienplaner.<konto>.workers.dev
@@ -58,7 +57,7 @@ let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
 if ((bundled as HolidayData).fetchedAt > hd.fetchedAt) hd = bundled as HolidayData; // neuere App-Version bringt neueren Stand mit
 export const DEFAULT_SERVER = 'https://familienplaner-sync.lohmse.workers.dev';
-let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, timeLayout: 'rows', role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
+let settings: Settings = { widgetStyle: 'dark', notifyPartner: true, theme: 'system', filter: 'all', calView: 'week', layers: ALL_LAYERS, role: 'write', me: 'sebastian', server: DEFAULT_SERVER, code: '', notify: true, ...read<Partial<Settings>>(LS.settings, {}) };
 
 /** Dunkelmodus und Kopfzeilenfarbe (Farbe der Person, der dieses Handy gehört) anwenden */
 function applyLook() {
@@ -70,6 +69,9 @@ function applyLook() {
 }
 // ältere Version: weekView 'day' → calView 'day'
 if ((settings as unknown as { weekView?: string }).weekView === 'day' && settings.calView === 'week') settings.calView = 'day';
+// ältere Versionen: timeLayout (Zeilen/Spalten) entfällt, Personenfilter war Einzelauswahl
+delete (settings as unknown as Record<string, unknown>).timeLayout;
+if (typeof settings.filter === 'string' && settings.filter !== 'all') settings.filter = [settings.filter as PersonId];
 applyLook();
 const configured = () => !!settings.server && !!settings.code;
 let syncState: SyncState = { status: configured() ? 'idle' : 'off' };

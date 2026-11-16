@@ -304,7 +304,7 @@ export function App() {
         <TabBtn on={navActive === 'more'} icon="menu" label="Mehr" onClick={() => go('more')} />
       </nav>
 
-      {sheet?.t === 'day' && <DaySheet date={sheet.date} onClose={close} edit={edit} add={addAt} plan={(d) => plan([d])} />}
+      {sheet?.t === 'day' && <DaySheet date={sheet.date} onClose={close} edit={edit} add={addAt} />}
       {sheet?.t === 'search' && (
         <SearchSheet
           onClose={close}
