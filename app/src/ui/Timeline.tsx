@@ -82,8 +82,8 @@ function DateCell({ d, t, compact, L }: { d: DayInfo; t: string; compact?: boole
 }
 
 /**
- * Verlauf: fortlaufende Tage ohne Wochenumbruch; Personen als Zeilen, Tage als Spalten.
- * Lädt beim Weiterscrollen automatisch weitere Tage nach.
+ * Verlauf: fortlaufende Tage ohne Wochenumbruch, Tabelle transponiert –
+ * Tage als Zeilen, Personen als Spalten. Lädt beim Weiterscrollen automatisch weitere Tage nach.
  */
 export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const { cal, settings } = useStore();
@@ -92,7 +92,6 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
   const [from, setFrom] = useState(weekStart(t));
   const [to, setTo] = useState(addDays(weekStart(t), FIRST_DAYS));
   const sentinel = useRef<HTMLDivElement>(null);
-  const scroller = useRef<HTMLDivElement>(null);
 
   const persons = settings.filter === 'all' ? ALL : settings.filter;
   const dates = useMemo(() => [...range(from, to)], [from, to]);
@@ -112,7 +111,7 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) setTo((cur) => (cur >= maxTo ? cur : addDays(cur, STEP)));
       },
-      { root: scroller.current, rootMargin: '400px' },
+      { rootMargin: '400px' },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -136,32 +135,34 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
     </div>
   );
 
+  let lastMonth = '';
   return (
     <div class="page timeline">
       {bar}
-      <div class="tl-hscroll" ref={scroller}>
-        <div class="tl-cols">
-          <div class="tl-crow tl-chead">
-            <div class="tl-cname" />
-            {dates.map((date) => (
-              <div key={date} class={`tl-ccol ${date.slice(8) === '01' ? 'month-start' : ''}`}>
-                {date.slice(8) === '01' && <i class="tl-cmonth">{MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)} {date.slice(2, 4)}</i>}
-                <DateCell d={cal.day(date)} t={t} L={L} />
-              </div>
-            ))}
-            <div ref={sentinel} class="tl-sentinel" />
-          </div>
-          {persons.map((p) => (
-            <div key={p} class="tl-crow">
-              <div class="tl-cname" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>
-              {dates.map((date) => (
-                <div key={date} class={`tl-ccol ${cal.day(date).weekend ? 'we' : ''}`} onClick={() => openDay(date)}><PersonCell p={p} d={cal.day(date)} L={L} /></div>
-              ))}
-            </div>
-          ))}
+      <button class="btn small wide-btn" onClick={() => { const a = addDays(from, -30); setFrom(a); }}><Ic n="up" size={14} /> Frühere Tage laden</button>
+      <div class="tl-rows" style={{ '--n': persons.length } as preact.JSX.CSSProperties}>
+        <div class="tl-row tl-head">
+          <div class="tl-hd">Tag</div>
+          {persons.map((p) => <div key={p} class="tl-hp" style={{ color: PERSONS[p].color }}><i class="dot" style={{ background: PERSONS[p].color }} />{PERSONS[p].name}</div>)}
         </div>
+        {dates.map((date) => {
+          const d = cal.day(date);
+          const ym = date.slice(0, 7);
+          const header = ym !== lastMonth;
+          lastMonth = ym;
+          return (
+            <div key={date} class="tl-group">
+              {header && <div class="tl-month">{MONTHS[Number(date.slice(5, 7)) - 1]} {date.slice(0, 4)}</div>}
+              <div class={`tl-row ${d.weekend ? 'we' : ''}`} onClick={() => openDay(date)}>
+                <DateCell d={d} t={t} L={L} />
+                {persons.map((p) => <PersonCell key={p} p={p} d={d} L={L} />)}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={sentinel} class="tl-sentinel" />
       </div>
-      <p class="hint">Nach rechts wischen oder scrollen für weitere Tage. Tag antippen für Details.</p>
+      <p class="hint">Weiter scrollen lädt automatisch weitere Tage. Zeile antippen für Details.</p>
     </div>
   );
 }
