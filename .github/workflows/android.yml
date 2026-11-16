@@ -38,14 +38,15 @@ jobs:
       - name: App bauen
         run: npm run build
         env:
-          VERSION_NAME: ${{ inputs.version || format('0.1.{0}', github.run_number) }}
+          # Versions-Release (Tag v* oder manueller Lauf): Tag-/Versionsnummer, sonst 0.1.<Laufnummer> – landet in „Über diese App“
+          VERSION_NAME: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/v') && substring(github.ref_name, 1, 99)) || format('0.1.{0}', github.run_number) }}
       - run: npx cap sync android
 
       - name: APK bauen
         working-directory: app/android
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: ${{ inputs.version || format('0.1.{0}', github.run_number) }}
+          VERSION_NAME: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/v') && substring(github.ref_name, 1, 99)) || format('0.1.{0}', github.run_number) }}
         run: ./gradlew assembleDebug --no-daemon
 
       - name: APK umbenennen
