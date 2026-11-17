@@ -430,6 +430,41 @@ describe('Widget-Daten', () => {
     ]);
     expect(w.days[5]).toMatchObject({ date: '2027-07-17', n: 0, cov: 'none' }); // Wochenende, nichts los
   });
+
+  it('liefert Termindetails (entries) für Android Auto, je Tag ganztägige zuerst', () => {
+    const cal = buildCalendar(
+      [
+        item({ kind: 'event', sub: 'arzt', title: 'Kinderarzt', time: '15:30', endTime: '16:00', place: 'Praxis', persons: ['irma'], start: '2027-07-14' }),
+        item({ kind: 'event', sub: 'schule', title: 'Elternabend', time: '18:00', persons: ['irma'], owner: 'betty', start: '2027-07-12' }),
+        item({ kind: 'presence', mode: 'homeoffice', persons: ['betty'], start: '2027-07-12' }),
+        item({ kind: 'presence', mode: 'trip', persons: ['sebastian'], title: 'Messe', start: '2027-07-13', end: '2027-07-14' }),
+        item({ kind: 'task', title: 'Heute fällig', start: '2027-07-12' }),
+        item({ kind: 'birthday', title: 'Irma', start: '2010-07-14' }),
+      ],
+      data,
+    );
+    const w = buildWidgetData(cal, '2027-07-12', new Date(2027, 6, 12, 8, 5));
+    // chronologisch über die Tage, innerhalb des Tages nach Zeit (leer = ganztägig zuerst)
+    expect(w.entries.every((e, i) => i === 0 || w.entries[i - 1].date <= e.date)).toBe(true);
+    const day12 = w.entries.filter((e) => e.date === '2027-07-12');
+    expect(day12.map((e) => [e.time, e.title, e.kind])).toEqual([
+      ['', 'Heute fällig', 'task'],
+      ['', 'Homeoffice Betty', 'presence'],
+      ['', 'Betreuung: Ida', 'care'],
+      ['18:00', 'Elternabend', 'event'],
+    ]);
+    expect(day12[3].detail).toBe('Irma');
+    const day14 = w.entries.filter((e) => e.date === '2027-07-14');
+    expect(day14.map((e) => [e.time, e.title, e.kind])).toEqual([
+      ['', 'Irma', 'birthday'],
+      ['', 'Dienstreise Sebastian', 'presence'],
+      ['', 'Betreuung: Ida', 'care'],
+      ['15:30–16:00', 'Kinderarzt', 'event'],
+    ]);
+    expect(day14[0].detail).toBe('17 Jahre');
+    expect(day14[1].detail).toContain('Messe');
+    expect(day14[3].detail).toBe('Irma · Praxis');
+  });
 });
 
 describe('Änderungs-Hinweise', () => {

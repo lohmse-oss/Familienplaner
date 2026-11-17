@@ -102,6 +102,12 @@ als Kreise mit Zahlen. *Leerer Ring* = nichts los · *gefüllter Kreis* = es ste
 *roter Kreis* = Betreuung ungeklärt (beim Aufgaben-Kreis: heute fällig oder überfällig) · *Kreis mit rotem Rand* = Betreuung nur per Homeoffice. **Hintergrund wählbar:** Transparent, Glas, Dunkel, Hell (Einstellungen → Darstellung & Widget).
 Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start.
 
+## Android Auto
+* Die App meldet sich per **CarAppService** (androidx.car.app:app:1.4.0, Kategorie POI) im Auto-Launcher. Android Auto erlaubt solche Template-Apps **nur im geparkten Zustand** – reine Übersicht, kein Bearbeiten im Auto.
+* Angezeigt werden dieselben Daten, die die App für das Widget in die SharedPreferences legt (nächste 14 Tage inkl. aller Termindetails): **Heute/Morgen/Übermorgen**, **weitere Tage**, **Einkaufsliste**, **Aufgaben** – jeweils mit Betreuungs-Ampel („ungeklärt!“ = rot).
+* Antippen öffnet die App auf dem Handy über Direktlinks (`de.familie.planer://day/…`, `://shop`, `://tasks`).
+* Technik: `minSdk` auf 23 angehoben (Android Auto braucht sowieso API 23+); 1.4.0 ist die letzte Car-App-Version, die mit compileSdk 34 baut. Debug-Builds erlauben auch den Desktop Head Unit als Host (Testen ohne Auto).
+
 ## Hinweise, wenn der Partner etwas einträgt
 * Jeder Eintrag trägt, wer ihn zuletzt gespeichert hat. Der Server beschreibt Änderungen lesbar („Sebastian hat eingetragen: Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln“).
 * **App geöffnet:** Hinweis-Banner oben (tippen springt zum Tag). **App im Hintergrund:** natives Android-Hintergrund-Abgleichen (WorkManager, ca. alle 15 Minuten)

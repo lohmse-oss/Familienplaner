@@ -33,6 +33,8 @@ Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
 
 **Widget:** Homescreen lange drücken → Widgets → „Familienplaner Heute“ (Nothing-Stil, nur Grafik; Hintergrund transparent/Glas/dunkel/hell unter *Mehr → Einstellungen → Darstellung & Widget*).
 
+**Android Auto:** Die App meldet sich per CarAppService im Auto-Launcher (Symbol „Familienplaner“) und zeigt – nur bei geparktem Fahrzeug, so erlaubt Android Auto Nicht-Navigations-Apps – **heute, morgen, übermorgen** mit allen Terminen samt Uhrzeit sowie **weitere Tage, Einkaufsliste und Aufgaben** (inkl. „Betreuung ungeklärt“). Die Daten sind derselbe Stand wie im Widget (aktualisiert sich, sobald die App einmal läuft). Tippen öffnet die App auf dem Handy.
+
 **Hinweise vom Partner:** Beim ersten Start die Benachrichtigungen erlauben. In Android ggf. den Akku-Sparmodus für die App lockern, damit der Hintergrund-Abgleich (ca. alle 15 Min.) zuverlässig läuft.
 
 **Lesezugriff (z. B. Ida):** APK auf ihrem Handy installieren, unter *Mehr → Einstellungen → Ich & Zugriff* „Ida“ wählen und unter *Synchronisierung* den **Lese-Code** eintragen.
