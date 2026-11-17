@@ -107,6 +107,7 @@ Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; da
 * Angezeigt werden dieselben Daten, die die App für das Widget in die SharedPreferences legt (nächste 14 Tage inkl. aller Termindetails): **Heute/Morgen/Übermorgen**, **weitere Tage**, **Einkaufsliste**, **Aufgaben** – jeweils mit Betreuungs-Ampel („ungeklärt!“ = rot).
 * Antippen öffnet die App auf dem Handy über Direktlinks (`de.familie.planer://day/…`, `://shop`, `://tasks`).
 * Technik: `minSdk` auf 23 angehoben (Android Auto braucht sowieso API 23+); 1.4.0 ist die letzte Car-App-Version, die mit compileSdk 34 baut. Debug-Builds erlauben auch den Desktop Head Unit als Host (Testen ohne Auto).
+* **Sichtbarkeit im echten Auto:** Google lässt Car-App-Library-Apps im realen Fahrzeug nur aus vertrauenswürdigen Quellen (Play) zu; der AA-Entwickler-Schalter „Unbekannte Quellen“ greift dafür ausdrücklich **nicht**. Deshalb zusätzlich `android.intent.category.CAR_LAUNCHER` an der MainActivity: damit erscheint die sideloadete APK als **Parked-App** (Voraussetzung: „Unbekannte Quellen“ in den AA-Entwickleroptionen + Haken unter „Launcher anpassen“), nutzbar nur bei geparktem Fahrzeug. Die Template-Oberfläche sieht man im Desktop Head Unit (DHU) und bei Play-Verteilung (Internal App Sharing / Internal Test Track).
 
 ## Hinweise, wenn der Partner etwas einträgt
 * Jeder Eintrag trägt, wer ihn zuletzt gespeichert hat. Der Server beschreibt Änderungen lesbar („Sebastian hat eingetragen: Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln“).

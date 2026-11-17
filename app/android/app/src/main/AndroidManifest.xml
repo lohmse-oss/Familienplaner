@@ -25,6 +25,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Parked-App-Eintrag: macht die sideloadete APK in Android Auto sichtbar
+                     (Unknown sources in den AA-Entwickleroptionen vorausgesetzt, nur geparkt nutzbar) -->
+                <category android:name="android.intent.category.CAR_LAUNCHER" />
             </intent-filter>
 
             <!-- Direktlinks de.familie.planer://... aus Widget-Kreisen und Launcher-Schnellaktionen -->
