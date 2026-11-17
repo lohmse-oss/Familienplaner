@@ -44,6 +44,14 @@ repositories {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        // androidx.car.app zieht das leere listenablefuture:9999.0 (Guava-Platzhalter) mit –
+        // WorkManager braucht aber die echte Klasse com.google.common.util.concurrent.ListenableFuture
+        force 'com.google.guava:listenablefuture:1.0'
+    }
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"

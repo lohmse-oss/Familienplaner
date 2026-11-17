@@ -12,6 +12,7 @@ import androidx.car.app.Session;
 import androidx.car.app.model.ItemList;
 import androidx.car.app.model.ListTemplate;
 import androidx.car.app.model.Row;
+import androidx.car.app.model.Template;
 import androidx.car.app.validation.HostValidator;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -38,7 +39,7 @@ public class FamilyCarAppService extends CarAppService {
     public HostValidator createHostValidator() {
         // Debug-Builds dürfen auch den Desktop Head Unit (Test-Host) bedienen
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) return HostValidator.ALLOW_ALL_HOSTS_VALIDATOR;
-        return super.createHostValidator();
+        return new HostValidator.Builder(getApplicationContext()).addAllowedHosts(androidx.car.app.R.array.hosts_allowlist_sample).build();
     }
 
     /** Widget-Daten aus den SharedPreferences (null = App wurde noch nie gestartet). */
@@ -112,6 +113,8 @@ public class FamilyCarAppService extends CarAppService {
 
     /** Startseite: heute, morgen, übermorgen + weitere Tage, Einkaufsliste, Aufgaben. Max. 6 Reihen (Host-Limit). */
     static class RootScreen extends Screen {
+        private final Template template;
+
         RootScreen(CarContext carContext) {
             super(carContext);
             JSONObject root = loadData(carContext);
@@ -120,7 +123,7 @@ public class FamilyCarAppService extends CarAppService {
             if (days == null || days.length() == 0) {
                 list.addItem(new Row.Builder()
                         .setTitle("App öffnen")
-                        .setSubtitle("Noch keine Daten – einmal auf dem Handy öffnen")
+                        .addText("Noch keine Daten – einmal auf dem Handy öffnen")
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://today"))
                         .build());
             } else {
@@ -135,7 +138,7 @@ public class FamilyCarAppService extends CarAppService {
                     String sub = (n == 0 ? "nichts geplant" : n + (n == 1 ? " Eintrag" : " Einträge")) + covNote(d.optString("cov", "none"));
                     list.addItem(new Row.Builder()
                             .setTitle(title)
-                            .setSubtitle(sub)
+                            .addText(sub)
                             .setOnClickListener(() -> getScreenManager().push(new DayScreen(getCarContext(), date)))
                             .build());
                 }
@@ -143,13 +146,13 @@ public class FamilyCarAppService extends CarAppService {
                 if (moreFrom < days.length()) {
                     list.addItem(new Row.Builder()
                             .setTitle("Weitere Tage")
-                            .setSubtitle("Alle " + days.length() + " Tage im Blick")
+                            .addText("Alle " + days.length() + " Tage im Blick")
                             .setOnClickListener(() -> getScreenManager().push(new DaysScreen(getCarContext(), moreFrom)))
                             .build());
                 }
                 list.addItem(new Row.Builder()
                         .setTitle("Einkaufsliste")
-                        .setSubtitle(root.optInt("shopN", 0) + " offen")
+                        .addText(root.optInt("shopN", 0) + " offen")
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://shop"))
                         .build());
                 int taskN = root.optInt("taskN", 0);
@@ -160,16 +163,24 @@ public class FamilyCarAppService extends CarAppService {
                 if (overdue > 0) tsub += " · " + overdue + " überfällig";
                 list.addItem(new Row.Builder()
                         .setTitle("Aufgaben")
-                        .setSubtitle(tsub)
+                        .addText(tsub)
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://tasks"))
                         .build());
             }
-            setTemplate(new ListTemplate.Builder().setTitle("Familienplaner").setSingleList(list.build()).build());
+            template = new ListTemplate.Builder().setTitle("Familienplaner").setSingleList(list.build()).build();
+        }
+
+        @NonNull
+        @Override
+        public Template onGetTemplate() {
+            return template;
         }
     }
 
     /** Ein Tag im Detail: alle Einträge chronologisch (max. 5 + Hinweis auf weitere). */
     static class DayScreen extends Screen {
+        private final Template template;
+
         DayScreen(CarContext carContext, String date) {
             super(carContext);
             JSONObject root = loadData(carContext);
@@ -190,7 +201,7 @@ public class FamilyCarAppService extends CarAppService {
                     String sub = detail.isEmpty() ? kl : (kl.isEmpty() ? detail : kl + " · " + detail);
                     list.addItem(new Row.Builder()
                             .setTitle((time.isEmpty() ? "" : time + "  ") + e.optString("title", ""))
-                            .setSubtitle(sub)
+                            .addText(sub)
                             .setOnClickListener(() -> openApp(carContext, "de.familie.planer://day/" + date))
                             .build());
                 }
@@ -198,7 +209,7 @@ public class FamilyCarAppService extends CarAppService {
             if (total > shown) {
                 list.addItem(new Row.Builder()
                         .setTitle("… und " + (total - shown) + " weitere")
-                        .setSubtitle("In der App ansehen")
+                        .addText("In der App ansehen")
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://day/" + date))
                         .build());
             }
@@ -209,12 +220,20 @@ public class FamilyCarAppService extends CarAppService {
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://day/" + date))
                         .build());
             }
-            setTemplate(new ListTemplate.Builder().setTitle(dayLabel(date)).setSingleList(list.build()).build());
+            template = new ListTemplate.Builder().setTitle(dayLabel(date)).setSingleList(list.build()).build();
+        }
+
+        @NonNull
+        @Override
+        public Template onGetTemplate() {
+            return template;
         }
     }
 
     /** Weitere Tage ab Index `from` (je 5 + "Weiter"). */
     static class DaysScreen extends Screen {
+        private final Template template;
+
         DaysScreen(CarContext carContext, int from) {
             super(carContext);
             JSONObject root = loadData(carContext);
@@ -231,7 +250,7 @@ public class FamilyCarAppService extends CarAppService {
                     int n = d.optInt("n", 0);
                     list.addItem(new Row.Builder()
                             .setTitle(dayLabel(date))
-                            .setSubtitle((n == 0 ? "nichts geplant" : n + (n == 1 ? " Eintrag" : " Einträge")) + covNote(d.optString("cov", "none")))
+                            .addText((n == 0 ? "nichts geplant" : n + (n == 1 ? " Eintrag" : " Einträge")) + covNote(d.optString("cov", "none")))
                             .setOnClickListener(() -> getScreenManager().push(new DayScreen(getCarContext(), date)))
                             .build());
                 }
@@ -249,7 +268,13 @@ public class FamilyCarAppService extends CarAppService {
                         .setOnClickListener(() -> openApp(carContext, "de.familie.planer://today"))
                         .build());
             }
-            setTemplate(new ListTemplate.Builder().setTitle("Nächste Tage").setSingleList(list.build()).build());
+            template = new ListTemplate.Builder().setTitle("Nächste Tage").setSingleList(list.build()).build();
+        }
+
+        @NonNull
+        @Override
+        public Template onGetTemplate() {
+            return template;
         }
     }
 }
