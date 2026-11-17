@@ -25,9 +25,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <!-- Parked-App-Eintrag: macht die sideloadete APK in Android Auto sichtbar
-                     (Unknown sources in den AA-Entwickleroptionen vorausgesetzt, nur geparkt nutzbar) -->
-                <category android:name="android.intent.category.CAR_LAUNCHER" />
             </intent-filter>
 
             <!-- Direktlinks de.familie.planer://... aus Widget-Kreisen und Launcher-Schnellaktionen -->
@@ -78,6 +75,16 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Android Auto (Sideload): Medien-App-Eintrag. Nur so listet Android Auto die per APK installierte App im Launcher
+             („Launcher anpassen“, mit „Unbekannte Quellen“ in den AA-Entwickleroptionen). Capability: <uses name="media"/> -->
+        <service
+            android:name=".FamilyMediaBrowserService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
         <!-- Android Auto: CarAppService – liest die Widget-Daten und zeigt den Plan im Auto (nur geparkt) -->
         <service
             android:name=".FamilyCarAppService"
@@ -91,6 +98,13 @@
                 android:value="1" />
         </service>
     </application>
+
+    <!-- Sprachausgabe (Vorlesen in Android Auto) auch für nicht voreingestellte TTS-Engines sichtbar machen -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <!-- Permissions -->
 

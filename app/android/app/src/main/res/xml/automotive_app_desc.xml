@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android Auto: Wir nutzen die Template-UI der Car App Library (kein eigener Auto-Screen). -->
+<!-- Android Auto: "media" = Medien-App (MediaBrowserService, auch per Sideload im Launcher sichtbar),
+     "template" = Template-UI der Car App Library (CarAppService, im echten Auto nur bei Play-Verteilung). -->
 <automotive-app>
+    <uses name="media" />
     <uses name="template" />
 </automotive-app>

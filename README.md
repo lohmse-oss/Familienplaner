@@ -33,7 +33,12 @@ Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
 
 **Widget:** Homescreen lange drücken → Widgets → „Familienplaner Heute“ (Nothing-Stil, nur Grafik; Hintergrund transparent/Glas/dunkel/hell unter *Mehr → Einstellungen → Darstellung & Widget*).
 
-**Android Auto:** Die App ist für Android Auto freigeschaltet (CarAppService-Template + Parked-App). Da die APK **per Sideload** installiert wird und Google im echten Auto nur Apps aus vertrauenswürdigen Quellen (Play) für Car-App-Library-Apps zulässt, muss einmalig in der **Android-Auto-App auf dem Handy**: Einstellungen → Über → „Version und Berechtigungen“ 10× tippen → 3-Punkte-Menü → „Entwickleroptionen“ → **„Unbekannte Quellen“ aktivieren**. Danach Auto neu verbinden und in den Einstellungen unter **„Launcher anpassen“** den Haken bei „Familienplaner“ setzen. Die App erscheint dann im Auto-Launcher und ist **nur bei geparktem Fahrzeug** nutzbar: als Parked-App öffnet sie die App direkt auf dem Autodisplay; die Template-Oberfläche (Heute/Morgen/Übermorgen mit allen Terminen samt Uhrzeit, weitere Tage, Einkaufsliste, Aufgaben inkl. „Betreuung ungeklärt“) nutzt dieselben Daten wie das Widget und wird im Desktop Head Unit (DHU, Test ohne Auto) bzw. bei Play-Verteilung angezeigt. Tippen öffnet ansonsten die App auf dem Handy.
+**Android Auto:** Die App meldet sich bei Android Auto als **Medien-App** („Familienplaner“). Nur so listet Android Auto eine per Sideload installierte APK im Launcher – Template-Apps (CarAppService) erscheinen im echten Auto ausschließlich bei Verteilung über Google Play, und `CAR_LAUNCHER` gilt bei Android Auto nur für Spiele. Einrichtung (einmalig, am Handy):
+1. **Android-Auto-App** → Einstellungen → ganz unten *Version* 10× antippen → Entwicklermodus bestätigen → ⋮-Menü → **Entwickleroptionen** → **„Unbekannte Quellen“** aktivieren.
+2. Android Auto → Einstellungen → **„Launcher anpassen“** → Haken bei **Familienplaner** setzen.
+3. Einmal die Familienplaner-App öffnen (legt die Daten ab) und das Auto neu verbinden.
+
+Im Auto: *Familienplaner* im Launcher (Medien) → Heute / Morgen / Übermorgen / Weitere Tage / Einkaufsliste / Aufgaben (mit Betreuungs-Ampel, „ungeklärt!“). Ein Tipp auf einen Eintrag oder auf „Tag vorlesen“ **liest ihn per Sprachausgabe vor**. Zusätzlich ist ein CarAppService (Template-UI, Kategorie POI) enthalten – sichtbar im Desktop Head Unit (DHU) und bei Play-Verteilung (Internal App Sharing / Test-Track).
 
 **Hinweise vom Partner:** Beim ersten Start die Benachrichtigungen erlauben. In Android ggf. den Akku-Sparmodus für die App lockern, damit der Hintergrund-Abgleich (ca. alle 15 Min.) zuverlässig läuft.
 
