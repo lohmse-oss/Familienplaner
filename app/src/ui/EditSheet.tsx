@@ -1,7 +1,7 @@
-import { useState } from 'preact/hooks';
+import { useUiState } from '../resume';
 import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
 import { deleteItem, newId, saveItem, useStore } from '../store';
-import { diff, today } from '../core/dates';
+import { addDays, diff, today } from '../core/dates';
 import { Chips, DateInput, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
@@ -46,7 +46,8 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   const { settings } = useStore();
   const isNew = !initial.id;
   const k = initial.kind;
-  const [d, setD] = useState<Item>(() => ({
+  // Entwurf wird laufend gesichert: Wechselt man kurz in eine andere App und Android startet den Planer neu, ist die Eingabe noch da.
+  const [d, setD] = useUiState<Item>('edit', () => ({
     id: initial.id ?? newId(),
     updated: 0,
     start: initial.start ?? today(),
@@ -57,9 +58,11 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     sub: k === 'event' ? (initial.sub ?? 'arzt') : initial.sub,
     ...initial,
     kind: k,
-  }));
+  }), { clearOnUnmount: true, accept: (x) => x.kind === k && (initial.id ? x.id === initial.id : !x.created) });
   const set = (patch: Partial<Item>) => setD((x) => ({ ...x, ...patch }));
-  const single = k === 'event' || k === 'task' || k === 'birthday';
+  // Termine: eintägig, mehrtägig (Festival, Ausflug) oder wiederkehrend (dann ist end das Serienende)
+  const multi = k === 'event' && !d.recur && d.end > d.start;
+  const single = (k === 'event' && !multi) || k === 'task' || k === 'birthday';
   const info = KINDS.find((x) => x.kind === k)!;
 
   const valid = (() => {
@@ -144,8 +147,11 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
             <Chips<string>
               options={[{ value: '', label: 'keine' }, ...(Object.keys(RECUR_LABEL) as Recur[]).map((r) => ({ value: r, label: RECUR_LABEL[r] }))]}
               value={[d.recur ?? '']}
-              onChange={(v) => set({ recur: (v[0] || undefined) as Recur | undefined })}
+              onChange={(v) => set({ recur: (v[0] || undefined) as Recur | undefined, end: d.start })}
             />
+            {!d.recur && (
+              <label class="check"><input type="checkbox" checked={multi} onChange={(e) => set({ end: (e.target as HTMLInputElement).checked ? addDays(d.start, 1) : d.start })} /> mehrtägig (z. B. Festival, Ausflug, Klassenfahrt)</label>
+            )}
             {d.recur && d.end <= d.start && <p class="hint">Ohne Enddatum wiederholt sich der Termin bis zum Anzeigelimit (400 Tage ab erstem Vorkommen).</p>}
           </>
         )}
@@ -187,24 +193,24 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
         <div class="row">
           <div>
             <label>{single ? (k === 'task' ? 'Fällig am' : k === 'birthday' ? 'Geburtsdatum' : 'Datum') : 'Von'}</label>
-            <DateInput value={d.start} onChange={(v) => set({ start: v, end: d.end < v ? v : d.end })} />
+            <DateInput value={d.start} onChange={(v) => set({ start: v, end: multi ? addDays(v, diff(d.start, d.end)) : d.end < v ? v : d.end })} />
             {diff(d.start, d.end) > 400 && <p class="hint neg">Zeitraum länger als 400 Tage – ab Tag 401 wird der Eintrag nicht mehr angezeigt.</p>}
           </div>
           {!single && (
             <div>
               <label>Bis (einschließlich)</label>
-              <DateInput value={d.end} min={d.start} onChange={(v) => set({ end: v })} />
+              <DateInput value={d.end} min={k === 'event' ? addDays(d.start, 1) : d.start} onChange={(v) => set({ end: v })} />
             </div>
           )}
           {k === 'event' && (
             <div>
-              <label>Uhrzeit</label>
+              <label>{multi ? 'Beginn (Uhr)' : 'Uhrzeit'}</label>
               <input type="time" value={d.time ?? ''} onInput={(e) => set({ time: (e.target as HTMLInputElement).value || undefined })} />
             </div>
           )}
           {k === 'event' && (
             <div>
-              <label>Bis (Uhr, optional)</label>
+              <label>{multi ? 'Ende am letzten Tag (Uhr)' : 'Bis (Uhr, optional)'}</label>
               <input type="time" value={d.endTime ?? ''} onInput={(e) => set({ endTime: (e.target as HTMLInputElement).value || undefined })} />
             </div>
           )}

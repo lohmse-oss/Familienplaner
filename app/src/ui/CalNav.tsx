@@ -5,13 +5,13 @@ import { LayerMenu } from './LayerMenu';
 import { Ic, type IconName } from './icons';
 
 const VIEWS: { v: CalView; label: string; icon: IconName }[] = [
-  { v: 'week', label: 'Woche', icon: 'week' },
   { v: 'day', label: 'Tag', icon: 'clock' },
-  { v: 'timeline', label: 'Verlauf', icon: 'rows' },
+  { v: 'week', label: 'Woche', icon: 'week' },
   { v: 'year', label: 'Jahr', icon: 'year' },
+  { v: 'timeline', label: 'Verlauf', icon: 'rows' },
 ];
 
-/** Kopf aller Kalenderansichten: Ansicht wählen (Woche · Tag · Verlauf · Jahr) und Personenfilter. */
+/** Kopf aller Kalenderansichten: Ansicht wählen (Tag · Woche · Jahr · Verlauf) und Personenfilter. */
 export function CalNav() {
   const { settings } = useStore();
   return (

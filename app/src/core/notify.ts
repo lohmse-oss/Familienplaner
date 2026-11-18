@@ -1,4 +1,4 @@
-import { needsOwner, type Calendar, type DayInfo } from './calendar';
+import { evText, isMultiDay, needsOwner, type Calendar, type DayInfo } from './calendar';
 import { addDays, fmtDays, fmtRange, isoWeek, range, WD, dow } from './dates';
 import { budget } from './report';
 import { PARENTS, PERSONS } from './types';
@@ -26,7 +26,7 @@ export function describeDay(d: DayInfo): string[] {
   for (const e of d.events) {
     const who = e.persons.map(name).join('/');
     const owner = e.owner ? `, ${name(e.owner)} kümmert sich` : needsOwner(e) ? ', ⚠ noch niemand zuständig' : '';
-    out.push(`${e.time ? e.time + ' ' : ''}${e.title ?? 'Termin'}${who ? ` (${who})` : ''}${owner}`);
+    out.push(`${evText(e, d.date)}${who ? ` (${who})` : ''}${owner}`);
   }
   for (const n of d.needs) out.push(`${name(n.child)}: ${n.reason}`);
   if (d.coverage === 'gap') out.push('⚠ Betreuung ungeklärt');
@@ -52,6 +52,7 @@ export function buildNotices(cal: Calendar, now: Date, today: string): Notice[] 
       push(local(date, '07:00'), 'Heute', lines.join('\n'));
     }
     for (const e of d.events) {
+      if (isMultiDay(e) && date !== e.start) continue; // mehrtägig: nur vor dem ersten Tag erinnern
       const who = e.persons.map(name).join('/');
       const warn = needsOwner(e) && !e.owner ? ' – ⚠ noch niemand zuständig' : e.owner ? ` – ${name(e.owner)} kümmert sich` : '';
       const label = `${e.title ?? 'Termin'}${who ? ` (${who})` : ''}${warn}`;

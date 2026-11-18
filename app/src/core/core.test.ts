@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
-import { buildCalendar } from './calendar';
+import { buildCalendar, dayTag, evText, isMultiDay } from './calendar';
 import { addDays, ageOn, contiguousRuns, dayOfYear, dow, isoWeek, parseUserDate, planningYear, weekStart } from './dates';
 import { annotateChanges, describeChange } from './describe';
 import { marksOf } from './layers';
@@ -524,5 +524,30 @@ describe('Direktlinks', () => {
     expect(parseLink('de.familie.planer://day/morgen')).toBeNull();
     expect(parseLink('https://example.org/shop')).toBeNull();
     expect(parseLink('de.familie.planer://unbekannt')).toBeNull();
+  });
+});
+
+describe('Mehrtägige Termine (Festival)', () => {
+  const fest = item({ kind: 'event', title: 'Festival', start: '2027-07-09', end: '2027-07-11', time: '16:00' });
+  const cal = buildCalendar([fest], data);
+  it('erscheint an jedem Tag des Zeitraums', () => {
+    for (const d of ['2027-07-09', '2027-07-10', '2027-07-11']) expect(cal.day(d).events.map((e) => e.id)).toContain(fest.id);
+    expect(cal.day('2027-07-12').events).toHaveLength(0);
+  });
+  it('Uhrzeit nur am ersten Tag, danach „Tag x/y“', () => {
+    expect(isMultiDay(fest)).toBe(true);
+    expect(evText(fest, '2027-07-09')).toBe('16:00 Festival (Tag 1/3)');
+    expect(evText(fest, '2027-07-10')).toBe('Festival (Tag 2/3)');
+    expect(dayTag(item({ kind: 'event', start: '2027-07-09' }), '2027-07-09')).toBe('');
+  });
+  it('wiederkehrender Termin ist nicht mehrtägig', () => {
+    expect(isMultiDay(item({ kind: 'event', start: '2027-07-05', end: '2027-09-05', recur: 'weekly' }))).toBe(false);
+  });
+  it('erinnert nur vor dem ersten Tag', () => {
+    const morgen = buildNotices(cal, new Date('2027-07-01T10:00:00'), '2027-07-01').filter((x) => x.title === 'Morgen');
+    expect(morgen).toHaveLength(1);
+  });
+  it('Beschreibung nennt den ganzen Zeitraum', () => {
+    expect(describeChange({ ...fest, created: 1, updated: 1 })!.text).toContain('09.07.–So 11.07.2027');
   });
 });

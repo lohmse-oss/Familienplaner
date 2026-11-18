@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useUiState } from '../resume';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
 import { addShop, removeShop, sync, toggleShop, useStore } from '../store';
@@ -9,7 +10,7 @@ const rel = (a: Item, b: Item) => (b.ts ?? 0) - (a.ts ?? 0);
 /** Fließende Einkaufsliste: eintragen, antippen = quittiert (wandert nach unten), Vorschläge aus der Historie. */
 export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
   const { items, settings, readOnly } = useStore();
-  const [text, setText] = useState('');
+  const [text, setText] = useUiState('shop.text', ''); // übersteht App-Wechsel
   const [showDone, setShowDone] = useState(false);
   const [note, setNote] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);

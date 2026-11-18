@@ -419,7 +419,7 @@ h1, h2, h3 { margin: 0; }
 .tl-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
 .tl-bar input[type=date] { border: 1.5px solid var(--line); background: var(--card); border-radius: 10px; padding: 6px 8px; width: 150px; color: var(--ink); }
 .wide-btn { width: 100%; margin-bottom: 8px; }
-.tl-rows { --date-w: 62px; }
+.tl-rows { --date-w: 76px; }
 .tl-row { display: grid; grid-template-columns: var(--date-w) repeat(var(--n, 4), minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--line); background: var(--card); cursor: pointer; }
 .tl-row.we { background: color-mix(in srgb, var(--card) 80%, var(--bg)); }
 .tl-head { position: sticky; top: calc(46px + var(--safe-t)); z-index: 4; cursor: default; border-radius: 12px 12px 0 0; border-bottom: 2px solid var(--line); }
@@ -444,6 +444,23 @@ h1, h2, h3 { margin: 0; }
 .ic.faint { opacity: .35; }
 .tl-txt { display: none; }
 .tl-flag { display: none; }
+/* Verlauf = Jahresplanung: alle Zeilen gleich hoch, Kalenderwochen abwechselnd getönt und mit Linie getrennt */
+.tl-rows { --row-h: 46px; }
+.tl-row:not(.tl-head) { height: var(--row-h); overflow: hidden; }
+.tl-row:not(.tl-head) > * { overflow: hidden; }
+.tl-row.kw-b { background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+.tl-row.we { background: color-mix(in srgb, var(--card) 80%, var(--bg)); }
+.tl-row.we.kw-b { background: color-mix(in srgb, var(--accent) 7%, color-mix(in srgb, var(--card) 80%, var(--bg))); }
+.tl-row.wk-start { border-top: 2px solid color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.tl-sub { display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.tl-sub > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tl-row { position: relative; }
+.tl-row.ho, .tl-row.ho.kw-b { background: color-mix(in srgb, var(--holiday) 55%, var(--card)); }
+/* Feiertagsname quer über die Personenspalten (dort ist an Feiertagen ohnehin frei) */
+.tl-holband { position: absolute; left: calc(var(--date-w) + 8px); right: 8px; bottom: 5px; font-size: 11px; font-weight: 700; color: var(--holiday-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.tl-school { font-size: 10.5px; color: var(--school-ink); }
+.tl-dn .tl-kw { margin-left: auto; }
+.tl-ev { -webkit-line-clamp: 1; word-break: break-all; }
 .tl-hscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card); -webkit-overflow-scrolling: touch; }
 .tl-cols { display: block; width: max-content; min-width: 100%; }
 .tl-crow { display: flex; border-bottom: 1px solid var(--line); }
@@ -468,7 +485,7 @@ h1, h2, h3 { margin: 0; }
   .tl-txt { display: block; }
   .tl-top .tl-txt { display: inline; }
   .tl-count { display: none; }
-  .tl-rows { --date-w: 118px; }
+  .tl-rows { --date-w: 118px; --row-h: 62px; }
   .tl-ccol { width: 112px; }
   .tl-cname { width: 100px; }
   .tl-flag { display: none; }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { DayInfo } from '../core/calendar';
+import { evText, type DayInfo } from '../core/calendar';
 import { addDays, dow, isoWeek, MONTHS, range, today, weekStart, WD } from '../core/dates';
 import { marksOf, type Layers } from '../core/layers';
 import { ALL, PERSONS, type PersonId } from '../core/types';
@@ -11,12 +11,14 @@ const FIRST_DAYS = 70; // anfangs angezeigte Tage
 const STEP = 60; // so viele Tage kommen beim Weiterscrollen dazu
 const MAX_AHEAD = 365 * 3;
 
-/** Was steht für eine Person an einem Tag an? Eltern: Status + Termine/Aufgaben. Kinder: Betreuungsbedarf + Termine. */
+/** Was steht für eine Person an einem Tag an? Eltern: Status + Termine/Aufgaben. Kinder: Betreuungsbedarf + Termine. Feste Zeilenhöhe – was nicht passt, zählt „+n“. */
 function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
   const adult = PERSONS[p].adult;
   const evs = L.events ? d.events.filter((e) => e.owner === p || e.persons.includes(p)) : [];
   const tasks = adult && L.tasks ? d.tasks.filter((t) => !t.done && t.owner === p) : [];
-  const count = evs.length + tasks.length;
+  const lines = [...evs.map((e) => ({ id: e.id, text: evText(e, d.date), task: false })), ...tasks.map((t) => ({ id: t.id, text: t.title ?? '', task: true }))];
+  const shown = lines.length > 2 ? lines.slice(0, 1) : lines;
+  const count = lines.length;
 
   let icon: preact.ComponentChildren = null;
   let label = '';
@@ -46,37 +48,50 @@ function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
         {label && <span class="tl-txt">{label}</span>}
         {count > 0 && <i class="tl-count">{count}</i>}
       </div>
-      {evs.slice(0, 2).map((e) => <div key={e.id} class="tl-ev tl-txt">{e.time ? `${e.time} ` : ''}{e.title}</div>)}
-      {tasks.slice(0, 1).map((t) => <div key={t.id} class="tl-ev tl-txt"><Ic n="tasks" size={11} /> {t.title}</div>)}
-      {evs.length + tasks.length > 3 && <div class="tl-ev tl-txt muted">+{evs.length + tasks.length - 3} weitere</div>}
+      {shown.map((l) => <div key={l.id} class="tl-ev tl-txt">{l.task && <Ic n="tasks" size={11} />}{l.task ? ' ' : ''}{l.text}</div>)}
+      {lines.length > shown.length && <div class="tl-ev tl-txt muted">+{lines.length - shown.length} weitere</div>}
     </div>
   );
 }
 
-/** Datumsspalte: Tag, Feiertag/Ferien, KW, Ampel und alles, was keiner einzelnen Person gehört (Geburtstage, Infos, Familien-Termine, Aufgaben ohne Zuständigen). */
-function DateCell({ d, t, compact, L }: { d: DayInfo; t: string; compact?: boolean; L: Layers }) {
+/**
+ * Datumsspalte: Tag, KW, Ampel, Feiertag (mit Namen) und alles, was keiner einzelnen Person gehört (Infos, Familien-Termine,
+ * Aufgaben ohne Zuständigen). Geburtstage bewusst nicht – der Verlauf dient der Jahresplanung.
+ */
+function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
   const m = marksOf(d, t, L);
   const famEv = L.events ? d.events.filter((e) => !e.persons.length && !e.owner) : [];
   const freeTasks = L.tasks ? d.tasks.filter((x) => !x.done && !x.owner) : [];
   const extra = [
     ...(L.events ? d.info.map((i) => i.title) : []),
-    ...(L.birthdays ? d.birthdays.map((b) => `Geb. ${b.title}`) : []),
-    ...famEv.map((e) => `${e.time ? e.time + ' ' : ''}${e.title}`),
+    ...famEv.map((e) => evText(e, d.date)),
     ...freeTasks.map((x) => `Aufgabe: ${x.title}`),
   ].filter(Boolean) as string[];
+  const school = d.school.length && !d.weekend && !d.holiday ? d.school.join(', ') : '';
   return (
-    <div class={`tl-date ${d.weekend ? 'we' : ''} ${d.holiday ? 'ho' : ''} ${d.school.length && !d.weekend ? 'sc' : ''} ${d.date === t ? 'tod' : ''}`} id={compact ? undefined : `tl-${d.date}`}>
-      <div class="tl-dn"><span>{WD[dow(d.date)]}</span><b>{Number(d.date.slice(8))}</b>{d.coverage !== 'none' && <i class={`lamp lamp-${d.coverage}`} title={d.coverage} />}</div>
-      {d.date === weekStart(d.date) && <i class="tl-kw">KW {isoWeek(d.date)}</i>}
-      {(m.birthdays > 0 || freeTasks.length > 0 || m.info > 0) && (
-        <span class="tl-mk">
-          {m.birthdays > 0 && <Ic n="cake" size={12} class="mk-ic bd" />}
-          {freeTasks.length > 0 && <Ic n="tasks" size={12} class={`mk-ic ${m.overdue ? 'late' : 'tk'}`} />}
-          {m.info > 0 && <Ic n="info" size={12} class="mk-ic" />}
-        </span>
-      )}
-      {d.holiday && <span class="tl-txt tl-hol">{d.holiday}</span>}
-      {extra.length > 0 && <span class="tl-txt tl-extra"><Ic n="info" size={11} /> {extra.join(', ')}</span>}
+    <div
+      class={`tl-date ${d.weekend ? 'we' : ''} ${d.holiday ? 'ho' : ''} ${d.school.length && !d.weekend ? 'sc' : ''} ${d.date === t ? 'tod' : ''}`}
+      id={`tl-${d.date}`}
+      title={[d.holiday, school, ...extra].filter(Boolean).join(' · ') || undefined}
+    >
+      <div class="tl-dn">
+        <span>{WD[dow(d.date)]}</span><b>{Number(d.date.slice(8))}</b>
+        {d.coverage !== 'none' && <i class={`lamp lamp-${d.coverage}`} title={d.coverage} />}
+        {d.date === weekStart(d.date) && <i class="tl-kw">KW {isoWeek(d.date)}</i>}
+      </div>
+      <div class="tl-sub">
+        {!d.holiday && (
+          <>
+            {(freeTasks.length > 0 || m.info > 0 || famEv.length > 0) && (
+              <span class="tl-mk">
+                {freeTasks.length > 0 && <Ic n="tasks" size={12} class={`mk-ic ${m.overdue ? 'late' : 'tk'}`} />}
+                {(m.info > 0 || famEv.length > 0) && <Ic n="info" size={12} class="mk-ic" />}
+              </span>
+            )}
+            {extra.length > 0 ? <span class="tl-txt tl-extra">{extra.join(', ')}</span> : school && <span class="tl-txt tl-school">{school}</span>}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -153,9 +168,10 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
           return (
             <div key={date} class="tl-group">
               {header && <div class="tl-month">{MONTHS[Number(date.slice(5, 7)) - 1]} {date.slice(0, 4)}</div>}
-              <div class={`tl-row ${d.weekend ? 'we' : ''}`} onClick={() => openDay(date)}>
+              <div class={`tl-row ${d.weekend ? 'we' : ''} ${d.holiday ? 'ho' : ''} ${isoWeek(date) % 2 ? 'kw-a' : 'kw-b'} ${dow(date) === 0 ? 'wk-start' : ''}`} onClick={() => openDay(date)}>
                 <DateCell d={d} t={t} L={L} />
                 {persons.map((p) => <PersonCell key={p} p={p} d={d} L={L} />)}
+                {d.holiday && <span class="tl-holband">{d.holiday}</span>}
               </div>
             </div>
           );

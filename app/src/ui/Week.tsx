@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { DayInfo } from '../core/calendar';
-import { needsOwner } from '../core/calendar';
+import { dayTag, needsOwner, timeOn } from '../core/calendar';
 import { addDays, ageOn, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { relevant, type PersonFilter } from '../core/filter';
 import type { Layers } from '../core/layers';
@@ -287,8 +287,8 @@ function AgendaDay({ d, c, today: t, openDay, edit }: { d: DayInfo; c: ReturnTyp
       {c.events.map((e) => (
         <div key={e.id}>
           <div class="ag-line" onClick={() => edit(e)}>
-            <span class="time">{e.time ?? '·'}</span>
-            <span class="grow">{e.title}{e.persons.map((p) => <Dot key={p} p={p} />)}</span>
+            <span class="time">{timeOn(e, d.date) ?? '·'}</span>
+            <span class="grow">{e.title}{dayTag(e, d.date) && <small class="muted"> · {dayTag(e, d.date)}</small>}{e.persons.map((p) => <Dot key={p} p={p} />)}</span>
             {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
           </div>
           <Details it={e} />

@@ -1,5 +1,5 @@
 import { addDays, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/dates';
-import { needsOwner } from '../core/calendar';
+import { dayTag, evText, isMultiDay, needsOwner, timeOn } from '../core/calendar';
 import { nextGap } from '../core/gaps';
 import { budget } from '../core/report';
 import { PARENTS, PERSONS } from '../core/types';
@@ -30,7 +30,7 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
     .flatMap((date) => {
       const d = cal.day(date);
       return [
-        ...(L.events ? d.events.map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: `${e.time ? e.time + ' ' : ''}${e.title}`, e })) : []),
+        ...(L.events ? d.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date), e })) : []),
         ...(L.tasks ? d.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
         ...(L.birthdays ? d.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
       ];
@@ -89,8 +89,8 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
         {d.needs.map((n) => <div key={n.child + n.reason} class={`line ${d.coverage === 'gap' ? 'need' : ''}`}><Dot p={n.child} />{PERSONS[n.child].name}: {n.reason}</div>)}
         {d.events.map((e) => (
           <div key={e.id} class="line">
-            <span class="time">{e.time ?? '·'}</span>
-            <span class="grow">{e.title}</span>
+            <span class="time">{timeOn(e, t) ?? '·'}</span>
+            <span class="grow">{e.title}{dayTag(e, t) && <small class="muted"> · {dayTag(e, t)}</small>}</span>
             {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
           </div>
         ))}

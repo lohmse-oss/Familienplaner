@@ -41,6 +41,19 @@ const RANK: Record<Mode, number> = { homeoffice: 1, vacation: 2, trip: 3 };
 /** Termine, bei denen jemand verbindlich zuständig sein muss (Klassenarbeit ist nur informativ). */
 export const needsOwner = (it: Item) => it.kind === 'event' && it.sub !== 'schule';
 
+/** Mehrtägiger Termin (z. B. Festival): Ende nach dem Start und keine Wiederholung (dort ist end das Serienende). */
+export const isMultiDay = (it: Item) => it.kind === 'event' && !it.recur && it.end > it.start;
+/** Uhrzeit eines Termins an diesem Tag – bei mehrtägigen nur am ersten Tag. */
+export const timeOn = (it: Item, date: string) => (isMultiDay(it) && date !== it.start ? undefined : it.time);
+/** „Tag 2/3“ bei mehrtägigen Terminen, sonst leer. */
+export const dayTag = (it: Item, date: string) => (isMultiDay(it) ? `Tag ${diff(it.start, date) + 1}/${diff(it.start, it.end) + 1}` : '');
+/** Kurztext für Listen: „18:00 Titel“ bzw. „Titel (Tag 2/3)“. */
+export const evText = (it: Item, date: string) => {
+  const t = timeOn(it, date);
+  const tag = dayTag(it, date);
+  return `${t ? t + ' ' : ''}${it.title ?? 'Termin'}${tag ? ` (${tag})` : ''}`;
+};
+
 export interface Calendar {
   day(date: string): DayInfo;
   holiday(date: string): string | undefined;
@@ -133,7 +146,7 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
       else coverage = 'gap';
     }
 
-    const events = of('event').sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+    const events = of('event').sort((a, b) => (timeOn(a, date) ?? '').localeCompare(timeOn(b, date) ?? ''));
     const warnings: string[] = [];
     for (const e of events) {
       if (e.owner && parents[e.owner]?.away) warnings.push(`${e.title || 'Termin'}: ${nameOf(e.owner)} ist nicht vor Ort`);

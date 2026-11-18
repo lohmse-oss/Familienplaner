@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { useUiState } from '../resume';
 import { fmt, today } from '../core/dates';
 import { hitDateLabel, parseDateQuery, search } from '../core/search';
 import type { CalView, Tab } from '../nav';
@@ -23,7 +24,7 @@ const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
 /** Suche und Schnellsprung: Text suchen oder ein Datum („14.7.“) eintippen; ohne Eingabe stehen die wichtigsten Ziele bereit. */
 export function SearchSheet({ onClose, onDay, onGo }: { onClose: () => void; onDay: (date: string) => void; onGo: (tab: Tab, view?: CalView) => void }) {
   const { items } = useStore();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useUiState('search.q', '', { clearOnUnmount: true });
   const input = useRef<HTMLInputElement>(null);
   const t = today();
   useEffect(() => { const id = setTimeout(() => input.current?.focus(), 250); return () => clearTimeout(id); }, []);

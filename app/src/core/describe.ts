@@ -37,7 +37,7 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
       text = `Betreuung durch ${t || 'Dritte'}, ${when}`;
       break;
     case 'event':
-      text = `${t || 'Termin'}${it.persons.length ? ` (${names(it.persons)})` : ''}, ${span(it.start, it.start)}${it.time ? `, ${it.time}${it.endTime ? `–${it.endTime}` : ''}` : ''}${it.place ? `, ${it.place}` : ''}`;
+      text = `${t || 'Termin'}${it.persons.length ? ` (${names(it.persons)})` : ''}, ${span(it.start, it.recur ? it.start : it.end)}${it.time ? `, ${it.time}${it.endTime ? `–${it.endTime}` : ''}` : ''}${it.place ? `, ${it.place}` : ''}`;
       break;
     case 'info':
       text = `${t || 'Info'}, ${when}${it.place ? `, ${it.place}` : ''}`;

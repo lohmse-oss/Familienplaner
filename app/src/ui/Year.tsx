@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useUiState } from '../resume';
 import { findBridges } from '../core/bridges';
 import { dow, fmt, fmtDays, fmtRange, fmtShort, range, today, WD } from '../core/dates';
 import { gapRuns } from '../core/gaps';
@@ -52,13 +53,13 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
   const { cal, settings, hd, readOnly } = useStore();
   const t = today();
 
-  const [selMode, setSelMode] = useState<'range' | 'single'>('range');
-  const [rg, setRg] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
+  const [selMode, setSelMode] = useUiState<'range' | 'single'>('year.selMode', 'range');
+  const [rg, setRg] = useUiState<{ start: string | null; end: string | null }>('year.rg', { start: null, end: null });
   const [multi, setMulti] = useState<Set<string>>(new Set());
-  const [mode, setModeRaw] = useState<PlanMode>('vacation');
-  const [persons, setPersons] = useState<PersonId[]>([settings.me]);
-  const [title, setTitle] = useState('');
-  const [away, setAway] = useState(false);
+  const [mode, setModeRaw] = useUiState<PlanMode>('year.mode', 'vacation');
+  const [persons, setPersons] = useUiState<PersonId[]>('year.persons', [settings.me]);
+  const [title, setTitle] = useUiState('year.title', ''); // Auswahl/Eingaben überstehen App-Wechsel
+  const [away, setAway] = useUiState('year.away', false);
   const [more, setMore] = useState(false);
   const [gapsOpen, setGapsOpen] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);

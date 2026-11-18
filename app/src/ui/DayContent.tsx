@@ -1,5 +1,5 @@
-import { needsOwner } from '../core/calendar';
-import { ageOn, fmt, dow, WD_LONG } from '../core/dates';
+import { dayTag, isMultiDay, needsOwner, timeOn } from '../core/calendar';
+import { ageOn, fmt, fmtRange, dow, WD_LONG } from '../core/dates';
 import { PARENTS, PERSONS, type Item, type Kind, type Mode } from '../core/types';
 import { setPresence, useStore } from '../store';
 import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
@@ -66,7 +66,7 @@ export function DayContent({ date, edit, add }: Props) {
         <div key={i.id} class="entry">
           <div class={`line link-row ${i.kind === 'task' && i.done ? 'done' : ''}`} onClick={() => edit(i)}>
             <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
-            <span class="grow">{i.time ? i.time + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
+            <span class="grow">{timeOn(i, date) ? timeOn(i, date) + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')}{isMultiDay(i) && <small class="muted"> · {dayTag(i, date)}, {fmtRange(i.start, i.end)}</small>} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
             {i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}
           </div>
           <Details it={i} />

@@ -5,6 +5,7 @@ import type { Item, Kind, PersonId } from './core/types';
 import { haptic } from './haptics';
 import { parseLink } from './links';
 import type { CalView, Tab } from './nav';
+import { useUiState } from './resume';
 import { dismissNotice, sync as syncNow, undoLast, updateSettings, useStore } from './store';
 import { Birthdays } from './ui/Birthdays';
 import { CalNav } from './ui/CalNav';
@@ -46,11 +47,11 @@ type Sheet =
 
 export function App() {
   const { sync, undo, notice, settings, readOnly, items, cal } = useStore();
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useUiState<Tab>('tab', 'home'); // übersteht Neustart nach App-Wechsel
   const [stack, setStack] = useState<Tab[]>([]); // Verlauf für „zurück“
   const [weekOf, setWeekOf] = useState(weekStart(today()));
-  const [year, setYear] = useState(Number(today().slice(0, 4))); // Start immer mit Fokus auf heute
-  const [sheet, setSheet] = useState<Sheet>(null);
+  const [year, setYear] = useUiState('year', Number(today().slice(0, 4))); // Fokus auf heute (nach App-Wechsel: zuletzt gewähltes Jahr)
+  const [sheet, setSheet] = useUiState<Sheet>('sheet', null); // offenes Fenster inkl. Entwurf (s. EditSheet)
   const [preset, setPreset] = useState<PlanPreset | undefined>();
   const [focusShop, setFocusShop] = useState(0);
   const [pull, setPull] = useState(0);
