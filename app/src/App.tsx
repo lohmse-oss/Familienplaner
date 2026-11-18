@@ -197,7 +197,25 @@ export function App() {
     setTimeout(() => setRefreshing(false), 400);
   };
 
-  const showFab = !readOnly && ((tab === 'cal' && calView !== 'year') || tab === 'tasks' || tab === 'vacation' || tab === 'birthdays');
+  /* ---------- Startknopf lang drücken = neuer Eintrag (ersetzt den „+“-Knopf) ---------- */
+  // Passend zum Bereich: in Aufgaben direkt eine Aufgabe, in Geburtstagen direkt ein Geburtstag, sonst Auswahl der Art.
+  const press = useRef<{ timer?: number; fired: boolean }>({ fired: false });
+  const newEntry = () => {
+    if (readOnly) return;
+    haptic();
+    if (tab === 'tasks') setSheet({ t: 'edit', item: { kind: 'task' } });
+    else if (tab === 'birthdays') setSheet({ t: 'edit', item: { kind: 'birthday' } });
+    else setSheet({ t: 'pick' });
+  };
+  const homeDown = () => {
+    press.current.fired = false;
+    clearTimeout(press.current.timer);
+    press.current.timer = window.setTimeout(() => {
+      press.current.fired = true;
+      newEntry();
+    }, 450);
+  };
+  const homeCancel = () => clearTimeout(press.current.timer);
 
   /* ---------- Zahlen an den Tabs ---------- */
   const t0 = today();
@@ -256,7 +274,7 @@ export function App() {
       </div>
 
       <main key={tab}>
-        {tab === 'home' && <Home go={go} openDay={openDay} add={() => setSheet({ t: 'pick' })} />}
+        {tab === 'home' && <Home go={go} openDay={openDay} />}
         {tab === 'cal' && (
           <>
             <CalNav />
@@ -268,14 +286,13 @@ export function App() {
         {tab === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
         {tab === 'shop' && <Shop focusSignal={focusShop} />}
         {tab === 'more' && <More go={go} />}
-        {tab === 'tasks' && <Tasks edit={edit} add={() => setSheet({ t: 'edit', item: { kind: 'task' } })} />}
-        {tab === 'birthdays' && <Birthdays edit={edit} add={() => setSheet({ t: 'edit', item: { kind: 'birthday' } })} />}
+        {tab === 'tasks' && <Tasks edit={edit} />}
+        {tab === 'birthdays' && <Birthdays edit={edit} />}
         {tab === 'settings' && <Settings />}
       </main>
 
       {(tab === 'cal' || tab === 'vacation') && <ScrollTop key={tab} />}
 
-      {showFab && <button class="fab" aria-label="Neuer Eintrag" onClick={() => setSheet({ t: 'pick' })}><Ic n="plus" size={28} sw={2.5} /></button>}
 
       {notice && (
         <div class="notice" key={notice.id} onClick={() => { if (notice.date) openDay(notice.date); dismissNotice(); }}>
@@ -298,7 +315,17 @@ export function App() {
       <nav class="tabs">
         <TabBtn on={navActive === 'cal'} icon="week" label="Kalender" dot={gapToday} onClick={() => go('cal')} />
         <TabBtn on={navActive === 'tasks'} icon="tasks" label="Aufgaben" count={overdue} red onClick={() => go('tasks')} />
-        <button class={`home-btn ${navActive === 'home' ? 'on' : ''}`} onClick={() => go('home')} aria-label="Startseite">
+        <button
+          class={`home-btn ${navActive === 'home' ? 'on' : ''}`}
+          onClick={() => { if (!press.current.fired) go('home'); press.current.fired = false; }}
+          onPointerDown={homeDown}
+          onPointerUp={homeCancel}
+          onPointerLeave={homeCancel}
+          onPointerCancel={homeCancel}
+          onContextMenu={(e) => e.preventDefault()}
+          aria-label={readOnly ? 'Startseite' : 'Startseite (lang drücken: neuer Eintrag)'}
+          title={readOnly ? undefined : 'Lang drücken: neuer Eintrag'}
+        >
           <span><Ic n="home" size={26} /></span>
         </button>
         <TabBtn on={navActive === 'shop'} icon="cart" label="Einkauf" count={shopOpen} onClick={() => go('shop')} />

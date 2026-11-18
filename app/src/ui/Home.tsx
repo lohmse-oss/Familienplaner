@@ -17,7 +17,7 @@ const ago = (ms: number) => {
   return `vor ${Math.round(m / 1440)} Tg.`;
 };
 
-export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: string) => void; add: () => void }) {
+export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: string) => void }) {
   const { cal, settings, items, readOnly } = useStore();
   const t = today();
   const d = cal.day(t);
@@ -66,10 +66,10 @@ export function Home({ go, openDay, add }: { go: (t: Tab) => void; openDay: (d: 
         <div>
           <h2>Hallo {PERSONS[settings.me].name}</h2>
           <span class="muted">{WD_LONG[dow(t)]}, {fmt(t)}</span>
+          {!readOnly && <small class="hint home-tip">Neuer Eintrag: Startknopf unten lang drücken</small>}
         </div>
         <div class="hello-actions">
           <button class="icon-btn" onClick={() => go('settings')} aria-label="Einstellungen"><Ic n="settings" size={20} /></button>
-          {!readOnly && <button class="btn primary" onClick={add}><Ic n="plus" size={16} /> Eintrag</button>}
         </div>
       </div>
 

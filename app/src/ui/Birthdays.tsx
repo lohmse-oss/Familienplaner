@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { Ic } from './icons';
 
 /** Geburtstage (jährlich), entkoppelt von den Aufgaben. Das Geburtsjahr wird nur für die Altersanzeige genutzt. */
-export function Birthdays({ edit, add }: { edit: (it: Item) => void; add: () => void }) {
+export function Birthdays({ edit }: { edit: (it: Item) => void }) {
   const { cal, readOnly } = useStore();
   const t = today();
   const birthdays = cal.items.filter((i) => i.kind === 'birthday').sort((a, b) => a.start.slice(5).localeCompare(b.start.slice(5)));
@@ -25,12 +25,7 @@ export function Birthdays({ edit, add }: { edit: (it: Item) => void; add: () => 
           );
         })}
       </section>
-      {!readOnly && (
-        <button class="btn primary wide" onClick={add}>
-          <Ic n="plus" size={16} /> Geburtstag eintragen
-        </button>
-      )}
-      <p class="hint">Geburtstage gelten jährlich am eingetragenen Datum (Monat/Tag).</p>
+      <p class="hint">Geburtstage gelten jährlich am eingetragenen Datum (Monat/Tag).{!readOnly && ' Neuer Geburtstag: Startknopf unten lang drücken.'}</p>
     </div>
   );
 }

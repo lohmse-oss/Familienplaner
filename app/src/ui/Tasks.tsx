@@ -7,7 +7,7 @@ import { batch, deleteItem, saveItem, useStore } from '../store';
 import { PersonFilterBar, PersonTag } from './common';
 import { Ic } from './icons';
 
-export function Tasks({ edit, add }: { edit: (it: Item) => void; add: () => void }) {
+export function Tasks({ edit }: { edit: (it: Item) => void }) {
   const { cal, settings, readOnly } = useStore();
   const [showDone, setShowDone] = useState(false);
   const f = settings.filter;
@@ -55,7 +55,7 @@ export function Tasks({ edit, add }: { edit: (it: Item) => void; add: () => void
         <section class="card">
           <div class="empty">
             <Ic n="check" size={24} /><br />Keine offenen Aufgaben.
-            {!readOnly && <div><button class="btn small" onClick={add}><Ic n="plus" size={14} /> Aufgabe hinzufügen</button></div>}
+            {!readOnly && <div class="hint">Neue Aufgabe: Startknopf unten lang drücken.</div>}
           </div>
         </section>
       )}
