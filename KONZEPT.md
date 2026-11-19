@@ -53,7 +53,9 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 * **Zahlen an den Tabs:** Einkauf (offene Artikel), Mehr (überfällige Aufgaben, rot), Kalender (roter Punkt bei ungeklärter Betreuung heute/morgen).
 * **Zurück mit Verlauf:** „Zurück“ (Pfeil, Android-Taste, Wischen vom linken Rand) führt dorthin, wo du herkamst; aktiven Tab nochmal tippen = nach oben. Jede Ansicht **merkt sich ihre Scrollposition**.
 * **Herunterziehen** am Seitenanfang gleicht sofort ab.
-* **Neuer Eintrag = Start-Knopf lang drücken:** in Aufgaben direkt eine Aufgabe, in Geburtstagen ein Geburtstag, in Checklisten eine neue Liste, in der Infomappe eine Karte, sonst die Auswahl (Urlaub, Termin, Event, Aufgabe, Betreuung, Geburtstag, Einkauf, Checkliste, Infomappe). Die Tagesdetails behalten ihre Symbolreihe (mit Datum vorbelegt).
+* **Neuer Eintrag = Start-Knopf lang drücken:** immer die volle Auswahl (Urlaub, Termin, Event, Aufgabe, Betreuungsbedarf, Geburtstag, Einkauf, Checkliste, Infomappe) – in jedem Bereich gleich. Die Tagesdetails behalten ihre Symbolreihe (mit Datum vorbelegt).
+* **Datum/Zeitraum wählen** immer direkt in einem Monatskalender (mit Feiertagen, Ferien, Ampel): 1. Tippen = Start, 2. Tippen = Ende, ein Tag = zweimal denselben Tag; Aufgaben und wiederkehrende Termine: ein Tippen. Nur das Geburtsdatum bleibt ein Eingabefeld (Jahr).
+* **Betreuung durch Dritte** ist keine eigene Auswahl mehr: im Betreuungsbedarf optional „Wer betreut?“ (legt die Betreuung für denselben Zeitraum mit an); für Ferien-Lücken im Jahresplaner (Modus „Betreuung durch Dritte“).
 * **Beim Eintragen** zeigt „Zu der Zeit außerdem“ Kreise je Tag wie im Widget und was im Zeitraum sonst ansteht. Nach dem Speichern bestätigt eine Karte, was gespeichert wurde (mit Rückgängig).
 * **Eingaben überstehen den App-Wechsel:** offener Dialog, Entwurf, Auswahl im Jahresplaner u. Ä. werden gesichert, falls Android die App im Hintergrund beendet (max. 2 Std.).
 * **Widget-Direktsprung:** Tag-Kreis → dieser Tag, Einkauf-Kreis → Einkaufsliste, Aufgaben-Kreis → Aufgaben.

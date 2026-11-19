@@ -5,7 +5,8 @@ import { gapRuns } from '../core/gaps';
 import { budget, entitlementOf, vacationReport, workdaysBetween, type VacationPeriod } from '../core/report';
 import { PARENTS, PERSONS, type PersonId } from '../core/types';
 import { applyToDays, setEntitlement, setPresenceRange, useStore, withUndo } from '../store';
-import { DateInput, Dot, Sheet } from './common';
+import { Dot, Sheet } from './common';
+import { RangePicker } from './RangePicker';
 import { Ic } from './icons';
 
 interface Props {
@@ -209,10 +210,8 @@ function PeriodSheet({ person, period, onClose, year, entitlement }: { person: P
   return (
     <Sheet title={`Urlaub ${PERSONS[person].name}`} onClose={onClose}>
       <div class="form">
-        <div class="row">
-          <div><label>Von</label><DateInput value={a} onChange={(v) => { setA(v); if (b < v) setB(v); }} /></div>
-          <div><label>Bis (einschließlich)</label><DateInput value={b} min={a} onChange={(v) => setB(v)} /></div>
-        </div>
+        <label>Zeitraum – Start und Ende antippen</label>
+        <RangePicker start={a} end={b} onChange={(s, e) => { setA(s); setB(e); }} />
         <p class="hint">{fmtDays(days)} Urlaubstage{entitlement !== undefined ? ` · Konto ${year}: ${fmtDays(entitlement)}` : ''}. Wochenenden und Feiertage zählen nicht mit, 24.12. und 31.12. als halber Tag.</p>
       </div>
       <div class="actions sticky">

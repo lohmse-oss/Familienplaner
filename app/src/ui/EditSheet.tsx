@@ -3,9 +3,10 @@ import { ALL, CHILDREN, EVERY_LABEL, LEAD_LABEL, MODE_LABEL, PARENTS, PERSONS, R
 import { deleteItem, newId, saveItem, useStore, withUndo } from '../store';
 import { describeChange } from '../core/describe';
 import { Overlap } from './Overlap';
-import { addDays, diff, fmt, fmtShort, today } from '../core/dates';
+import { diff, fmt, fmtShort, today } from '../core/dates';
 import { addMonths, nextDue, remindFrom } from '../core/recur';
 import { Chips, DateInput, Sheet } from './common';
+import { RangePicker } from './RangePicker';
 import { Ic, type IconName } from './icons';
 
 export const KINDS: { kind: Exclude<Kind, 'config' | 'shop' | 'list' | 'check' | 'fact'>; short: string; label: string; icon: IconName; hint: string }[] = [
@@ -44,7 +45,7 @@ export function KindPicker({ onPick, onClose, onShop, onList, onFact }: { onPick
           <span class="ic"><Ic n="cart" size={24} /></span>
           <span><b>Artikel zur Einkaufsliste</b><small>direkt eintippen</small></span>
         </button>
-        {KINDS.map((k) => (
+        {KINDS.filter((k) => k.kind !== 'cover').map((k) => ( // Betreuung durch Dritte: im Betreuungsbedarf bzw. Jahresplaner
           <button key={k.kind} class="kind" onClick={() => onPick(k.kind)}>
             <span class="ic"><Ic n={k.icon} size={24} /></span>
             <span><b>{k.label}</b><small>{k.hint}</small></span>
@@ -81,6 +82,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     kind: k,
   }), { clearOnUnmount: true, accept: (x) => x.kind === k && (initial.id ? x.id === initial.id : !x.created) });
   const set = (patch: Partial<Item>) => setD((x) => ({ ...x, ...patch }));
+  const [coverBy, setCoverBy] = useUiState('edit.coverBy', '', { clearOnUnmount: true });
 
   // Übernahme-Anfrage an den Partner (nur Eltern)
   const me = settings.me;
@@ -113,6 +115,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   // Termine: eintägig, mehrtägig (Festival, Ausflug) oder wiederkehrend (dann ist end das Serienende)
   const multi = k === 'event' && !d.recur && d.end > d.start;
   const single = (k === 'event' && !multi) || k === 'task' || k === 'birthday';
+  const pickOne = k === 'task' || (k === 'event' && !!d.recur); // nur ein Datum (Fälligkeit bzw. erstes Vorkommen)
   const info = KINDS.find((x) => x.kind === k)!;
   const what = k === 'presence' && d.mode ? MODE_LABEL[d.mode] : info.short;
 
@@ -146,8 +149,11 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
       out.done = false;
       label = `Erledigt – nächste Fälligkeit ${fmtShort(out.start)}`;
     }
+    // Betreuungsbedarf mit „Wer betreut?“ → zusätzlich Betreuung durch Dritte für denselben Zeitraum
+    const cover: Item | null =
+      k === 'care' && isNew && coverBy.trim() ? { id: newId(), kind: 'cover', updated: 0, title: coverBy.trim(), persons: out.persons.filter((p) => CHILDREN.includes(p)), start: out.start, end: out.end } : null;
     // Bestätigung: was genau gespeichert wurde, mit „Rückgängig“
-    withUndo(label, () => saveItem(out), describeChange({ ...out, updated: 0 })?.text);
+    withUndo(label, () => { saveItem(out); if (cover) saveItem(cover); }, `${describeChange({ ...out, updated: 0 })?.text}${cover ? ` · Betreuung durch ${cover.title}` : ''}`);
     onClose();
   };
   const remove = () => {
@@ -184,6 +190,13 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
             />
             <label>Welches Kind?</label>
             <Chips<PersonId> options={personOpts(CHILDREN)} value={d.persons} onChange={(persons) => set({ persons })} multi />
+            {isNew && (
+              <>
+                <label>Wer betreut? (optional)</label>
+                <input type="text" placeholder="z. B. Oma, Nachbarin – leer = noch offen" value={coverBy} onInput={(e) => setCoverBy((e.target as HTMLInputElement).value)} />
+                <p class="hint">{coverBy.trim() ? `Legt zusätzlich „Betreuung durch ${coverBy.trim()}“ für denselben Zeitraum an – die Ampel wird grün.` : 'Bleibt leer, zeigt die Ampel, ob ihr Eltern das selbst abdeckt.'}</p>
+              </>
+            )}
           </>
         )}
 
@@ -217,9 +230,6 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
               value={[d.recur ?? '']}
               onChange={(v) => set({ recur: (v[0] || undefined) as Recur | undefined, end: d.start })}
             />
-            {!d.recur && (
-              <label class="check"><input type="checkbox" checked={multi} onChange={(e) => set({ end: (e.target as HTMLInputElement).checked ? addDays(d.start, 1) : d.start })} /> mehrtägig (z. B. Festival, Ausflug, Klassenfahrt)</label>
-            )}
             {d.recur && d.end <= d.start && <p class="hint">Ohne Enddatum wiederholt sich der Termin bis zum Anzeigelimit (400 Tage ab erstem Vorkommen).</p>}
           </>
         )}
@@ -305,31 +315,34 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
           </>
         )}
 
-        <div class="row">
-          <div>
-            <label>{single ? (k === 'task' ? (d.lead ? 'Läuft ab / Stichtag' : 'Fällig am') : k === 'birthday' ? 'Geburtsdatum' : 'Datum') : 'Von'}</label>
-            <DateInput value={d.start} onChange={(v) => set({ start: v, end: multi ? addDays(v, diff(d.start, d.end)) : d.end < v ? v : d.end })} />
+        {k === 'birthday' ? (
+          <>
+            <label>Geburtsdatum</label>
+            <DateInput value={d.start} onChange={(v) => set({ start: v, end: v })} />
+          </>
+        ) : (
+          <>
+            {/* Ein Kalender statt Von/Bis: 1. Tippen = Start, 2. Tippen = Ende; ein Tag = zweimal denselben Tag */}
+            <label>{pickOne ? (k === 'task' ? (d.lead ? 'Läuft ab / Stichtag' : 'Fällig am') : 'Erster Termin') : 'Wann? Start und Ende antippen – ein Tag: zweimal tippen'}</label>
+            <RangePicker start={d.start} end={pickOne ? d.start : d.end} single={pickOne} onChange={(s, e) => set({ start: s, end: e })} />
             {diff(d.start, d.end) > 400 && <p class="hint neg">Zeitraum länger als 400 Tage – ab Tag 401 wird der Eintrag nicht mehr angezeigt.</p>}
-          </div>
-          {!single && (
-            <div>
-              <label>Bis (einschließlich)</label>
-              <DateInput value={d.end} min={k === 'event' ? addDays(d.start, 1) : d.start} onChange={(v) => set({ end: v })} />
-            </div>
-          )}
-          {k === 'event' && (
+          </>
+        )}
+
+        {k === 'event' && <div class="row">
+          {(
             <div>
               <label>{multi ? 'Beginn (Uhr)' : 'Uhrzeit'}</label>
               <input type="time" value={d.time ?? ''} onInput={(e) => set({ time: (e.target as HTMLInputElement).value || undefined })} />
             </div>
           )}
-          {k === 'event' && (
+          {(
             <div>
               <label>{multi ? 'Ende am letzten Tag (Uhr)' : 'Bis (Uhr, optional)'}</label>
               <input type="time" value={d.endTime ?? ''} onInput={(e) => set({ endTime: (e.target as HTMLInputElement).value || undefined })} />
             </div>
           )}
-        </div>
+        </div>}
 
         {k !== 'birthday' && <Overlap start={d.start} end={single ? d.start : d.end} excludeId={d.id} />}
 

@@ -209,17 +209,12 @@ export function App() {
     setTimeout(() => setRefreshing(false), 400);
   };
 
-  /* ---------- Startknopf lang drücken = neuer Eintrag (ersetzt den „+“-Knopf) ---------- */
-  // Passend zum Bereich: in Aufgaben direkt eine Aufgabe, in Geburtstagen direkt ein Geburtstag, sonst Auswahl der Art.
+  /* ---------- Startknopf lang drücken = neuer Eintrag (ersetzt den „+“-Knopf): immer die volle Auswahl ---------- */
   const press = useRef<{ timer?: number; fired: boolean }>({ fired: false });
   const newEntry = () => {
     if (readOnly) return;
     haptic();
-    if (tab === 'tasks') setSheet({ t: 'edit', item: { kind: 'task' } });
-    else if (tab === 'birthdays') setSheet({ t: 'edit', item: { kind: 'birthday' } });
-    else if (tab === 'facts') setSheet({ t: 'fact' });
-    else if (tab === 'lists') setNewList((n) => n + 1);
-    else setSheet({ t: 'pick' });
+    setSheet({ t: 'pick' }); // immer die volle Auswahl – egal in welchem Bereich
   };
   const homeDown = () => {
     press.current.fired = false;

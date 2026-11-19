@@ -662,3 +662,12 @@ h1, h2, h3 { margin: 0; }
 .presets { margin-bottom: 4px; }
 /* Startseite = reine Tagesübersicht; auf breiten Bildschirmen zweispaltig */
 @media (min-width: 900px) { .home-feed { columns: 2; column-gap: 20px; } .home-feed > section { break-inside: avoid; } }
+
+/* ---------- Datum/Zeitraum im Kalender wählen (statt Von/Bis-Felder) ---------- */
+.rpick { margin: 4px 0 2px; }
+.rpick-head { display: flex; align-items: center; gap: 2px; margin-bottom: 4px; }
+.rpick-head b { text-align: center; font-size: 15px; }
+.rpick-head .icon-btn { width: 32px; height: 32px; font-size: 17px; font-weight: 700; }
+.rpick-grid .month { border: 0; padding: 0; background: none; }
+.rpick-sum { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; margin-top: 6px; padding: 7px 10px; border-radius: 10px; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.rpick-sum.pending { background: color-mix(in srgb, var(--maybe) 18%, transparent); }

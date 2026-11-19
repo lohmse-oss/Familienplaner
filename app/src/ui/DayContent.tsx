@@ -76,7 +76,7 @@ export function DayContent({ date, edit, add }: Props) {
 
       {!readOnly && (
         <div class="day-add">
-          {KINDS.filter((k) => k.kind !== 'birthday').map((k) => (
+          {KINDS.filter((k) => k.kind !== 'birthday' && k.kind !== 'cover').map((k) => (
             <button key={k.kind} class="btn ico-btn" title={k.label} aria-label={k.label} onClick={() => add(k.kind, date)}>
               <Ic n={k.icon} size={18} />
             </button>

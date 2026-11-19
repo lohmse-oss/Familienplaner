@@ -15,13 +15,15 @@ interface Props {
   edges?: Set<string>; // Start-/Endtage → gefüllter Kreis
   bands?: Record<string, Map<string, Mode>>; // Urlaub/Dienstreise je Elternteil → Streifen
   layers?: Layers; // Marker für Geburtstage, Aufgaben (Fälligkeit) und Termine
+  anchor?: boolean; // Sprungmarke m-YYYY-MM setzen (Jahresplaner); im Datums-Wähler aus
+  title?: boolean; // Monatsname über dem Raster
 }
 
 /**
  * Monatskalender: Ferien, Feiertage, Brückentage, Urlaub (durchgehende Streifen je Elternteil),
  * Betreuungs-Ampel und eine Zeitraum-Auswahl wie bei Reisebuchungen (Band mit Start-/Endkreis).
  */
-export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, edges, bands, layers }: Props) {
+export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, edges, bands, layers, anchor = true, title = true }: Props) {
   const first = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const days: string[] = [];
   for (let d = first; d.slice(5, 7) === first.slice(5, 7); d = addDays(d, 1)) days.push(d);
@@ -38,8 +40,8 @@ export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, 
   };
 
   return (
-    <section class="month" id={`m-${first.slice(0, 7)}`}>
-      <h3>{MONTHS[month]}</h3>
+    <section class="month" id={anchor ? `m-${first.slice(0, 7)}` : undefined}>
+      {title && <h3>{MONTHS[month]}</h3>}
       <div class="grid">
         {WD.map((w) => <span key={w} class="wd">{w[0]}</span>)}
         {Array.from({ length: dow(first) }, (_, i) => <span key={`p${i}`} />)}
