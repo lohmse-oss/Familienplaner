@@ -85,6 +85,13 @@
             </intent-filter>
         </service>
 
+        <!-- Android Auto: Grafiken der Medien-App (Kacheln, Symbole, Karten) als content://-Bilder; Leserecht vergibt der Dienst -->
+        <provider
+            android:name=".CarArtProvider"
+            android:authorities="${applicationId}.carart"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <!-- Android Auto: CarAppService – liest die Widget-Daten und zeigt den Plan im Auto (nur geparkt) -->
         <service
             android:name=".FamilyCarAppService"
@@ -98,13 +105,6 @@
                 android:value="1" />
         </service>
     </application>
-
-    <!-- Sprachausgabe (Vorlesen in Android Auto) auch für nicht voreingestellte TTS-Engines sichtbar machen -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.TTS_SERVICE" />
-        </intent>
-    </queries>
 
     <!-- Permissions -->
 

@@ -85,7 +85,7 @@ public class FamilyCarAppService extends CarAppService {
     static String kindLabel(String kind) {
         switch (kind) {
             case "event": return "Termin";
-            case "info": return "Info";
+            case "info": return "Event";
             case "task": return "Aufgabe";
             case "birthday": return "Geburtstag";
             case "presence": return "Anwesenheit";

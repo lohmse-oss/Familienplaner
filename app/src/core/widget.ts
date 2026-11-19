@@ -29,6 +29,8 @@ export interface WidgetData {
   days: WidgetDay[]; // heute + nächste Tage – das Widget zeigt ab dem heutigen Eintrag drei Tage (rollierend)
   entries: WidgetEntry[]; // alle Einträge der nächsten Tage, chronologisch (für Android Auto); ganztägige zuerst
   shopN: number; // offene Artikel der Einkaufsliste
+  shop: string[]; // offene Artikel (Titel, neueste zuerst) – Einkaufsliste in Android Auto
+  taskList: { title: string; due: string; late: boolean; color: string }[]; // aktive Aufgaben nach Fälligkeit – Android Auto
   taskN: number; // aktive (offene) Aufgaben
   taskToday: number; // davon heute fällig
   taskOverdue: number; // davon überfällig (vor heute)
@@ -95,7 +97,16 @@ export function buildWidgetData(cal: Calendar, today: string, now: Date, style: 
   const tasks = cal.items.filter((i) => i.kind === 'task' && !i.done && !isDormant(i, today)); // vorgemerkte Fristen zählen noch nicht
   const taskOverdue = tasks.filter((i) => i.start < today).length;
   const taskToday = tasks.filter((i) => i.start === today).length;
+  const shop = cal.items
+    .filter((i) => i.kind === 'shop' && !i.done)
+    .sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
+    .slice(0, 40)
+    .map((i) => i.title ?? '');
+  const taskList = [...tasks]
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .slice(0, 25)
+    .map((t) => ({ title: t.title ?? 'Aufgabe', due: t.start, late: t.start < today, color: t.owner ? PERSONS[t.owner].color : '' }));
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
-  return { style, scaleNothing: scales.nothing, scaleStandard: scales.standard, scaleCircle: scales.circle, updated: `Stand ${hh}:${mm}`, days, entries, shopN, taskN: tasks.length, taskToday, taskOverdue };
+  return { style, scaleNothing: scales.nothing, scaleStandard: scales.standard, scaleCircle: scales.circle, updated: `Stand ${hh}:${mm}`, days, entries, shopN, shop, taskList, taskN: tasks.length, taskToday, taskOverdue };
 }

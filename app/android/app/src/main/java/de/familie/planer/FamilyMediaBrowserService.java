@@ -8,48 +8,51 @@ import android.media.MediaMetadata;
 import android.media.browse.MediaBrowser;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
 import android.service.media.MediaBrowserService;
-import android.speech.tts.TextToSpeech;
-import android.speech.tts.UtteranceProgressListener;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Android Auto: Familienplaner als Medien-App im Auto-Launcher.
+ * Android Auto: Familienplaner als Medien-App im Auto-Launcher – grafisch, ohne Vorlesen.
  *
- * Warum Medien-App? Android Auto zeigt per Sideload installierte Apps nur dann im Launcher
- * („Launcher anpassen“), wenn sie als Medien- oder Nachrichten-App deklariert sind und in den
- * Android-Auto-Entwickleroptionen „Unbekannte Quellen“ aktiv ist. Template-Apps (CarAppService)
- * erscheinen im echten Auto nur bei Verteilung über Google Play, „CAR_LAUNCHER“ gilt nur für Spiele.
+ * Warum Medien-App? Android Auto zeigt per Sideload installierte Apps nur dann im Launcher („Launcher anpassen“),
+ * wenn sie als Medien- oder Nachrichten-App deklariert sind und in den Android-Auto-Entwickleroptionen
+ * „Unbekannte Quellen“ aktiv ist. Template-Apps (CarAppService) erscheinen im echten Auto nur bei Play-Verteilung.
  *
- * Der Browse-Baum zeigt dieselben Daten wie Widget und Template-App (SharedPreferences des Widgets):
- *   Heute / Morgen / Übermorgen → Einträge des Tages, „Weitere Tage“, Einkaufsliste, Aufgaben.
- * Antippen eines Eintrags liest ihn per Sprachausgabe vor (nichts muss gelesen oder bedient werden).
- * Nur Framework-Klassen, keine zusätzliche Bibliothek.
+ * Startseite als Kachel-Raster wie das Homescreen-Widget: Heute, Morgen, Übermorgen (Kreis mit Anzahl, rot =
+ * Betreuung ungeklärt), Weitere Tage, Einkauf, Aufgaben. Ein Tag zeigt seine Einträge als Liste mit farbigen Symbolen
+ * (Farbe der Person), gruppiert in „Ganztägig“ und „Mit Uhrzeit“. Antippen eines Eintrags oder der „Tagesübersicht“
+ * zeigt eine große Grafik in der Ansicht „Läuft gerade“ – es wird nichts abgespielt oder vorgelesen.
+ * Bilder liefert CarArtProvider (content://…carart/…).
  */
 public class FamilyMediaBrowserService extends MediaBrowserService {
     private static final String ROOT = "root";
     private static final String DAY = "day:";
     private static final String DAYS = "days:";
-    private static final String SAY_DAY = "say:day:";
-    private static final String SAY_ENTRY = "say:entry:"; // say:entry:<date>:<index im Tag>
-    private static final String SAY_SHOP = "say:shop";
-    private static final String SAY_TASKS = "say:tasks";
+    private static final String SHOP = "shop";
+    private static final String TASKS = "tasks";
+    private static final String SHOW_DAY = "show:day:";
+    private static final String SHOW_ENTRY = "show:entry:"; // show:entry:<date>:<index im Tag>
+    private static final String NOOP = "noop:";
     private static final int MAX_ENTRIES_PER_DAY = 20;
     private static final int DAYS_PER_PAGE = 7;
 
+    // Darstellungs-Hinweise für Android Auto (androidx.media.utils.MediaConstants, hier als Klartext ohne Zusatzbibliothek)
+    private static final String STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED";
+    private static final String STYLE_BROWSABLE = "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT";
+    private static final String STYLE_PLAYABLE = "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT";
+    private static final String STYLE_GROUP = "android.media.browse.CONTENT_STYLE_GROUP_TITLE_HINT";
+    private static final int STYLE_LIST = 1;
+    private static final int STYLE_GRID = 2;
+
+    private static final String[] AUTO_HOSTS = {"com.google.android.projection.gearhead", "com.google.android.googlequicksearchbox", "com.android.systemui"};
+
     private MediaSession session;
-    private TextToSpeech tts;
-    private boolean ttsReady;
-    private String pendingSpeech; // Text, der kam, bevor die Sprachausgabe bereit war
-    private String pendingTitle;
 
     @Override
     public void onCreate() {
@@ -58,17 +61,7 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
         session.setCallback(new MediaSession.Callback() {
             @Override
             public void onPlayFromMediaId(String mediaId, Bundle extras) {
-                speakFor(mediaId);
-            }
-
-            @Override
-            public void onStop() {
-                stopSpeaking();
-            }
-
-            @Override
-            public void onPause() {
-                stopSpeaking();
+                show(mediaId);
             }
         });
         // Tippen auf „Läuft gerade“ öffnet die App auf dem Handy
@@ -77,39 +70,10 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
         setState(PlaybackState.STATE_NONE);
         session.setActive(true);
         setSessionToken(session.getSessionToken());
-        tts = new TextToSpeech(getApplicationContext(), status -> {
-            if (status != TextToSpeech.SUCCESS) return;
-            tts.setLanguage(Locale.GERMANY);
-            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                @Override
-                public void onStart(String utteranceId) {
-                    setState(PlaybackState.STATE_PLAYING);
-                }
-
-                @Override
-                public void onDone(String utteranceId) {
-                    setState(PlaybackState.STATE_STOPPED);
-                }
-
-                @Override
-                public void onError(String utteranceId) {
-                    setState(PlaybackState.STATE_STOPPED);
-                }
-            });
-            ttsReady = true;
-            if (pendingSpeech != null) {
-                speak(pendingTitle, pendingSpeech);
-                pendingSpeech = null;
-            }
-        });
     }
 
     @Override
     public void onDestroy() {
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
-        }
         session.setActive(false);
         session.release();
         super.onDestroy();
@@ -120,12 +84,21 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
         // Der Plan ist privat: nur Android Auto, Google-Assistent/System und die App selbst dürfen den Baum lesen.
         // Debug-Builds (die Sideload-APK) lassen alle zu, damit Test-Hosts wie die DHU nicht scheitern.
         boolean debuggable = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
-        boolean known = clientUid == Process.SYSTEM_UID
-                || getPackageName().equals(clientPackageName)
-                || "com.google.android.projection.gearhead".equals(clientPackageName)
-                || "com.google.android.googlequicksearchbox".equals(clientPackageName)
-                || "com.android.systemui".equals(clientPackageName);
-        return debuggable || known ? new BrowserRoot(ROOT, null) : null;
+        boolean known = clientUid == Process.SYSTEM_UID || getPackageName().equals(clientPackageName);
+        for (String h : AUTO_HOSTS) known |= h.equals(clientPackageName);
+        if (!debuggable && !known) return null;
+        // Bilder (content://…carart/) für den Host lesbar machen
+        try {
+            Uri base = new Uri.Builder().scheme("content").authority(getPackageName() + ".carart").build();
+            grantUriPermission(clientPackageName, base, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        } catch (Exception ignored) {
+            // ohne Rechte zeigt das Auto nur Text
+        }
+        Bundle extras = new Bundle();
+        extras.putBoolean(STYLE_SUPPORTED, true);
+        extras.putInt(STYLE_BROWSABLE, STYLE_GRID); // Startseite: Kacheln
+        extras.putInt(STYLE_PLAYABLE, STYLE_LIST); // Einträge: Liste mit Symbolen
+        return new BrowserRoot(ROOT, extras);
     }
 
     @Override
@@ -133,9 +106,12 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
         List<MediaBrowser.MediaItem> items = new ArrayList<>();
         try {
             JSONObject root = FamilyCarAppService.loadData(this);
-            if (ROOT.equals(parentId)) rootItems(root, items);
-            else if (parentId.startsWith(DAYS)) daysItems(root, Integer.parseInt(parentId.substring(DAYS.length())), items);
-            else if (parentId.startsWith(DAY)) dayItems(root, parentId.substring(DAY.length()), items);
+            String v = version(root);
+            if (ROOT.equals(parentId)) rootItems(root, v, items);
+            else if (parentId.startsWith(DAYS)) daysItems(root, v, Integer.parseInt(parentId.substring(DAYS.length())), items);
+            else if (parentId.startsWith(DAY)) dayItems(root, v, parentId.substring(DAY.length()), items);
+            else if (SHOP.equals(parentId)) shopItems(root, v, items);
+            else if (TASKS.equals(parentId)) taskItems(root, v, items);
         } catch (Exception ignored) {
             // leere Liste statt Absturz
         }
@@ -144,10 +120,10 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
 
     // ---- Browse-Baum ---------------------------------------------------------------------------
 
-    private void rootItems(JSONObject root, List<MediaBrowser.MediaItem> out) {
+    private void rootItems(JSONObject root, String v, List<MediaBrowser.MediaItem> out) {
         JSONArray days = root != null ? root.optJSONArray("days") : null;
         if (days == null || days.length() == 0) {
-            out.add(leaf(SAY_DAY + FamilyCarAppService.todayIso(), "Noch keine Daten", "Einmal die App auf dem Handy öffnen"));
+            out.add(item(NOOP + "empty", "Noch keine Daten", "Einmal die App auf dem Handy öffnen", art("tile/week", v), MediaBrowser.MediaItem.FLAG_PLAYABLE, null));
             return;
         }
         int idx = FamilyCarAppService.todayIndex(days);
@@ -156,159 +132,176 @@ public class FamilyMediaBrowserService extends MediaBrowserService {
         for (int i = 0; i < 3 && from + i < days.length(); i++) {
             JSONObject d = days.optJSONObject(from + i);
             if (d == null) continue;
-            out.add(dayFolder(d, idx >= 0 ? rel[i] + " · " : ""));
+            String label = idx >= 0 ? rel[i] : "";
+            out.add(dayFolder(d, label, v));
         }
-        if (from + 3 < days.length()) out.add(folder(DAYS + (from + 3), "Weitere Tage", "Alle " + days.length() + " Tage im Blick"));
-        out.add(leaf(SAY_SHOP, "Einkaufsliste", root.optInt("shopN", 0) + " offen"));
-        out.add(leaf(SAY_TASKS, "Aufgaben", taskSummary(root)));
+        if (from + 3 < days.length()) out.add(folder(DAYS + (from + 3), "Weitere Tage", (days.length() - from - 3) + " Tage", art("tile/week", v), STYLE_LIST));
+        int shopN = root.optInt("shopN", 0);
+        out.add(folder(SHOP, "Einkauf", shopN == 0 ? "alles besorgt" : shopN + " offen", art("tile/shop", v), STYLE_LIST));
+        out.add(folder(TASKS, "Aufgaben", taskSummary(root), art("tile/tasks", v), STYLE_LIST));
     }
 
-    private void daysItems(JSONObject root, int from, List<MediaBrowser.MediaItem> out) {
+    private void daysItems(JSONObject root, String v, int from, List<MediaBrowser.MediaItem> out) {
         JSONArray days = root != null ? root.optJSONArray("days") : null;
         if (days == null) return;
         for (int i = from; i < days.length() && i < from + DAYS_PER_PAGE; i++) {
             JSONObject d = days.optJSONObject(i);
-            if (d != null) out.add(dayFolder(d, ""));
+            if (d != null) out.add(dayFolder(d, "", v));
         }
-        if (from + DAYS_PER_PAGE < days.length()) out.add(folder(DAYS + (from + DAYS_PER_PAGE), "Weiter", "Spätere Tage"));
+        if (from + DAYS_PER_PAGE < days.length()) out.add(folder(DAYS + (from + DAYS_PER_PAGE), "Weiter", "Spätere Tage", art("tile/week", v), STYLE_LIST));
     }
 
-    private void dayItems(JSONObject root, String date, List<MediaBrowser.MediaItem> out) {
-        List<JSONObject> entries = entriesOf(root, date);
-        out.add(leaf(SAY_DAY + date, "Tag vorlesen", entries.isEmpty() ? "Nichts geplant" : entries.size() + (entries.size() == 1 ? " Eintrag" : " Einträge")));
+    private void dayItems(JSONObject root, String v, String date, List<MediaBrowser.MediaItem> out) {
+        List<JSONObject> entries = CarArt.entriesOf(root, date);
+        JSONObject d = CarArt.findDay(root, date);
+        String cov = d != null ? d.optString("cov", "none") : "none";
+        out.add(item(SHOW_DAY + date, "Tagesübersicht", (entries.isEmpty() ? "nichts geplant" : entries.size() + (entries.size() == 1 ? " Eintrag" : " Einträge")) + FamilyCarAppService.covNote(cov),
+                art("tile/day/" + date + "/", v), MediaBrowser.MediaItem.FLAG_PLAYABLE, null));
         for (int i = 0; i < entries.size() && i < MAX_ENTRIES_PER_DAY; i++) {
             JSONObject e = entries.get(i);
             String time = e.optString("time", "");
-            String kl = FamilyCarAppService.kindLabel(e.optString("kind", ""));
             String detail = e.optString("detail", "");
-            String sub = detail.isEmpty() ? kl : (kl.isEmpty() ? detail : kl + " · " + detail);
-            out.add(leaf(SAY_ENTRY + date + ":" + i, (time.isEmpty() ? "" : time + "  ") + e.optString("title", ""), sub));
+            String kind = e.optString("kind", "");
+            String sub = detail.isEmpty() ? kindLabel(kind) : detail;
+            String col = e.optString("color", "").replace("#", "");
+            out.add(item(SHOW_ENTRY + date + ":" + i, (time.isEmpty() ? "" : time + "  ") + e.optString("title", ""), sub,
+                    art("icon/" + kind + "/" + e.optString("mode", "-") + "/" + col, v), MediaBrowser.MediaItem.FLAG_PLAYABLE,
+                    time.isEmpty() ? "Ganztägig" : "Mit Uhrzeit"));
         }
     }
 
-    private MediaBrowser.MediaItem dayFolder(JSONObject d, String prefix) {
+    private void shopItems(JSONObject root, String v, List<MediaBrowser.MediaItem> out) {
+        JSONArray shop = root != null ? root.optJSONArray("shop") : null;
+        if (shop == null || shop.length() == 0) {
+            out.add(item(NOOP + "shop", "Alles besorgt", "Die Einkaufsliste ist leer", art("icon/shop/-/", v), MediaBrowser.MediaItem.FLAG_PLAYABLE, null));
+            return;
+        }
+        for (int i = 0; i < shop.length(); i++)
+            out.add(item(NOOP + "shop:" + i, shop.optString(i), "Einkaufsliste", art("icon/shop/-/", v), MediaBrowser.MediaItem.FLAG_PLAYABLE, null));
+    }
+
+    private void taskItems(JSONObject root, String v, List<MediaBrowser.MediaItem> out) {
+        JSONArray tasks = root != null ? root.optJSONArray("taskList") : null;
+        if (tasks == null || tasks.length() == 0) {
+            out.add(item(NOOP + "tasks", "Nichts offen", "Keine aktiven Aufgaben", art("icon/task/-/", v), MediaBrowser.MediaItem.FLAG_PLAYABLE, null));
+            return;
+        }
+        String today = FamilyCarAppService.todayIso();
+        for (int i = 0; i < tasks.length(); i++) {
+            JSONObject t = tasks.optJSONObject(i);
+            if (t == null) continue;
+            boolean late = t.optBoolean("late", false);
+            String due = t.optString("due", "");
+            String sub = late ? "überfällig seit " + CarArt.shortDate(due) : today.equals(due) ? "heute fällig" : "fällig " + FamilyCarAppService.dayLabel(due);
+            String col = t.optString("color", "").replace("#", "");
+            out.add(item(NOOP + "task:" + i, t.optString("title", ""), sub, art("icon/task/" + (late ? "late" : "-") + "/" + col, v), MediaBrowser.MediaItem.FLAG_PLAYABLE,
+                    late ? "Überfällig" : today.equals(due) ? "Heute" : "Demnächst"));
+        }
+    }
+
+    private MediaBrowser.MediaItem dayFolder(JSONObject d, String label, String v) {
         String date = d.optString("date");
         int n = d.optInt("n", 0);
         String sub = (n == 0 ? "nichts geplant" : n + (n == 1 ? " Eintrag" : " Einträge")) + FamilyCarAppService.covNote(d.optString("cov", "none"));
-        return folder(DAY + date, prefix + FamilyCarAppService.dayLabel(date), sub);
+        String title = label.isEmpty() ? FamilyCarAppService.dayLabel(date) : label;
+        return folder(DAY + date, title, label.isEmpty() ? sub : FamilyCarAppService.dayLabel(date) + " · " + sub, art("tile/day/" + date + "/" + label, v), STYLE_LIST);
     }
 
     private static String taskSummary(JSONObject root) {
         int today = root.optInt("taskToday", 0);
         int overdue = root.optInt("taskOverdue", 0);
         String s = root.optInt("taskN", 0) + " aktiv";
-        if (today > 0) s += " · " + today + " heute";
         if (overdue > 0) s += " · " + overdue + " überfällig";
+        else if (today > 0) s += " · " + today + " heute";
         return s;
     }
 
-    private static List<JSONObject> entriesOf(JSONObject root, String date) {
-        List<JSONObject> list = new ArrayList<>();
-        JSONArray entries = root != null ? root.optJSONArray("entries") : null;
-        if (entries == null) return list;
-        for (int i = 0; i < entries.length(); i++) {
-            JSONObject e = entries.optJSONObject(i);
-            if (e != null && date.equals(e.optString("date"))) list.add(e);
+    static String kindLabel(String kind) {
+        switch (kind) {
+            case "event": return "Termin";
+            case "info": return "Event";
+            case "task": return "Aufgabe";
+            case "birthday": return "Geburtstag";
+            case "presence": return "Anwesenheit";
+            case "care": return "Betreuungsbedarf";
+            case "cover": return "Betreuung";
+            default: return "";
         }
-        return list;
     }
 
-    private static MediaBrowser.MediaItem folder(String id, String title, String subtitle) {
-        return item(id, title, subtitle, MediaBrowser.MediaItem.FLAG_BROWSABLE);
+    // ---- Bausteine ---------------------------------------------------------------------------
+
+    /** Datenstand – ändert sich mit jedem Abgleich, damit das Auto neue Bilder lädt. */
+    private static String version(JSONObject root) {
+        if (root == null) return "0";
+        return Integer.toHexString((root.optString("updated", "") + root.optString("days", "").length() + root.optInt("shopN") + root.optInt("taskN")).hashCode());
     }
 
-    private static MediaBrowser.MediaItem leaf(String id, String title, String subtitle) {
-        return item(id, title, subtitle, MediaBrowser.MediaItem.FLAG_PLAYABLE);
+    private Uri art(String path, String v) {
+        return CarArtProvider.uri(this, path, v);
     }
 
-    private static MediaBrowser.MediaItem item(String id, String title, String subtitle, int flags) {
-        MediaDescription d = new MediaDescription.Builder().setMediaId(id).setTitle(title).setSubtitle(subtitle).build();
-        return new MediaBrowser.MediaItem(d, flags);
+    private static MediaBrowser.MediaItem folder(String id, String title, String subtitle, Uri icon, int childStyle) {
+        Bundle extras = new Bundle();
+        extras.putInt(STYLE_BROWSABLE, childStyle);
+        extras.putInt(STYLE_PLAYABLE, STYLE_LIST);
+        MediaDescription d = new MediaDescription.Builder().setMediaId(id).setTitle(title).setSubtitle(subtitle).setIconUri(icon).setExtras(extras).build();
+        return new MediaBrowser.MediaItem(d, MediaBrowser.MediaItem.FLAG_BROWSABLE);
     }
 
-    // ---- Vorlesen -------------------------------------------------------------------------------
+    private static MediaBrowser.MediaItem item(String id, String title, String subtitle, Uri icon, int flags, String group) {
+        MediaDescription.Builder b = new MediaDescription.Builder().setMediaId(id).setTitle(title).setSubtitle(subtitle).setIconUri(icon);
+        if (group != null) {
+            Bundle extras = new Bundle();
+            extras.putString(STYLE_GROUP, group);
+            b.setExtras(extras);
+        }
+        return new MediaBrowser.MediaItem(b.build(), flags);
+    }
 
-    private void speakFor(String mediaId) {
+    // ---- „Läuft gerade“: große Grafik statt Vorlesen ----------------------------------------------
+
+    private void show(String mediaId) {
+        if (mediaId == null || mediaId.startsWith(NOOP)) return;
         JSONObject root = FamilyCarAppService.loadData(this);
-        String title = "Familienplaner";
-        String text;
+        String v = version(root);
+        String title;
+        String subtitle;
+        String path;
         try {
-            if (mediaId.startsWith(SAY_DAY)) {
-                String date = mediaId.substring(SAY_DAY.length());
-                title = FamilyCarAppService.dayLabel(date);
-                text = spokenDay(root, date);
-            } else if (mediaId.startsWith(SAY_ENTRY)) {
-                String[] p = mediaId.substring(SAY_ENTRY.length()).split(":");
-                List<JSONObject> entries = entriesOf(root, p[0]);
-                JSONObject e = entries.get(Integer.parseInt(p[1]));
+            if (mediaId.startsWith(SHOW_DAY)) {
+                String date = mediaId.substring(SHOW_DAY.length());
+                int n = CarArt.entriesOf(root, date).size();
+                title = CarArt.longDate(date);
+                subtitle = n == 0 ? "nichts geplant" : n + (n == 1 ? " Eintrag" : " Einträge");
+                path = "card/day/" + date;
+            } else if (mediaId.startsWith(SHOW_ENTRY)) {
+                String[] p = mediaId.substring(SHOW_ENTRY.length()).split(":");
+                JSONObject e = CarArt.entriesOf(root, p[0]).get(Integer.parseInt(p[1]));
+                String time = e.optString("time", "");
                 title = e.optString("title", "");
-                text = spokenEntry(e);
-            } else if (SAY_SHOP.equals(mediaId)) {
-                title = "Einkaufsliste";
-                int n = root != null ? root.optInt("shopN", 0) : 0;
-                text = n == 0 ? "Die Einkaufsliste ist leer." : "Auf der Einkaufsliste stehen " + n + (n == 1 ? " offener Artikel." : " offene Artikel.");
-            } else if (SAY_TASKS.equals(mediaId)) {
-                title = "Aufgaben";
-                text = root == null ? "Keine Daten." : "Aufgaben: " + taskSummary(root).replace("·", ",") + ".";
+                subtitle = CarArt.longDate(p[0]) + (time.isEmpty() ? "" : " · " + time) + (e.optString("detail", "").isEmpty() ? "" : " · " + e.optString("detail"));
+                path = "card/entry/" + p[0] + "/" + p[1];
             } else {
                 return;
             }
         } catch (Exception e) {
-            text = "Dazu liegen keine Daten vor.";
-        }
-        speak(title, text);
-    }
-
-    private static String spokenEntry(JSONObject e) {
-        String time = e.optString("time", "");
-        String detail = e.optString("detail", "");
-        return (time.isEmpty() ? "" : time.replace("–", " bis ") + " Uhr, ") + e.optString("title", "") + (detail.isEmpty() ? "" : ", " + detail);
-    }
-
-    private static String spokenDay(JSONObject root, String date) {
-        String name;
-        try {
-            Date d = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY).parse(date);
-            name = new SimpleDateFormat("EEEE, d. MMMM", Locale.GERMANY).format(d);
-        } catch (Exception e) {
-            name = date;
-        }
-        List<JSONObject> entries = entriesOf(root, date);
-        if (entries.isEmpty()) return name + ": nichts geplant.";
-        StringBuilder sb = new StringBuilder(name).append(": ").append(entries.size()).append(entries.size() == 1 ? " Eintrag. " : " Einträge. ");
-        for (int i = 0; i < entries.size() && i < MAX_ENTRIES_PER_DAY; i++) sb.append(spokenEntry(entries.get(i))).append(". ");
-        JSONArray days = root != null ? root.optJSONArray("days") : null;
-        if (days != null) {
-            for (int i = 0; i < days.length(); i++) {
-                JSONObject d = days.optJSONObject(i);
-                if (d != null && date.equals(d.optString("date")) && "gap".equals(d.optString("cov"))) sb.append("Achtung, Betreuung ungeklärt.");
-            }
-        }
-        return sb.toString();
-    }
-
-    private void speak(String title, String text) {
-        session.setMetadata(new MediaMetadata.Builder()
-                .putString(MediaMetadata.METADATA_KEY_TITLE, title)
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, "Familienplaner")
-                .build());
-        if (!ttsReady) {
-            pendingTitle = title;
-            pendingSpeech = text;
-            setState(PlaybackState.STATE_BUFFERING);
             return;
         }
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "familienplaner");
-    }
-
-    private void stopSpeaking() {
-        pendingSpeech = null;
-        if (tts != null) tts.stop();
-        setState(PlaybackState.STATE_STOPPED);
+        Uri artUri = art(path, v);
+        session.setMetadata(new MediaMetadata.Builder()
+                .putString(MediaMetadata.METADATA_KEY_MEDIA_ID, mediaId)
+                .putString(MediaMetadata.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE, title)
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, subtitle)
+                .putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE, subtitle)
+                .putString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, artUri.toString())
+                .putString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI, artUri.toString())
+                .build());
+        setState(PlaybackState.STATE_PAUSED); // zeigt die Karte, ohne etwas abzuspielen
     }
 
     private void setState(int state) {
-        long actions = PlaybackState.ACTION_PLAY_FROM_MEDIA_ID | PlaybackState.ACTION_STOP | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY;
-        session.setPlaybackState(new PlaybackState.Builder().setActions(actions).setState(state, 0, 1f).build());
+        session.setPlaybackState(new PlaybackState.Builder().setActions(PlaybackState.ACTION_PLAY_FROM_MEDIA_ID).setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 0f).build());
     }
 }

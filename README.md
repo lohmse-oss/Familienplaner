@@ -38,7 +38,7 @@ Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
 2. Android Auto → Einstellungen → **„Launcher anpassen“** → Haken bei **Familienplaner** setzen.
 3. Einmal die Familienplaner-App öffnen (legt die Daten ab) und das Auto neu verbinden.
 
-Im Auto: *Familienplaner* im Launcher (Medien) → Heute / Morgen / Übermorgen / Weitere Tage / Einkaufsliste / Aufgaben (mit Betreuungs-Ampel, „ungeklärt!“). Ein Tipp auf einen Eintrag oder auf „Tag vorlesen“ **liest ihn per Sprachausgabe vor**. Zusätzlich ist ein CarAppService (Template-UI, Kategorie POI) enthalten – sichtbar im Desktop Head Unit (DHU) und bei Play-Verteilung (Internal App Sharing / Test-Track).
+Im Auto: *Familienplaner* im Launcher (Medien) → Heute / Morgen / Übermorgen / Weitere Tage / Einkaufsliste / Aufgaben (mit Betreuungs-Ampel, „ungeklärt!“). Startseite als Kacheln wie das Widget; ein Tipp auf einen Eintrag oder die „Tagesübersicht“ zeigt eine große Grafik-Karte (keine Sprachausgabe). Zusätzlich ist ein CarAppService (Template-UI, Kategorie POI) enthalten – sichtbar im Desktop Head Unit (DHU) und bei Play-Verteilung (Internal App Sharing / Test-Track).
 
 **Hinweise vom Partner:** Beim ersten Start die Benachrichtigungen erlauben. In Android ggf. den Akku-Sparmodus für die App lockern, damit der Hintergrund-Abgleich (ca. alle 15 Min.) zuverlässig läuft.
 
