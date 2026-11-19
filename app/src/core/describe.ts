@@ -1,5 +1,5 @@
 import { dow, fmt, fmtShort, WD } from './dates';
-import { PERSONS, type Item, type PersonId } from './types';
+import { EVERY_LABEL, PERSONS, type Item, type PersonId } from './types';
 
 export type Verb = 'new' | 'edit' | 'del';
 
@@ -51,6 +51,14 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
     default:
       return null;
   }
+  // Übernahme-Anfrage: der Hinweis an den Partner sagt, worum es geht
+  if (it.ask && (it.kind === 'event' || it.kind === 'task')) {
+    const a = it.ask;
+    if (a.state === 'open') text = `Bitte übernehmen (${PERSONS[a.to].name}): ${text}`;
+    else if (a.state === 'accepted') text = `Übernimmt: ${text}`;
+    else text = `Kann nicht übernehmen: ${text}`;
+  }
+  if (it.kind === 'task' && it.every) text += ` (${EVERY_LABEL[it.every]})`;
   return { verb, text };
 }
 

@@ -633,3 +633,26 @@ h1, h2, h3 { margin: 0; }
 .ovl-line .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovl-line small { white-space: nowrap; }
 .ovl-more { font-size: 13px; margin-top: 2px; }
+
+/* ---------- Checklisten ---------- */
+.progress { display: block; height: 5px; border-radius: 99px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--ok); border-radius: 99px; transition: width .2s; }
+.list-head { display: flex; align-items: center; gap: 8px; }
+.list-head h2 { margin: 0; font-size: 18px; }
+.title-input { font-size: 18px; font-weight: 700; border: 0; border-bottom: 1.5px dashed var(--line); background: none; color: var(--ink); padding: 4px 0; min-width: 0; }
+.list-dot { background: var(--muted); width: 6px; height: 6px; margin: 0 9px; }
+.actions.wrap { flex-wrap: wrap; }
+
+/* ---------- Übernahme-Anfragen & Brückentage-Tipps ---------- */
+.ask-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.ask { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ask:last-child { border-bottom: 0; }
+.ask .actions { justify-content: flex-end; margin-top: 6px; }
+.ask-reply.accepted .ic, .ask-reply.accepted svg { color: var(--ok); }
+.ask-reply.declined .ic, .ask-reply.declined svg { color: var(--gap); }
+.bridge-sum { font-size: 13.5px; line-height: 1.4; padding: 6px 0 8px; border-bottom: 1px solid var(--line); }
+.bridge-tip small { display: block; color: var(--muted); font-size: 12.5px; }
+.card-head .link.small { margin-left: auto; padding: 0 4px; font-size: 13px; }
+.asked { font-size: 11px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 99px; padding: 1px 7px; }
+.ask-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 13.5px; }
+.ask-box:empty { display: none; }

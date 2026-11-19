@@ -11,6 +11,8 @@ export function More({ go }: { go: (t: Tab) => void }) {
   const { items, cal, settings, readOnly, sync, hd } = useStore();
   const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
   const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted).length;
+  const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template).length;
+  const facts = items.filter((i) => i.kind === 'fact' && !i.deleted && !(readOnly && i.private)).length;
   const t0 = today();
   const py = Number(t0.slice(0, 4));
   const free = PARENTS.map((p) => budget(cal, p, py, t0));
@@ -19,6 +21,8 @@ export function More({ go }: { go: (t: Tab) => void }) {
     { tab: 'vacation', icon: 'palm', title: 'Urlaubsverwaltung', sub: freeText },
     { tab: 'tasks', icon: 'tasks', title: 'Aufgaben', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks || undefined },
     { tab: 'birthdays', icon: 'cake', title: 'Geburtstage', sub: `${bdays} eingetragen` },
+    { tab: 'lists', icon: 'listcheck', title: 'Checklisten', sub: activeLists ? `${activeLists} aktiv · Vorlagen` : 'Packlisten & Vorlagen' },
+    { tab: 'facts', icon: 'folder', title: 'Infomappe', sub: facts ? `${facts} Karten` : 'Kinderarzt, Kita, Größen …' },
     { tab: 'settings', icon: 'settings', title: 'Einstellungen', sub: 'Ich, Darstellung, Hinweise, Widget, Synchronisierung' },
   ];
   return (

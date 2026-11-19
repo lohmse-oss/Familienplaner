@@ -1,13 +1,14 @@
 import { useUiState } from '../resume';
-import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
+import { ALL, CHILDREN, EVERY_LABEL, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Every, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
 import { deleteItem, newId, saveItem, useStore, withUndo } from '../store';
 import { describeChange } from '../core/describe';
 import { Overlap } from './Overlap';
-import { addDays, diff, today } from '../core/dates';
+import { addDays, diff, fmtShort, today } from '../core/dates';
+import { nextDue } from '../core/recur';
 import { Chips, DateInput, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
-export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; short: string; label: string; icon: IconName; hint: string }[] = [
+export const KINDS: { kind: Exclude<Kind, 'config' | 'shop' | 'list' | 'check' | 'fact'>; short: string; label: string; icon: IconName; hint: string }[] = [
   { kind: 'presence', short: 'Eintrag', label: 'Urlaub / Dienstreise / Homeoffice', icon: 'palm', hint: 'Wer ist anwesend?' },
   { kind: 'care', short: 'Betreuungsbedarf', label: 'Betreuungsbedarf', icon: 'baby', hint: 'Schließtag Kita/Schule, krank …' },
   { kind: 'event', short: 'Termin', label: 'Termin', icon: 'addcal', hint: 'Arzt, Klassenarbeit, Elternabend' },
@@ -25,7 +26,7 @@ const CARE_PRESETS: { label: string; child?: PersonId }[] = [
   { label: 'Sonstiges' },
 ];
 
-export function KindPicker({ onPick, onClose, onShop }: { onPick: (k: Kind) => void; onClose: () => void; onShop: () => void }) {
+export function KindPicker({ onPick, onClose, onShop, onList, onFact }: { onPick: (k: Kind) => void; onClose: () => void; onShop: () => void; onList: () => void; onFact: () => void }) {
   return (
     <Sheet title="Neuer Eintrag" onClose={onClose}>
       <div class="kinds">
@@ -39,13 +40,21 @@ export function KindPicker({ onPick, onClose, onShop }: { onPick: (k: Kind) => v
             <span><b>{k.label}</b><small>{k.hint}</small></span>
           </button>
         ))}
+        <button class="kind" onClick={onList}>
+          <span class="ic"><Ic n="listcheck" size={24} /></span>
+          <span><b>Checkliste</b><small>neu oder aus Vorlage, z. B. Packliste</small></span>
+        </button>
+        <button class="kind" onClick={onFact}>
+          <span class="ic"><Ic n="folder" size={24} /></span>
+          <span><b>Karte für die Infomappe</b><small>Kinderarzt, Kita-Telefon, Größen …</small></span>
+        </button>
       </div>
     </Sheet>
   );
 }
 
 export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kind: Kind }; onClose: () => void }) {
-  const { settings } = useStore();
+  const { settings, readOnly } = useStore();
   const isNew = !initial.id;
   const k = initial.kind;
   // Entwurf wird laufend gesichert: Wechselt man kurz in eine andere App und Android startet den Planer neu, ist die Eingabe noch da.
@@ -62,6 +71,35 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     kind: k,
   }), { clearOnUnmount: true, accept: (x) => x.kind === k && (initial.id ? x.id === initial.id : !x.created) });
   const set = (patch: Partial<Item>) => setD((x) => ({ ...x, ...patch }));
+
+  // Übernahme-Anfrage an den Partner (nur Eltern)
+  const me = settings.me;
+  const partner = PARENTS.find((p) => p !== me);
+  const a = d.ask;
+  const pending = a && a.at !== initial.ask?.at; // noch nicht gespeichert
+  const askBox = PARENTS.includes(me) && partner && !readOnly ? (
+    <div class="ask-box">
+      {a?.state === 'open' && a.to === me ? (
+        <>
+          <span class="grow"><b>{PERSONS[a.from].name}</b> fragt, ob du übernimmst.</span>
+          <button type="button" class="btn small" onClick={() => set({ ask: { ...a, state: 'declined', at: Date.now() } })}>Ablehnen</button>
+          <button type="button" class="btn small primary" onClick={() => set({ owner: me, ask: { ...a, state: 'accepted', at: Date.now() } })}>Zusagen</button>
+        </>
+      ) : a?.state === 'open' && a.from === me ? (
+        <>
+          <span class="grow"><Ic n="send" size={14} /> Anfrage an {PERSONS[a.to].name} {pending ? 'wird mit „Speichern“ gesendet' : 'läuft'}</span>
+          <button type="button" class="link" onClick={() => set({ ask: pending ? initial.ask : undefined })}>{pending ? 'doch nicht' : 'zurückziehen'}</button>
+        </>
+      ) : (
+        <>
+          {a && a.state !== 'open' && <span class="grow muted small">{PERSONS[a.to].name} hat {a.state === 'accepted' ? 'zugesagt' : 'abgelehnt'}{pending ? ' (wird mit „Speichern“ gesendet)' : ''}.</span>}
+          {d.owner !== partner && !pending && (
+            <button type="button" class="btn small" onClick={() => set({ ask: { from: me, to: partner, state: 'open', at: Date.now() } })}><Ic n="send" size={14} /> {PERSONS[partner].name} um Übernahme bitten</button>
+          )}
+        </>
+      )}
+    </div>
+  ) : null;
   // Termine: eintägig, mehrtägig (Festival, Ausflug) oder wiederkehrend (dann ist end das Serienende)
   const multi = k === 'event' && !d.recur && d.end > d.start;
   const single = (k === 'event' && !multi) || k === 'task' || k === 'birthday';
@@ -88,8 +126,17 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     if (!(k === 'presence' && d.mode === 'vacation') && k !== 'info') delete out.away;
     if (k === 'info' && !out.away) delete out.away;
     if (k !== 'event' || !out.recur) delete out.recur;
+    if (k !== 'task' || !out.every) delete out.every;
+    if ((k !== 'event' && k !== 'task') || !out.ask) delete out.ask;
+    // Wiederkehrende Aufgabe als erledigt markiert → nächste Fälligkeit
+    let label = `${what} ${isNew ? 'gespeichert' : 'geändert'}`;
+    if (k === 'task' && out.every && out.done && !initial.done) {
+      out.start = out.end = nextDue(out.start, out.every);
+      out.done = false;
+      label = `Erledigt – nächste Fälligkeit ${fmtShort(out.start)}`;
+    }
     // Bestätigung: was genau gespeichert wurde, mit „Rückgängig“
-    withUndo(`${what} ${isNew ? 'gespeichert' : 'geändert'}`, () => saveItem(out), describeChange({ ...out, updated: 0 })?.text);
+    withUndo(label, () => saveItem(out), describeChange({ ...out, updated: 0 })?.text);
     onClose();
   };
   const remove = () => {
@@ -150,6 +197,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
               <>
                 <label>Wer kümmert sich?</label>
                 <Chips<string> options={[...personOpts(PARENTS), { value: '', label: 'noch offen' }]} value={[d.owner ?? '']} onChange={(v) => set({ owner: (v[0] || null) as PersonId | null })} />
+                {askBox}
               </>
             )}
             <label>Wiederholung</label>
@@ -171,7 +219,14 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
             <input type="text" placeholder="z. B. Geschenk besorgen" value={d.title ?? ''} onInput={(e) => set({ title: (e.target as HTMLInputElement).value })} />
             <label>Zuständig</label>
             <Chips<string> options={[...personOpts(PARENTS), { value: '', label: 'offen' }]} value={[d.owner ?? '']} onChange={(v) => set({ owner: (v[0] || null) as PersonId | null })} />
-            <label class="check"><input type="checkbox" checked={!!d.done} onChange={(e) => set({ done: (e.target as HTMLInputElement).checked })} /> erledigt</label>
+            {askBox}
+            <label>Wiederholung</label>
+            <Chips<string>
+              options={[{ value: '', label: 'keine' }, ...(Object.keys(EVERY_LABEL) as Every[]).map((e) => ({ value: e, label: EVERY_LABEL[e] }))]}
+              value={[d.every ?? '']}
+              onChange={(v) => set({ every: (v[0] || undefined) as Every | undefined })}
+            />
+            <label class="check"><input type="checkbox" checked={!!d.done} onChange={(e) => set({ done: (e.target as HTMLInputElement).checked })} /> erledigt{d.every && !initial.done ? ' (Fälligkeit rückt dann auf den nächsten Termin)' : ''}</label>
           </>
         )}
 

@@ -8,7 +8,7 @@ import { Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
 const KIND_ICON: Record<string, IconName> = {
-  presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'ticket', task: 'tasks', birthday: 'cake', shop: 'cart',
+  list: 'listcheck', check: 'listcheck', fact: 'folder', presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'ticket', task: 'tasks', birthday: 'cake', shop: 'cart',
 };
 
 const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
@@ -23,14 +23,14 @@ const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
 
 /** Suche und Schnellsprung: Text suchen oder ein Datum („14.7.“) eintippen; ohne Eingabe stehen die wichtigsten Ziele bereit. */
 export function SearchSheet({ onClose, onDay, onGo }: { onClose: () => void; onDay: (date: string) => void; onGo: (tab: Tab, view?: CalView) => void }) {
-  const { items } = useStore();
+  const { items, readOnly } = useStore();
   const [q, setQ] = useUiState('search.q', '', { clearOnUnmount: true });
   const input = useRef<HTMLInputElement>(null);
   const t = today();
   useEffect(() => { const id = setTimeout(() => input.current?.focus(), 250); return () => clearTimeout(id); }, []);
 
   const jump = useMemo(() => parseDateQuery(q, t), [q]);
-  const hits = useMemo(() => search(items, q, t), [items, q]);
+  const hits = useMemo(() => search(items, q, t, 40, { hidePrivate: readOnly }), [items, q, readOnly]);
   const pick = (fn: () => void) => { onClose(); fn(); };
 
   return (
@@ -61,7 +61,7 @@ export function SearchSheet({ onClose, onDay, onGo }: { onClose: () => void; onD
 
       {q.trim() && !hits.length && !jump && <div class="empty"><Ic n="search" size={24} /><br />Nichts gefunden für „{q.trim()}“.</div>}
       {hits.map((h) => (
-        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' ? onGo('shop') : onDay(h.date)))}>
+        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' ? onGo('shop') : h.kind === 'list' || h.kind === 'check' ? onGo('lists') : h.kind === 'fact' ? onGo('facts') : onDay(h.date)))}>
           <Ic n={KIND_ICON[h.kind] ?? 'info'} class="muted" />
           <span class="grow">{h.text}</span>
           <span class="muted small">{hitDateLabel(h)}</span>

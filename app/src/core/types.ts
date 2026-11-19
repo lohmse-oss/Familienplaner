@@ -22,8 +22,36 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  *  birthday – Geburtstag (jährlich)
  *  config   – Einstellungen pro Person und Jahr (Urlaubstage)
  *  shop     – Eintrag der Einkaufsliste (title, done)
+ *  list     – Checkliste (title) oder Vorlage (template = true)
+ *  check    – Punkt einer Checkliste/Vorlage (parent = Id der Liste, title, done) – eigene Einträge, damit beide parallel abhaken können
+ *  fact     – Karte der Familien-Infomappe (title, cat, note, contact, link, place; private = nur Eltern)
  */
-export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop';
+export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop' | 'list' | 'check' | 'fact';
+/** Arten, die nicht im Kalender erscheinen (Listen, Einstellungen, Infomappe). */
+export const NON_CALENDAR: Kind[] = ['config', 'shop', 'list', 'check', 'fact'];
+export const isCalendarKind = (k: Kind) => !NON_CALENDAR.includes(k);
+
+/** Wiederholung von Aufgaben: beim Abhaken rückt die Fälligkeit um diesen Abstand weiter. */
+export type Every = 'week' | '2weeks' | 'month' | 'quarter' | 'year';
+export const EVERY_LABEL: Record<Every, string> = { week: 'wöchentlich', '2weeks': 'alle 2 Wochen', month: 'monatlich', quarter: 'vierteljährlich', year: 'jährlich' };
+
+/** Übernahme-Anfrage an den Partner (Termin/Aufgabe). */
+export interface Ask {
+  from: PersonId;
+  to: PersonId;
+  state: 'open' | 'declined' | 'accepted';
+  at: number; // ms – letzte Änderung der Anfrage
+}
+
+export type FactCat = 'kontakt' | 'gesundheit' | 'kita' | 'groessen' | 'dokumente' | 'sonstiges';
+export const FACT_CAT_LABEL: Record<FactCat, string> = {
+  kontakt: 'Kontakte',
+  gesundheit: 'Gesundheit',
+  kita: 'Kita & Schule',
+  groessen: 'Größen & Kleidung',
+  dokumente: 'Dokumente & Verträge',
+  sonstiges: 'Sonstiges',
+};
 export type Mode = 'homeoffice' | 'vacation' | 'trip';
 export type EventSub = 'arzt' | 'schule' | 'feier' | 'sport' | 'freizeit' | 'sonstiges';
 export type Recur = 'weekly' | 'monthly';
@@ -54,6 +82,12 @@ export interface Item {
   link?: string; // event/info: Webadresse
   contact?: string; // event/info: Kontakt / Telefon
   recur?: Recur; // event: Wiederholung (start = erstes Vorkommen; end leer = ohne Serienende)
+  every?: Every; // task: wiederkehrend – Abhaken setzt die nächste Fälligkeit
+  ask?: Ask; // event/task: Übernahme-Anfrage an den Partner
+  parent?: string; // check: Id der Checkliste
+  template?: boolean; // list: Vorlage statt aktiver Checkliste
+  cat?: FactCat; // fact: Kategorie der Infomappe
+  private?: boolean; // fact: nur für Eltern sichtbar (nicht im Lesezugriff)
 }
 
 export interface Span {

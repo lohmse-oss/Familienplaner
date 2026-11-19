@@ -13,6 +13,8 @@ import { sheetStack } from './ui/common';
 import { DaySheet } from './ui/DaySheet';
 import { EditSheet, KindPicker } from './ui/EditSheet';
 import { Home } from './ui/Home';
+import { Lists } from './ui/Lists';
+import { Facts, FactSheet } from './ui/Facts';
 import { Ic, type IconName } from './ui/icons';
 import { More } from './ui/More';
 import { ScrollTop } from './ui/ScrollTop';
@@ -34,16 +36,19 @@ const TITLES: Record<Tab, string> = {
   tasks: 'Aufgaben',
   birthdays: 'Geburtstage',
   settings: 'Einstellungen',
+  lists: 'Checklisten',
+  facts: 'Infomappe',
 };
 /** Wohin führt „zurück“, wenn es keinen Verlauf gibt? */
-const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'more' };
+const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'more', lists: 'more', facts: 'more' };
 
 type Sheet =
   | null
   | { t: 'day'; date: string }
   | { t: 'pick'; date?: string }
   | { t: 'search' }
-  | { t: 'edit'; item: Partial<Item> & { kind: Kind } };
+  | { t: 'edit'; item: Partial<Item> & { kind: Kind } }
+  | { t: 'fact'; item?: Item };
 
 export function App() {
   const { sync, undo, notice, settings, readOnly, items, cal } = useStore();
@@ -54,6 +59,7 @@ export function App() {
   const [sheet, setSheet] = useUiState<Sheet>('sheet', null); // offenes Fenster inkl. Entwurf (s. EditSheet)
   const [preset, setPreset] = useState<PlanPreset | undefined>();
   const [focusShop, setFocusShop] = useState(0);
+  const [newList, setNewList] = useState(0); // Signal: in Checklisten „Neue Liste“ öffnen
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const calView = settings.calView;
@@ -205,6 +211,8 @@ export function App() {
     haptic();
     if (tab === 'tasks') setSheet({ t: 'edit', item: { kind: 'task' } });
     else if (tab === 'birthdays') setSheet({ t: 'edit', item: { kind: 'birthday' } });
+    else if (tab === 'facts') setSheet({ t: 'fact' });
+    else if (tab === 'lists') setNewList((n) => n + 1);
     else setSheet({ t: 'pick' });
   };
   const homeDown = () => {
@@ -222,7 +230,7 @@ export function App() {
   const shopOpen = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
   const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t0).length;
   const gapToday = cal.day(t0).coverage === 'gap' || cal.day(addDays(t0, 1)).coverage === 'gap';
-  const navActive: Tab = tab === 'settings' || tab === 'vacation' || tab === 'birthdays' ? 'more' : tab;
+  const navActive: Tab = tab === 'settings' || tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' ? 'more' : tab;
   const parent = stack.length ? stack[stack.length - 1] : PARENT[tab];
 
   return (
@@ -274,7 +282,7 @@ export function App() {
       </div>
 
       <main key={tab}>
-        {tab === 'home' && <Home go={go} openDay={openDay} />}
+        {tab === 'home' && <Home go={go} openDay={openDay} plan={plan} edit={edit} />}
         {tab === 'cal' && (
           <>
             <CalNav />
@@ -289,6 +297,8 @@ export function App() {
         {tab === 'tasks' && <Tasks edit={edit} />}
         {tab === 'birthdays' && <Birthdays edit={edit} />}
         {tab === 'settings' && <Settings />}
+        {tab === 'lists' && <Lists newSignal={newList} />}
+        {tab === 'facts' && <Facts open={(item) => setSheet({ t: 'fact', item })} />}
       </main>
 
       {(tab === 'cal' || tab === 'vacation') && <ScrollTop key={tab} />}
@@ -356,8 +366,11 @@ export function App() {
           onClose={close}
           onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : tab === 'cal' ? { start: today(), end: today() } : {}) } })}
           onShop={() => { close(); nav('shop'); setFocusShop((n) => n + 1); }}
+          onList={() => { close(); nav('lists'); setNewList((n) => n + 1); }}
+          onFact={() => setSheet({ t: 'fact' })}
         />
       )}
+      {sheet?.t === 'fact' && <FactSheet key={sheet.item?.id ?? 'new'} initial={sheet.item} onClose={close} />}
       {sheet?.t === 'edit' && <EditSheet key={sheet.item.id ?? 'new'} initial={sheet.item} onClose={close} />}
     </div>
   );

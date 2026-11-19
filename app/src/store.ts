@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import bundled from './data/holidays.json';
 import { buildCalendar, type Calendar } from './core/calendar';
-import { contiguousRuns } from './core/dates';
+import { contiguousRuns, fmtShort } from './core/dates';
+import { nextDue } from './core/recur';
 import { planPresence, type PresenceOptions } from './core/presence';
 import type { PersonFilter } from './core/filter';
 import type { CalView } from './nav';
@@ -218,6 +219,61 @@ export function saveItem(it: Omit<Item, 'updated' | 'by'> & Partial<Pick<Item, '
   persist();
   syncSoon();
   return full;
+}
+
+/** Aufgabe abhaken. Wiederkehrende Aufgaben rücken stattdessen auf die nächste Fälligkeit (mit „Rückgängig“). */
+export function toggleTask(t: Item) {
+  if (!t.done && t.every) {
+    const next = nextDue(t.start, t.every);
+    withUndo(`Erledigt – nächste Fälligkeit ${fmtShort(next)}`, () => saveItem({ ...t, start: next, end: next, done: false }), t.title);
+  } else saveItem({ ...t, done: !t.done });
+}
+
+/** Übernahme-Anfrage beantworten: Zusagen macht mich zuständig, Ablehnen meldet es zurück. */
+export function answerAsk(it: Item, yes: boolean) {
+  if (!it.ask) return;
+  const ask = { ...it.ask, state: yes ? ('accepted' as const) : ('declined' as const), at: Date.now() };
+  saveItem({ ...it, owner: yes ? settings.me : it.owner, ask });
+}
+
+/* ---------- Checklisten ---------- */
+const listEntries = (listId: string) => items.filter((i) => i.kind === 'check' && !i.deleted && i.parent === listId);
+
+/** Punkte zu einer Liste hinzufügen (mehrere mit Komma oder Zeilenumbruch). */
+export function addChecks(listId: string, text: string, splitComma = true) {
+  const parts = text.split(splitComma ? /[,\n]/ : /\n/).map((s) => s.trim()).filter(Boolean);
+  const base = Date.now();
+  batch(() => parts.forEach((t, n) => saveItem({ id: newId(), kind: 'check', parent: listId, title: t, persons: [], start: nowIso(), end: nowIso(), ts: base + n })));
+}
+
+/** Neue Checkliste oder Vorlage; optional als Kopie einer anderen Liste (Vorlage → aktive Liste und umgekehrt). */
+export function createList(title: string, template: boolean, from?: string): string {
+  const id = newId();
+  const base = Date.now();
+  batch(() => {
+    saveItem({ id, kind: 'list', title: title.trim() || (template ? 'Neue Vorlage' : 'Neue Checkliste'), template, persons: [], start: nowIso(), end: nowIso(), ts: base });
+    if (from)
+      listEntries(from)
+        .sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0))
+        .forEach((c, n) => saveItem({ id: newId(), kind: 'check', parent: id, title: c.title, persons: [], start: nowIso(), end: nowIso(), ts: base + n + 1 }));
+  });
+  return id;
+}
+
+/** Liste samt Punkten löschen (mit „Rückgängig“). */
+export function deleteList(listId: string) {
+  const l = items.find((i) => i.id === listId);
+  withUndo(`${l?.template ? 'Vorlage' : 'Checkliste'} gelöscht`, () => {
+    for (const c of listEntries(listId)) saveItem({ ...c, deleted: true });
+    if (l) saveItem({ ...l, deleted: true });
+  }, l?.title);
+}
+
+/** Alle Haken einer Liste entfernen (z. B. Packliste für die nächste Reise). */
+export function resetList(listId: string) {
+  withUndo('Haken zurückgesetzt', () => {
+    for (const c of listEntries(listId)) if (c.done) saveItem({ ...c, done: false });
+  });
 }
 
 export function deleteItem(id: string) {

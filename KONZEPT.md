@@ -25,9 +25,9 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 | Anwesenheit | Urlaub, Dienstreise, Homeoffice | steuert die Ampel; kein Genehmigungsstatus |
 | Betreuungsbedarf | Schließtag Kita (Irma), Schließtag Schule (Ida), krank | fließt in die Ampel |
 | Betreuung durch Dritte | Oma, Freunde | löst rote Tage |
-| Einmaltermin | Kinderarzt, Klassenarbeit, Elternabend | Uhrzeit, Betroffene, **„Wer kümmert sich?“** (offen = Warnung) |
-| Info | Festival, Veranstaltung | nur sichtbar, keine Logik |
-| Aufgabe | Geschenk besorgen | Fälligkeit, Zuständiger, erledigt |
+| Einmaltermin | Kinderarzt, Klassenarbeit, Elternabend | Uhrzeit, Betroffene, **„Wer kümmert sich?“** (offen = Warnung), optional mehrtägig oder wiederkehrend, **Übernahme anfragen** |
+| Event | Festival, Konzert, Veranstaltung | zuhause oder auswärts, auch mehrtägig; keine Logik |
+| Aufgabe | Geschenk besorgen, Kita-Beitrag | Fälligkeit, Zuständiger, erledigt; **wiederkehrend** (wöchentlich … jährlich: Abhaken rückt die Fälligkeit weiter), Übernahme anfragen |
 | Geburtstag | Oma Helga | jährlich |
 
 ## Automatische Daten (keine Stammdatenpflege)
@@ -40,8 +40,8 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 
 ## Menüführung (geclustert)
 Fünf Tabs, in der Mitte der runde **Start-Knopf** (auf Tablets eine Seitenleiste statt der unteren Leiste):
-**Kalender** · **Urlaub** · **Start** · **Einkauf** · **Mehr** (Aufgaben & Geburtstage, Einstellungen, Zugriff/Abgleich).
-Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Woche · Tag · Verlauf · Jahr**.
+**Kalender** · **Aufgaben** · **Start** · **Einkauf** · **Mehr** (Urlaub, Aufgaben, Geburtstage, Checklisten, Infomappe, Einstellungen).
+Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Tag · Woche · Jahr · Verlauf**.
 Einstellungen sind in aufklappbare Gruppen gegliedert (Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien).
 
 ## Schnell finden und bewegen
@@ -50,7 +50,9 @@ Einstellungen sind in aufklappbare Gruppen gegliedert (Ich & Zugriff · Synchron
 * **Zahlen an den Tabs:** Einkauf (offene Artikel), Mehr (überfällige Aufgaben, rot), Kalender (roter Punkt bei ungeklärter Betreuung heute/morgen).
 * **Zurück mit Verlauf:** „Zurück“ (Pfeil, Android-Taste, Wischen vom linken Rand) führt dorthin, wo du herkamst; aktiven Tab nochmal tippen = nach oben. Jede Ansicht **merkt sich ihre Scrollposition**.
 * **Herunterziehen** am Seitenanfang gleicht sofort ab.
-* **＋ überall:** Der Neu-Knopf ist in Kalender (außer Jahr), Urlaub und Aufgaben da – mit Urlaub/Mehrere Tage, Termin, Aufgabe, Betreuung, Info, Geburtstag und **Artikel zur Einkaufsliste**.
+* **Neuer Eintrag = Start-Knopf lang drücken:** in Aufgaben direkt eine Aufgabe, in Geburtstagen ein Geburtstag, in Checklisten eine neue Liste, in der Infomappe eine Karte, sonst die Auswahl (Urlaub, Termin, Event, Aufgabe, Betreuung, Geburtstag, Einkauf, Checkliste, Infomappe). Die Tagesdetails behalten ihre Symbolreihe (mit Datum vorbelegt).
+* **Beim Eintragen** zeigt „Zu der Zeit außerdem“ Kreise je Tag wie im Widget und was im Zeitraum sonst ansteht. Nach dem Speichern bestätigt eine Karte, was gespeichert wurde (mit Rückgängig).
+* **Eingaben überstehen den App-Wechsel:** offener Dialog, Entwurf, Auswahl im Jahresplaner u. Ä. werden gesichert, falls Android die App im Hintergrund beendet (max. 2 Std.).
 * **Widget-Direktsprung:** Tag-Kreis → dieser Tag, Einkauf-Kreis → Einkaufsliste, Aufgaben-Kreis → Aufgaben.
 * **Schnellaktionen am App-Symbol** (lang drücken): Einkauf eintragen, Neuer Termin, Neue Aufgabe, Heute. Technisch Direktlinks `de.familie.planer://shop | tasks | today | day/<Datum> | new/event | new/task | new/shop`.
 
@@ -59,7 +61,7 @@ Die Startseite zeigt „Heute“, Warnungen, die nächsten Termine, „Neu vom P
 * **Woche**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
   für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
 * **Tag**: Tagesstreifen mit Ampel und Terminzahl, darunter alle Details des gewählten Tages.
-* **Verlauf**: **fortlaufende Endlosliste ohne Wochenumbruch**, die vier Personen nebeneinander – wahlweise *Tage als Zeilen* (Personen als Spalten, kopfzeile bleibt stehen)
+* **Verlauf** (für die Jahresplanung): feste Zeilenhöhe, Kalenderwochen abwechselnd getönt, Feiertagsnamen quer über die Zeile, keine Geburtstage. **Fortlaufende Endlosliste ohne Wochenumbruch**, die vier Personen nebeneinander – wahlweise *Tage als Zeilen* (Personen als Spalten, kopfzeile bleibt stehen)
   oder *Tage als Spalten* (Personen als Zeilen, horizontal scrollbar, Namen bleiben stehen). Pro Zelle: Status bzw. Betreuungsbedarf, Termine, Aufgaben; Datumsspalte mit
   Feiertag, Ferien, KW, Ampel, Infos und Geburtstagen. Lädt beim Weiterscrollen automatisch weitere Tage nach; „Heute“ und Datumssprung. Auf dem Handy kompakt
   (Symbole und Zähler), auf dem Tablet mit Text.
@@ -72,6 +74,9 @@ Die Startseite zeigt „Heute“, Warnungen, die nächsten Termine, „Neu vom P
   Betreuungslücken mit „planen“, Brückentage mit Ein-Tap-Eintragen.
 * **Einkauf**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
 * **Aufgaben & Geburtstage**, **Einstellungen**.
+* **Checklisten**: Vorlagen (z. B. Packliste Urlaub, Festival, Ausflug – Beispiele per Knopf) und aktive Listen; „Starten“ kopiert eine Vorlage, beide Handys haken gemeinsam ab (jeder Punkt ist ein eigener Eintrag), Haken zurücksetzen, aktive Liste als Vorlage speichern.
+* **Infomappe**: Karten nach Kategorien (Kontakte, Gesundheit, Kita & Schule, Größen, Dokumente, Sonstiges) mit Inhalt, Telefon (tippen wählt), Adresse (öffnet Karten), Link; „nur Eltern“ blendet eine Karte im Lesezugriff aus (auf dem Server liegt sie trotzdem).
+* **Startseite** zusätzlich: **Übernahme-Anfragen** (Zusagen/Ablehnen; Rückmeldungen auf eigene Anfragen 7 Tage, „gesehen“ nur lokal) und **Brückentage-Tipps** (die drei lohnendsten kommenden Brücken mit „Planen“; Oktober–Dezember zusätzlich die Bilanz des Folgejahres).
 
 ## Der Kalender als zentrale Anlaufstelle
 Neben Anwesenheit und Betreuung zeigen alle Kalenderansichten auch **Geburtstage, Aufgaben-Fälligkeiten und Termine**:
@@ -110,7 +115,7 @@ Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; da
 * Startseite: Karte „Neu von Betty/Sebastian“ (letzte 7 Tage). Sofort-Push per FCM wäre die Alternative zur 15-Minuten-Verzögerung im Hintergrund (benötigt ein Firebase-Projekt).
 
 ## Ergänzende Infos zu Terminen
-Termine und Infos haben neben Titel, Datum und Uhrzeit: **Uhrzeit bis, Ort** (öffnet Karten), **Kontakt/Telefon** (tippen wählt), **Link** und **Notiz**; Aufgaben haben eine Notiz.
+Termine und Events haben neben Titel, Datum und Uhrzeit: **Uhrzeit bis, Ort** (öffnet Karten), **Kontakt/Telefon** (tippen wählt), **Link** und **Notiz**; Aufgaben haben eine Notiz.
 Die Infos stehen unter dem Eintrag im Wochenplan und im Tagesblatt, in den Hinweisen an den Partner und im Widget (Ort).
 
 ## Urlaub korrekt zählen

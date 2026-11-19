@@ -1,9 +1,9 @@
 import { useState } from 'preact/hooks';
 import { addDays, diff, fmtShort, today } from '../core/dates';
 import { relevant } from '../core/filter';
-import { type Item } from '../core/types';
+import { EVERY_LABEL, type Item } from '../core/types';
 import { haptic } from '../haptics';
-import { batch, deleteItem, saveItem, useStore } from '../store';
+import { batch, deleteItem, saveItem, toggleTask, useStore } from '../store';
 import { PersonFilterBar, PersonTag } from './common';
 import { Ic } from './icons';
 
@@ -27,7 +27,7 @@ export function Tasks({ edit }: { edit: (it: Item) => void }) {
 
   const toggle = (t: Item) => {
     haptic(t.done ? 'light' : 'success');
-    saveItem({ ...t, done: !t.done });
+    toggleTask(t); // wiederkehrend: rückt auf die nächste Fälligkeit
   };
   const toToday = (t: Item) => {
     haptic();
@@ -39,7 +39,7 @@ export function Tasks({ edit }: { edit: (it: Item) => void }) {
     return (
       <div class={`line task-row ${t.done ? 'done' : ''}`}>
         <button class="check-btn" disabled={readOnly} onClick={() => toggle(t)} aria-label={t.done ? 'wieder offen' : 'erledigt'}>{t.done && <Ic n="check" size={16} sw={3} />}</button>
-        <span class="grow" onClick={() => edit(t)}>{t.title}{t.note && <small class="task-note">{t.note}</small>}</span>
+        <span class="grow" onClick={() => edit(t)}>{t.title}{t.every && <small class="muted"> <Ic n="repeat" size={12} /> {EVERY_LABEL[t.every]}</small>}{t.ask?.state === 'open' && <> <span class="asked">angefragt</span></>}{t.note && <small class="task-note">{t.note}</small>}</span>
         {t.owner && <PersonTag p={t.owner} />}
         <span class={`due ${late ? 'late' : ''}`}>{late ? `${diff(t.start, t0)} Tg. · ` : ''}{fmtShort(t.start)}</span>
         {late && !readOnly && <button class="btn small" onClick={() => toToday(t)} title="Auf heute verschieben">Heute</button>}

@@ -10,6 +10,8 @@ import { search, parseDateQuery } from './search';
 import { parseLink } from '../links';
 import { buildWidgetData } from './widget';
 import { overview } from './overview';
+import { nextDue } from './recur';
+import { bridgeTips, bridgeYear } from './tips';
 import { gapRuns, nextGap } from './gaps';
 import { parseIcs } from './ics';
 import { planPresence } from './presence';
@@ -571,5 +573,63 @@ describe('Übersicht beim Eintragen', () => {
     expect(o.entries.map((e) => e.text)).not.toContain('Festival (auswärts)');
     expect(o.entries.find((e) => e.text.startsWith('Betty'))!.when).toBe('09.07.–11.07.');
     expect(o.days.find((d) => d.date === '2027-07-10')!.n).toBe(1); // Arzt (Betty-Urlaub am Samstag zählt nicht)
+  });
+});
+
+describe('Wiederkehrende Aufgaben', () => {
+  it('nächste Fälligkeit ab bisheriger Fälligkeit, Monatsende wird abgefangen', () => {
+    expect(nextDue('2027-01-31', 'month')).toBe('2027-02-28');
+    expect(nextDue('2028-01-31', 'month')).toBe('2028-02-29');
+    expect(nextDue('2027-11-15', 'quarter')).toBe('2028-02-15');
+    expect(nextDue('2027-12-30', 'week')).toBe('2028-01-06');
+    expect(nextDue('2027-03-01', '2weeks')).toBe('2027-03-15');
+    expect(nextDue('2028-02-29', 'year')).toBe('2029-02-28');
+  });
+  it('Beschreibung nennt den Rhythmus', () => {
+    expect(describeChange(item({ kind: 'task', title: 'Kita-Beitrag', start: '2027-02-01', every: 'month', created: 1, updated: 1 }))!.text).toContain('(monatlich)');
+  });
+});
+
+describe('Übernahme-Anfrage', () => {
+  const base = item({ kind: 'event', title: 'Kinderarzt', start: '2027-03-10', created: 1, updated: 1 });
+  it('Hinweistext je nach Stand', () => {
+    expect(describeChange({ ...base, ask: { from: 'betty', to: 'sebastian', state: 'open', at: 1 } })!.text).toMatch(/^Bitte übernehmen \(Sebastian\): Kinderarzt/);
+    expect(describeChange({ ...base, ask: { from: 'betty', to: 'sebastian', state: 'accepted', at: 1 } })!.text).toMatch(/^Übernimmt: /);
+    expect(describeChange({ ...base, ask: { from: 'betty', to: 'sebastian', state: 'declined', at: 1 } })!.text).toMatch(/^Kann nicht übernehmen: /);
+  });
+});
+
+describe('Brückentage-Tipps', () => {
+  it('kommende Brücken, lohnendste zuerst, ohne schon von beiden verplante', () => {
+    const cal0 = buildCalendar([], data);
+    const tips = bridgeTips(cal0, '2027-01-02', 10);
+    expect(tips.length).toBeGreaterThan(0);
+    for (let i = 1; i < tips.length; i++) expect(tips[i - 1].total / tips[i - 1].cost).toBeGreaterThanOrEqual(tips[i].total / tips[i].cost);
+    const first = tips[0];
+    const cal1 = buildCalendar([vac('sebastian', first.gapStart, first.gapEnd), vac('betty', first.gapStart, first.gapEnd)], data);
+    expect(bridgeTips(cal1, '2027-01-02', 10).map((t) => t.gapStart)).not.toContain(first.gapStart);
+    const cal2 = buildCalendar([vac('betty', first.gapStart, first.gapEnd)], data);
+    expect(bridgeTips(cal2, '2027-01-02', 10).find((t) => t.gapStart === first.gapStart)!.taken).toEqual(['betty']);
+  });
+  it('Jahresbilanz summiert Kosten und freie Tage', () => {
+    const y = bridgeYear(buildCalendar([], data), 2027);
+    expect(y.count).toBe(findBridges(buildCalendar([], data), 2027).length);
+    expect(y.total).toBeGreaterThan(y.cost);
+  });
+});
+
+describe('Listen und Infomappe', () => {
+  const list = item({ kind: 'list', title: 'Packliste Urlaub', start: '2027-01-01' });
+  const chk = item({ kind: 'check', title: 'Sonnencreme', parent: list.id, start: '2027-01-01' });
+  const fact = item({ kind: 'fact', title: 'Kinderarzt Dr. Müller', contact: '0371 123', private: true, start: '2027-01-01' });
+  it('erscheinen nicht im Kalender', () => {
+    const cal = buildCalendar([list, chk, fact], data);
+    expect(cal.day('2027-01-01').events).toHaveLength(0);
+    expect(cal.day('2027-01-01').info).toHaveLength(0);
+  });
+  it('sind durchsuchbar, private Karten nicht im Lesezugriff', () => {
+    expect(search([list, chk, fact], 'sonnencreme', '2027-01-01')[0].text).toBe('Sonnencreme – Packliste Urlaub');
+    expect(search([list, chk, fact], 'kinderarzt', '2027-01-01')).toHaveLength(1);
+    expect(search([list, chk, fact], 'kinderarzt', '2027-01-01', 40, { hidePrivate: true })).toHaveLength(0);
   });
 });

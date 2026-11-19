@@ -20,7 +20,22 @@ const KIND_WORDS: Record<Kind, string> = {
   birthday: 'geburtstag',
   config: '',
   shop: 'einkauf einkaufsliste',
+  list: 'checkliste liste vorlage packliste',
+  check: 'checkliste liste',
+  fact: 'infomappe info kontakt',
 };
+
+const NO_DATE: Kind[] = ['shop', 'list', 'check', 'fact'];
+
+/** Beschreibung für Einträge ohne Datum (Einkauf, Checklisten, Infomappe). */
+function listText(it: Item, all: Item[]): string | undefined {
+  const t = it.title ?? '';
+  if (it.kind === 'shop') return `${t}${it.done ? ' (erledigt)' : ''}`;
+  if (it.kind === 'list') return `${it.template ? 'Vorlage' : 'Checkliste'}: ${t}`;
+  if (it.kind === 'check') return `${t} – ${all.find((l) => l.id === it.parent)?.title ?? 'Checkliste'}${it.done ? ' ✓' : ''}`;
+  if (it.kind === 'fact') return `Infomappe: ${t}`;
+  return undefined;
+}
 
 /** Nächstes Auftreten eines Geburtstags (ab heute). */
 function nextBirthday(start: string, today: string): string {
@@ -34,12 +49,12 @@ function nextBirthday(start: string, today: string): string {
  * Volltextsuche über alle Einträge: jedes Suchwort muss vorkommen (Titel, Notiz, Ort, Kontakt, Link,
  * Personen, Art). Ergebnis: Kommende zuerst (nach Datum), dann Vergangenes (neuestes zuerst), dann Einkauf.
  */
-export function search(items: Item[], query: string, today: string, limit = 40): Hit[] {
+export function search(items: Item[], query: string, today: string, limit = 40, opts: { hidePrivate?: boolean } = {}): Hit[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
   const hits: Hit[] = [];
   for (const it of items) {
-    if (it.deleted || it.kind === 'config') continue;
+    if (it.deleted || it.kind === 'config' || (opts.hidePrivate && it.private)) continue;
     const hay = [
       it.title, it.note, it.place, it.contact, it.link,
       ...it.persons.map((p) => PERSONS[p].name),
@@ -49,8 +64,8 @@ export function search(items: Item[], query: string, today: string, limit = 40):
       KIND_WORDS[it.kind],
     ].join(' ').toLowerCase();
     if (!terms.every((t) => hay.includes(t))) continue;
-    const date = it.kind === 'shop' ? '' : it.kind === 'birthday' ? nextBirthday(it.start, today) : it.start;
-    const text = it.kind === 'shop' ? `${it.title ?? ''}${it.done ? ' (erledigt)' : ''}` : (describeChange(it)?.text ?? it.title ?? '');
+    const date = NO_DATE.includes(it.kind) ? '' : it.kind === 'birthday' ? nextBirthday(it.start, today) : it.start;
+    const text = listText(it, items) ?? describeChange(it)?.text ?? it.title ?? '';
     hits.push({ item: it, kind: it.kind, date, text });
   }
   const rank = (h: Hit) => (h.date === '' ? 2 : h.date >= today ? 0 : 1);

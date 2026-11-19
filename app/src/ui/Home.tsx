@@ -2,9 +2,12 @@ import { addDays, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/
 import { dayTag, evText, isMultiDay, needsOwner, timeOn } from '../core/calendar';
 import { nextGap } from '../core/gaps';
 import { budget } from '../core/report';
-import { PARENTS, PERSONS } from '../core/types';
+import { PARENTS, PERSONS, type Item, type PersonId } from '../core/types';
+import { bridgeTips, bridgeYear } from '../core/tips';
+import { fmtDays } from '../core/dates';
+import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
-import { useStore } from '../store';
+import { answerAsk, useStore } from '../store';
 import { describeChange, verbOf } from '../core/describe';
 import { Dot, PersonTag, Pill, STATUS_LABEL } from './common';
 import { Ic, StatusIc, type IconName } from './icons';
@@ -17,7 +20,27 @@ const ago = (ms: number) => {
   return `vor ${Math.round(m / 1440)} Tg.`;
 };
 
-export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: string) => void }) {
+/** Gesehene Rückmeldungen auf eigene Anfragen (nur auf diesem Handy, damit „OK“ nichts an den Partner meldet). */
+const SEEN_KEY = 'fp.askSeen';
+const seenAsks = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]') as string[];
+  } catch {
+    return [];
+  }
+};
+
+export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDay: (d: string) => void; plan: (days?: string[], persons?: PersonId[]) => void; edit: (it: Item) => void }) {
+  const [seen, setSeen] = useState(seenAsks);
+  const markSeen = (key: string) => {
+    const next = [...seen, key].slice(-50);
+    setSeen(next);
+    try {
+      localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+    } catch {
+      /* egal */
+    }
+  };
   const { cal, settings, items, readOnly } = useStore();
   const t = today();
   const d = cal.day(t);
@@ -45,6 +68,17 @@ export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: strin
     .filter((i) => !i.deleted && i.by === partner && verbOf(i) === 'new' && describeChange(i) && i.updated > Date.now() - 7 * 864e5)
     .sort((a, b) => b.updated - a.updated)
     .slice(0, 5);
+
+  // Übernahme-Anfragen: an mich (beantworten) und Antworten auf meine (zur Kenntnis, 7 Tage)
+  const asks = cal.items.filter((i) => i.ask && (i.kind === 'event' || i.kind === 'task'));
+  const askMe = readOnly ? [] : asks.filter((i) => i.ask!.to === settings.me && i.ask!.state === 'open');
+  const myAsks = readOnly ? [] : asks.filter((i) => i.ask!.from === settings.me && (i.ask!.state === 'open' || (i.ask!.at > Date.now() - 7 * 864e5 && !seen.includes(`${i.id}:${i.ask!.at}`))));
+  const askWhen = (i: Item) => `${WD[dow(i.start)]} ${fmtShort(i.start)}${i.time ? `, ${i.time}` : ''}`;
+
+  // Brückentage-Tipps (Oktober–Dezember zusätzlich die Bilanz fürs Folgejahr, wenn die Urlaubsplanung ansteht)
+  const tips = readOnly ? [] : bridgeTips(cal, t, 3);
+  const month = Number(t.slice(5, 7));
+  const yearSum = month >= 10 ? { y: py + 1, ...bridgeYear(cal, py + 1) } : null;
 
   const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
   const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
@@ -99,6 +133,38 @@ export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: strin
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>
 
+      {askMe.length + myAsks.length > 0 && (
+        <section class="card ask-card">
+          <header class="card-head"><strong><Ic n="send" size={15} /> Übernahme-Anfragen</strong></header>
+          {askMe.map((i) => (
+            <div key={i.id} class="ask">
+              <div class="link-row" onClick={() => edit(i)}>
+                <b>{PERSONS[i.ask!.from].name} fragt: Übernimmst du?</b>
+                <div>{i.title} <span class="muted">· {askWhen(i)}</span></div>
+              </div>
+              <div class="actions">
+                <button class="btn small" onClick={() => answerAsk(i, false)}>Ablehnen</button>
+                <button class="btn small primary" onClick={() => answerAsk(i, true)}><Ic n="check" size={14} /> Zusagen</button>
+              </div>
+            </div>
+          ))}
+          {myAsks.map((i) => {
+            const a = i.ask!;
+            const who = PERSONS[a.to].name;
+            return (
+              <div key={i.id} class={`line ask-reply ${a.state}`}>
+                <Ic n={a.state === 'accepted' ? 'check' : a.state === 'declined' ? 'x' : 'clock'} size={15} />
+                <span class="grow link-row" onClick={() => edit(i)}>
+                  {a.state === 'open' ? `Warte auf ${who}: ` : a.state === 'accepted' ? `${who} übernimmt: ` : `${who} kann nicht: `}
+                  {i.title} <span class="muted">· {askWhen(i)}</span>
+                </span>
+                {a.state !== 'open' && <button class="icon-btn" aria-label="Gesehen" onClick={() => markSeen(`${i.id}:${a.at}`)}><Ic n="x" size={14} /></button>}
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       {(gap || unowned > 0 || overdue > 0) && (
         <section class="card attn">
           <header class="card-head"><strong>Achtung</strong></header>
@@ -146,6 +212,29 @@ export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: strin
         </section>
       )}
 
+      {(tips.length > 0 || (yearSum && yearSum.count > 0)) && (
+        <section class="card">
+          <header class="card-head"><strong><Ic n="bridge" size={15} /> Brückentage-Tipps</strong><button class="link small" onClick={() => go('vacation')}>alle</button></header>
+          {yearSum && yearSum.count > 0 && (
+            <div class="bridge-sum">
+              <b>{yearSum.y}:</b> {yearSum.count} Brückentage – mit <b>{fmtDays(yearSum.cost)} Urlaubstagen</b> zusammen <b>{yearSum.total} Tage frei</b>. Jetzt ist die Zeit für die Urlaubsanträge.
+            </div>
+          )}
+          {tips.map((b) => (
+            <div key={b.gapStart} class="line bridge-tip">
+              <span class="grow">
+                <b>{b.gapStart === b.gapEnd ? `${WD[dow(b.gapStart)]} ${fmt(b.gapStart)}` : `${WD[dow(b.gapStart)]} ${fmtShort(b.gapStart)}–${WD[dow(b.gapEnd)]} ${fmt(b.gapEnd)}`}</b>
+                <small>
+                  {fmtDays(b.cost)} Urlaubstag{b.cost === 1 ? '' : 'e'} → {b.total} Tage frei · {[...new Set(b.holidays)].join(', ')}
+                  {b.idaFree === b.days ? ' · Ida hat schulfrei' : ''}
+                  {b.taken.length ? ` · ${b.taken.map((p) => PERSONS[p].name).join(', ')} hat schon Urlaub` : ''}
+                </small>
+              </span>
+              <button class="btn small" onClick={() => plan([b.gapStart, b.gapEnd], PARENTS.filter((p) => !b.taken.includes(p)))}>Planen</button>
+            </div>
+          ))}
+        </section>
+      )}
       </div>
 
       <div class="tiles">

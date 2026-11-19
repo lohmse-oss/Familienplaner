@@ -1,5 +1,5 @@
 import { addDays, diff, dow, isWeekend, range } from './dates';
-import { CHILDREN, PARENTS, type HolidayData, type Item, type Mode, type PersonId } from './types';
+import { CHILDREN, isCalendarKind, PARENTS, type HolidayData, type Item, type Mode, type PersonId } from './types';
 
 export type ParentStatus = 'free' | 'office' | 'homeoffice' | 'vacation' | 'trip';
 export type Coverage = 'none' | 'ok' | 'maybe' | 'gap';
@@ -80,7 +80,7 @@ export function buildCalendar(allItems: Item[], hd: HolidayData): Calendar {
   const byDay = new Map<string, Item[]>();
   const birthdays: Item[] = [];
   for (const it of items) {
-    if (it.kind === 'config' || it.kind === 'shop') continue;
+    if (!isCalendarKind(it.kind)) continue;
     if (it.kind === 'birthday') {
       birthdays.push(it);
       continue;
