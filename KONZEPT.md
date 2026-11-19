@@ -112,6 +112,13 @@ als Kreise mit Zahlen. *Leerer Ring* = nichts los · *gefüllter Kreis* = es ste
 *roter Kreis* = Betreuung ungeklärt (beim Aufgaben-Kreis: heute fällig oder überfällig) · *Kreis mit rotem Rand* = Betreuung nur per Homeoffice. **Hintergrund wählbar:** Transparent, Glas, Dunkel, Hell (Einstellungen → Darstellung & Widget).
 Tippen öffnet die App. Die App legt die Daten für die nächsten 14 Tage ab; das Widget wählt daraus den heutigen Tag und aktualisiert sich alle 30 Minuten auch ohne App-Start.
 
+## Android Auto
+* **Sichtbar im Launcher (Sideload):** `FamilyMediaBrowserService` (framework-`MediaBrowserService`, keine Zusatzbibliothek) + `<uses name="media"/>` in `automotive_app_desc.xml`. Als Medien-App listet Android Auto die per APK installierte App unter „Launcher anpassen“, sobald in den AA-Entwickleroptionen „Unbekannte Quellen“ aktiv ist. Der Browse-Baum zeigt **Heute/Morgen/Übermorgen**, **weitere Tage** (je 7 pro Seite), **Einkaufsliste** und **Aufgaben** mit Betreuungs-Ampel („ungeklärt!“); pro Tag die Einträge chronologisch. Tippen auf einen Eintrag / „Tag vorlesen“ liest per **Sprachausgabe (TTS)** vor – kein Bearbeiten im Auto. Der Dienst lässt nur Android Auto, Assistent/System und die App selbst zu (Debug-Builds = Sideload-APK: alle, damit der DHU nicht scheitert).
+* **Template-App (CarAppService, androidx.car.app:app:1.4.0, Kategorie POI):** zusätzlich vorhanden, nur geparkt nutzbar. Google lässt Car-App-Library-Apps im realen Fahrzeug nur bei Play-Verteilung zu (Internal App Sharing / Test-Track); im Desktop Head Unit funktioniert sie auch als Sideload (Debug-Builds erlauben jeden Host).
+* **Warum nicht `CAR_LAUNCHER`?** Android Auto unterstützt Parked-Apps laut Google-Doku nur für Spiele; die Kategorie brachte der Plan-App daher keinen Launcher-Eintrag und wurde wieder entfernt.
+* **Daten:** dieselben wie fürs Widget (SharedPreferences, nächste 14 Tage inkl. aller Termindetails). Die App muss nach der Installation einmal gestartet werden.
+* **Technik:** `minSdk` 23 (Car App Library); 1.4.0 ist die letzte Version, die mit compileSdk 34 baut.
+
 ## Hinweise, wenn der Partner etwas einträgt
 * Jeder Eintrag trägt, wer ihn zuletzt gespeichert hat. Der Server beschreibt Änderungen lesbar („Sebastian hat eingetragen: Dienstreise Sebastian, Di 13.07.–Mi 14.07.2027 – Messe Köln“).
 * **App geöffnet:** Hinweis-Banner oben (tippen springt zum Tag). **App im Hintergrund:** natives Android-Hintergrund-Abgleichen (WorkManager, ca. alle 15 Minuten)
