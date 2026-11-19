@@ -25,7 +25,7 @@ export function Birthdays({ edit }: { edit: (it: Item) => void }) {
           );
         })}
       </section>
-      <p class="hint">Geburtstage gelten jährlich am eingetragenen Datum (Monat/Tag).{!readOnly && ' Neuer Geburtstag: Startknopf unten lang drücken.'}</p>
+      <p class="hint">Geburtstage gelten jährlich am eingetragenen Datum (Monat/Tag).{!readOnly && ' Neuer Geburtstag: Startknopf lang drücken.'}</p>
     </div>
   );
 }

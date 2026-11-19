@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { BUILD } from '../build';
 import { fmt, today } from '../core/dates';
 import { parseIcs } from '../core/ics';
 import { buildNotices } from '../core/notify';
@@ -9,9 +10,9 @@ import { Chips } from './common';
 import { Ic, type IconName } from './icons';
 
 /** Aufklappbare Gruppe – hält die Einstellungen übersichtlich. */
-function Group({ icon, title, summary, open, children }: { icon: IconName; title: string; summary?: string; open?: boolean; children: ComponentChildren }) {
+function Group({ id, icon, title, summary, open, children }: { id?: string; icon: IconName; title: string; summary?: string; open?: boolean; children: ComponentChildren }) {
   return (
-    <details class="acc" open={open}>
+    <details class="acc" open={open} id={id ? `set-${id}` : undefined}>
       <summary>
         <Ic n={icon} size={18} class="muted" />
         <span class="grow"><b>{title}</b>{summary && <small>{summary}</small>}</span>
@@ -24,8 +25,13 @@ function Group({ icon, title, summary, open, children }: { icon: IconName; title
 
 const WHO: PersonId[] = ['sebastian', 'betty', 'ida'];
 
-export function Settings() {
+/** Einstellungen (Zahnrad in der Kopfzeile). focus = Abschnitt, der aufgeklappt und angesprungen wird (z. B. „sync“). */
+export function Settings({ focus }: { focus?: string }) {
   const { settings, sync: st, hd, cal, readOnly } = useStore();
+  const isOpen = (id: string, dflt = false) => (focus ? focus === id : dflt);
+  useEffect(() => {
+    if (focus) setTimeout(() => document.getElementById(`set-${focus}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 80);
+  }, []);
   const [server, setServer] = useState(settings.server);
   const [code, setCode] = useState(settings.code);
   const [icsText, setIcsText] = useState('');
@@ -56,7 +62,7 @@ export function Settings() {
 
   return (
     <div class="page narrow">
-      <Group icon="user" title="Ich & Zugriff" summary={`${PERSONS[settings.me].name} · ${readOnly ? 'nur Lesen' : 'Lesen & Bearbeiten'}`} open>
+      <Group icon="user" id="me" title="Ich & Zugriff" summary={`${PERSONS[settings.me].name} · ${readOnly ? 'nur Lesen' : 'Lesen & Bearbeiten'}`} open={isOpen('me', true)}>
         <label>Dieses Handy gehört</label>
         <Chips<PersonId>
           options={WHO.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }))}
@@ -67,7 +73,7 @@ export function Settings() {
         <p class="hint">Zugriff: <b>{readOnly ? 'nur Lesen' : 'Lesen und Bearbeiten'}</b> – bestimmt der Code unter „Synchronisierung“.</p>
       </Group>
 
-      <Group icon="check" title="Synchronisierung" summary={status}>
+      <Group id="sync" icon={st.status === 'error' ? 'warn' : 'refresh'} title="Synchronisierung" summary={status} open={isOpen('sync')}>
         <label>Server-Adresse</label>
         <input type="url" placeholder="https://familienplaner-sync.<konto>.workers.dev" value={server} onInput={(e) => setServer((e.target as HTMLInputElement).value)} autocapitalize="off" />
         <label>Code (Familiencode oder Lese-Code)</label>
@@ -137,6 +143,15 @@ export function Settings() {
           <p class="hint">Termine aus der Datei landen als „Termin (Sonstiges)“ – Datum, Uhrzeit, Ort/Notiz werden übernommen.</p>
         </Group>
       )}
+
+      <Group id="about" icon="info" title="Über diese App" summary={`Version ${BUILD.version} · ${BUILD.number === 'lokal' ? 'lokal' : `Build #${BUILD.number}`}`} open={isOpen('about')}>
+        <div class="kv"><span>Version</span><b>{BUILD.version}</b></div>
+        <div class="kv"><span>Build</span><b>{BUILD.number === 'lokal' ? 'lokal' : `#${BUILD.number}`}</b></div>
+        <div class="kv"><span>Stand (Commit)</span><b class="mono">{BUILD.commit}</b></div>
+        <div class="kv"><span>Gebaut am</span><b>{new Date(BUILD.builtAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}</b></div>
+        <div class="kv"><span>Ferien & Feiertage</span><b>Stand {fmt(hd.fetchedAt)}</b></div>
+        <p class="hint">Die Build-Nummer steht auch auf der Release-Seite bei GitHub („Aktuelle APK (Build …)“). So erkennst du, ob beide Handys dieselbe Version haben.</p>
+      </Group>
     </div>
   );
 }

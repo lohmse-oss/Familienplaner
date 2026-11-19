@@ -40,7 +40,7 @@ const TITLES: Record<Tab, string> = {
   facts: 'Infomappe',
 };
 /** Wohin führt „zurück“, wenn es keinen Verlauf gibt? */
-const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'more', lists: 'more', facts: 'more' };
+const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'home', lists: 'more', facts: 'more' };
 
 type Sheet =
   | null
@@ -86,6 +86,12 @@ export function App() {
     } else if (PARENT[tab]) setTab(PARENT[tab]!);
   };
   const setView = (v: CalView) => updateSettings({ calView: v });
+  // Einstellungen: Zahnrad in der Kopfzeile; „synchron“ antippen öffnet direkt den Abschnitt Synchronisierung
+  const [settingsFocus, setSettingsFocus] = useState<{ n: number; group?: string }>({ n: 0 });
+  const openSettings = (group?: string) => {
+    setSettingsFocus((f) => ({ n: f.n + 1, group }));
+    if (tab !== 'settings') nav('settings');
+  };
 
   // Planen = Jahresplaner mit vorgewähltem Zeitraum/Personen öffnen
   const plan = (days?: string[], persons?: PersonId[]) => {
@@ -230,7 +236,7 @@ export function App() {
   const shopOpen = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
   const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t0).length;
   const gapToday = cal.day(t0).coverage === 'gap' || cal.day(addDays(t0, 1)).coverage === 'gap';
-  const navActive: Tab = tab === 'settings' || tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' ? 'more' : tab;
+  const navActive: Tab = tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' ? 'more' : tab;
   const parent = stack.length ? stack[stack.length - 1] : PARENT[tab];
 
   return (
@@ -270,10 +276,11 @@ export function App() {
         <h1>{TITLES[tab]}</h1>
         <span class="grow" />
         {readOnly && <span class="ro-badge"><Ic n="eye" size={13} /> nur Lesen</span>}
-        <span class={`sync sync-${sync.status}`} title={sync.msg ?? sync.status}>
+        <button class={`sync sync-${sync.status}`} title={sync.msg ?? sync.status} onClick={() => openSettings('sync')} aria-label="Synchronisierung">
           {sync.status === 'off' ? 'lokal' : sync.status === 'syncing' ? 'synchronisiere …' : sync.status === 'error' ? <><Ic n="warn" size={13} /> {sync.msg?.includes('Code') ? 'Code falsch' : 'offline'}</> : <><Ic n="check" size={13} /> synchron</>}
-        </span>
+        </button>
         <button class="hdr-btn" onClick={() => setSheet({ t: 'search' })} aria-label="Suchen und springen"><Ic n="search" size={20} /></button>
+        <button class={`hdr-btn ${tab === 'settings' ? 'on' : ''}`} onClick={() => openSettings()} aria-label="Einstellungen"><Ic n="settings" size={20} /></button>
       </header>
 
       <div class={`ptr ${pull > 0 || refreshing ? 'show' : ''}`} style={{ height: refreshing ? 40 : pull }}>
@@ -296,7 +303,7 @@ export function App() {
         {tab === 'more' && <More go={go} />}
         {tab === 'tasks' && <Tasks edit={edit} />}
         {tab === 'birthdays' && <Birthdays edit={edit} />}
-        {tab === 'settings' && <Settings />}
+        {tab === 'settings' && <Settings key={settingsFocus.n} focus={settingsFocus.group} />}
         {tab === 'lists' && <Lists newSignal={newList} />}
         {tab === 'facts' && <Facts open={(item) => setSheet({ t: 'fact', item })} />}
       </main>

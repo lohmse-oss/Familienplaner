@@ -51,7 +51,7 @@ export function Facts({ open }: { open: (it?: Item) => void }) {
           ))}
         </section>
       ))}
-      {!readOnly && facts.length > 0 && <p class="hint">Neue Karte: Startknopf unten lang drücken. <Ic n="lock" size={12} /> = nur für Eltern sichtbar.</p>}
+      {!readOnly && facts.length > 0 && <p class="hint">Neue Karte: Startknopf lang drücken. <Ic n="lock" size={12} /> = nur für Eltern sichtbar.</p>}
     </div>
   );
 }

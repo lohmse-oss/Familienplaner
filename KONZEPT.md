@@ -39,11 +39,13 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 * **Brückentage** werden berechnet: Zwischen zwei freien Blöcken (Wochenende/Feiertag) liegen 1–4 Arbeitstage und mindestens ein Block
   enthält einen Feiertag. Anzeige „x Urlaubstage → y Tage frei“, Hinweis wenn Ida ohnehin schulfrei hat, Eintragen mit einem Tap.
 
-## Menüführung (geclustert)
-Fünf Tabs, in der Mitte der runde **Start-Knopf** (auf Tablets eine Seitenleiste statt der unteren Leiste):
-**Kalender** · **Aufgaben** · **Start** · **Einkauf** · **Mehr** (Urlaub, Aufgaben, Geburtstage, Checklisten, Infomappe, Einstellungen).
-Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Tag · Woche · Jahr · Verlauf**.
-Einstellungen sind in aufklappbare Gruppen gegliedert (Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien).
+## Menüführung (jede Funktion hat genau einen Platz)
+* **Untere Leiste = Alltag:** **Kalender** · **Aufgaben** · **Start** (rund, Mitte; lang drücken = neuer Eintrag) · **Einkauf** · **Mehr** (auf Tablets als Seitenleiste).
+* **Start** ist eine reine Tagesübersicht ohne Kacheln: Heute, Übernahme-Anfragen, Achtung (Lücken, Fristen, Überfälliges), Demnächst, Brückentage-Tipps; auf breiten Bildschirmen zweispaltig.
+* **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – Checklisten, Infomappe.
+* **Einstellungen** über das **Zahnrad in der Kopfzeile** (von überall): Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien · Kalender importieren · Über diese App (Version, Build, Commit).
+  „synchron“/„offline“ in der Kopfzeile antippen öffnet direkt den Abschnitt Synchronisierung.
+* Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Tag · Woche · Jahr · Verlauf**.
 
 ## Schnell finden und bewegen
 * **Suche & Sprung** (Lupe in der Kopfzeile): Volltext über Termine, Aufgaben, Geburtstage, Urlaub, Betreuung und Einkauf (Titel, Notiz, Ort, Kontakt, Personen); ein Datum wie „14.7.“ springt direkt zum Tag;

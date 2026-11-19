@@ -346,7 +346,7 @@ h1, h2, h3 { margin: 0; }
 .chip, .btn, .link, .pf { display: inline-flex; align-items: center; gap: 5px; }
 .btn { justify-content: center; }
 .tabs button span { display: flex; }
-.sync { display: inline-flex; align-items: center; gap: 3px; }
+.sync { display: inline-flex; align-items: center; gap: 3px; border: 0; background: none; color: inherit; padding: 4px 2px; cursor: pointer; }
 .line .ic, .ag-line .ic { margin-right: 2px; }
 .st-ic-office { opacity: .55; }
 .st-ic-homeoffice, .mx-cell.st-homeoffice { color: var(--c-ho); }
@@ -589,6 +589,8 @@ h1, h2, h3 { margin: 0; }
 .tab-badge { position: absolute; top: -5px; right: -12px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; font-style: normal; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--card); }
 .tab-badge.red { background: var(--gap); }
 .tab-dot { position: absolute; top: -2px; right: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--gap); border: 2px solid var(--card); }
+.hdr-btn.on { background: rgba(255,255,255,.4); }
+.hdr-btn + .hdr-btn { margin-left: 6px; }
 .hdr-btn { border: 0; background: rgba(255,255,255,.18); color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 10px; flex-shrink: 0; }
 .ptr { overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 12.5px; height: 0; opacity: 0; transition: height .15s, opacity .15s; }
 .ptr.show { opacity: 1; }
@@ -658,3 +660,5 @@ h1, h2, h3 { margin: 0; }
 .ask-box:empty { display: none; }
 .renew { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 .presets { margin-bottom: 4px; }
+/* Startseite = reine Tagesübersicht; auf breiten Bildschirmen zweispaltig */
+@media (min-width: 900px) { .home-feed { columns: 2; column-gap: 20px; } .home-feed > section { break-inside: avoid; } }

@@ -1,11 +1,10 @@
 import { addDays, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/dates';
 import { dayTag, evText, isMultiDay, needsOwner, timeOn } from '../core/calendar';
 import { nextGap } from '../core/gaps';
-import { budget } from '../core/report';
 import { PARENTS, PERSONS, type Item, type PersonId } from '../core/types';
 import { bridgeTips, bridgeYear } from '../core/tips';
 import { diff, fmtDays } from '../core/dates';
-import { isDormant, isDueSoon } from '../core/recur';
+import { isDueSoon } from '../core/recur';
 import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
@@ -81,20 +80,7 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
   const month = Number(t.slice(5, 7));
   const yearSum = month >= 10 ? { y: py + 1, ...bridgeYear(cal, py + 1) } : null;
 
-  const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && !isDormant(i, t)).length;
   const fristen = cal.items.filter((i) => isDueSoon(i, t)).sort((a, b) => a.start.localeCompare(b.start));
-  const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
-  const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted).length;
-  const free = PARENTS.map((p) => ({ p, b: budget(cal, p, py, t) }));
-  const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ` frei (${py})`;
-
-  const tiles: { tab: Tab; icon: IconName; title: string; sub: string; badge?: string }[] = [
-    { tab: 'cal', icon: 'week', title: 'Kalender', sub: 'Tag · Woche · Jahr · Verlauf' },
-    { tab: 'vacation', icon: 'palm', title: 'Urlaub', sub: freeText },
-    { tab: 'shop', icon: 'cart', title: 'Einkauf', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
-    { tab: 'tasks', icon: 'tasks', title: 'Aufgaben', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
-    { tab: 'birthdays', icon: 'cake', title: 'Geburtstage', sub: `${bdays} eingetragen` },
-  ];
 
   return (
     <div class="page home">
@@ -102,15 +88,11 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
         <div>
           <h2>Hallo {PERSONS[settings.me].name}</h2>
           <span class="muted">{WD_LONG[dow(t)]}, {fmt(t)}</span>
-          {!readOnly && <small class="hint home-tip">Neuer Eintrag: Startknopf unten lang drücken</small>}
-        </div>
-        <div class="hello-actions">
-          <button class="icon-btn" onClick={() => go('settings')} aria-label="Einstellungen"><Ic n="settings" size={20} /></button>
+          {!readOnly && <small class="hint home-tip">Neuer Eintrag: Startknopf lang drücken</small>}
         </div>
       </div>
 
-      <div class="home-cols">
-      <div>
+      <div class="home-feed">
 
       <section class="card today-card" onClick={() => openDay(t)}>
         <header class="card-head"><strong>Heute</strong><Pill coverage={d.coverage} /></header>
@@ -243,17 +225,6 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
           ))}
         </section>
       )}
-      </div>
-
-      <div class="tiles">
-        {tiles.map((x) => (
-          <button key={x.tab} class="tile" onClick={() => go(x.tab)}>
-            <span class="tile-ic"><Ic n={x.icon} size={26} />{x.badge && <i class="tile-badge">{x.badge}</i>}</span>
-            <b>{x.title}</b>
-            <small>{x.sub}</small>
-          </button>
-        ))}
-      </div>
       </div>
     </div>
   );

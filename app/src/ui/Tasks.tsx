@@ -67,7 +67,7 @@ export function Tasks({ edit }: { edit: (it: Item) => void }) {
         <section class="card">
           <div class="empty">
             <Ic n="check" size={24} /><br />Keine offenen Aufgaben.
-            {!readOnly && <div class="hint">Neue Aufgabe: Startknopf unten lang drücken.</div>}
+            {!readOnly && <div class="hint">Neue Aufgabe: Startknopf lang drücken.</div>}
           </div>
         </section>
       )}

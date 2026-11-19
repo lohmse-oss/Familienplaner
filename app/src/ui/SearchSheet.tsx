@@ -18,6 +18,9 @@ const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
   { label: 'Urlaub', icon: 'palm', tab: 'vacation' },
   { label: 'Einkauf', icon: 'cart', tab: 'shop' },
   { label: 'Aufgaben', icon: 'tasks', tab: 'tasks' },
+  { label: 'Geburtstage', icon: 'cake', tab: 'birthdays' },
+  { label: 'Checklisten', icon: 'listcheck', tab: 'lists' },
+  { label: 'Infomappe', icon: 'folder', tab: 'facts' },
   { label: 'Einstellungen', icon: 'settings', tab: 'settings' },
 ];
 
