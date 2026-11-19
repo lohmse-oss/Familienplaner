@@ -10,7 +10,7 @@ import { search, parseDateQuery } from './search';
 import { parseLink } from '../links';
 import { buildWidgetData } from './widget';
 import { overview } from './overview';
-import { nextDue } from './recur';
+import { isDormant, isDueSoon, nextDue, remindFrom } from './recur';
 import { bridgeTips, bridgeYear } from './tips';
 import { gapRuns, nextGap } from './gaps';
 import { parseIcs } from './ics';
@@ -631,5 +631,31 @@ describe('Listen und Infomappe', () => {
     expect(search([list, chk, fact], 'sonnencreme', '2027-01-01')[0].text).toBe('Sonnencreme – Packliste Urlaub');
     expect(search([list, chk, fact], 'kinderarzt', '2027-01-01')).toHaveLength(1);
     expect(search([list, chk, fact], 'kinderarzt', '2027-01-01', 40, { hidePrivate: true })).toHaveLength(0);
+  });
+});
+
+describe('Fristen mit Vorlauf (Ablaufdaten)', () => {
+  const ausweis = item({ kind: 'task', title: 'Personalausweis Betty', start: '2031-06-15', lead: '3m', created: 1, updated: 1 });
+  it('Vorlauf und Zustand', () => {
+    expect(remindFrom('2031-06-15', '3m')).toBe('2031-03-15');
+    expect(remindFrom('2031-06-15', '2w')).toBe('2031-06-01');
+    expect(remindFrom('2031-05-31', '1m')).toBe('2031-04-30');
+    expect(isDormant(ausweis, '2027-01-01')).toBe(true);
+    expect(isDueSoon(ausweis, '2031-03-15')).toBe(true);
+    expect(isDueSoon(ausweis, '2031-06-16')).toBe(false); // abgelaufen → überfällig
+  });
+  it('vorgemerkte Fristen zählen im Widget nicht als offen', () => {
+    const cal = buildCalendar([ausweis, item({ kind: 'task', title: 'Geschenk', start: '2027-01-05' })], data);
+    expect(buildWidgetData(cal, '2027-01-01', new Date('2027-01-01T10:00:00')).taskN).toBe(1);
+    expect(buildWidgetData(cal, '2031-04-01', new Date('2031-04-01T10:00:00')).taskN).toBe(2);
+  });
+  it('Benachrichtigung am ersten Tag des Vorlaufs', () => {
+    const cal = buildCalendar([ausweis], data);
+    const n = buildNotices(cal, new Date('2031-03-01T10:00:00'), '2031-03-01').filter((x) => x.title === 'Frist beachten');
+    expect(n).toHaveLength(1);
+    expect(n[0].body).toBe('Personalausweis Betty: läuft am 15.06.2031 ab – jetzt kümmern');
+  });
+  it('Beschreibung', () => {
+    expect(describeChange(ausweis)!.text).toBe('Frist: Personalausweis Betty, läuft ab So 15.06.2031, Erinnerung 3 Monate vorher');
   });
 });

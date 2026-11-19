@@ -1,6 +1,7 @@
 import type { Calendar, Coverage, DayInfo } from './calendar';
 import { addDays } from './dates';
 import { PARENTS, type Item } from './types';
+import { isDormant } from './recur';
 
 export type WidgetStyle = 'dark' | 'light' | 'glass' | 'transparent';
 
@@ -46,7 +47,7 @@ export function buildWidgetData(cal: Calendar, today: string, now: Date, style: 
     days.push({ date, n: countDay(d), cov: d.coverage });
   }
   const shopN = cal.items.filter((i) => i.kind === 'shop' && !i.done).length;
-  const tasks = cal.items.filter((i) => i.kind === 'task' && !i.done);
+  const tasks = cal.items.filter((i) => i.kind === 'task' && !i.done && !isDormant(i, today)); // vorgemerkte Fristen zählen noch nicht
   const taskOverdue = tasks.filter((i) => i.start < today).length;
   const taskToday = tasks.filter((i) => i.start === today).length;
   const hh = String(now.getHours()).padStart(2, '0');

@@ -4,12 +4,13 @@ import { fmt, today } from '../core/dates';
 import { budget } from '../core/report';
 import { PARENTS, PERSONS } from '../core/types';
 import { useStore } from '../store';
+import { isDormant } from '../core/recur';
 import { Ic, type IconName } from './icons';
 
 /** „Mehr“: alles, was nicht täglich gebraucht wird, an einem Ort. */
 export function More({ go }: { go: (t: Tab) => void }) {
   const { items, cal, settings, readOnly, sync, hd } = useStore();
-  const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
+  const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && !isDormant(i, today())).length;
   const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted).length;
   const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template).length;
   const facts = items.filter((i) => i.kind === 'fact' && !i.deleted && !(readOnly && i.private)).length;

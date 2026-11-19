@@ -1,5 +1,5 @@
 import { dow, fmt, fmtShort, WD } from './dates';
-import { EVERY_LABEL, PERSONS, type Item, type PersonId } from './types';
+import { EVERY_LABEL, LEAD_LABEL, PERSONS, type Item, type PersonId } from './types';
 
 export type Verb = 'new' | 'edit' | 'del';
 
@@ -43,7 +43,7 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
       text = `Event: ${t || '?'}, ${when}${it.away ? ' (auswärts)' : ''}${it.place ? `, ${it.place}` : ''}`;
       break;
     case 'task':
-      text = `Aufgabe: ${t || '?'}, fällig ${span(it.start, it.start)}${it.owner ? ` (${PERSONS[it.owner].name})` : ''}`;
+      text = `${it.lead ? 'Frist' : 'Aufgabe'}: ${t || '?'}, ${it.lead ? 'läuft ab' : 'fällig'} ${span(it.start, it.start)}${it.owner ? ` (${PERSONS[it.owner].name})` : ''}`;
       break;
     case 'birthday':
       text = `Geburtstag: ${t || '?'}, ${fmtShort(it.start)}`;
@@ -59,6 +59,7 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
     else text = `Kann nicht übernehmen: ${text}`;
   }
   if (it.kind === 'task' && it.every) text += ` (${EVERY_LABEL[it.every]})`;
+  if (it.kind === 'task' && it.lead) text += `, Erinnerung ${LEAD_LABEL[it.lead]} vorher`;
   return { verb, text };
 }
 

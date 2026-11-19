@@ -1,5 +1,6 @@
 import { evText, isMultiDay, needsOwner, type Calendar, type DayInfo } from './calendar';
-import { addDays, fmtDays, fmtRange, isoWeek, range, WD, dow } from './dates';
+import { addDays, fmt as fmtDate, fmtDays, fmtRange, isoWeek, range, WD, dow } from './dates';
+import { remindFrom } from './recur';
 import { budget } from './report';
 import { PARENTS, PERSONS } from './types';
 
@@ -59,11 +60,18 @@ export function buildNotices(cal: Calendar, now: Date, today: string): Notice[] 
       if (e.time) push(new Date(local(date, e.time).getTime() - 3600_000), 'In 1 Stunde', `${e.time} ${label}`);
       push(local(addDays(date, -1), '18:00'), 'Morgen', `${e.time ? e.time + ' ' : ''}${label}`);
     }
-    for (const t of d.tasks) if (!t.done) push(local(date, '08:00'), 'Aufgabe fällig', `${t.title}${t.owner ? ` (${name(t.owner)})` : ''}`);
+    for (const t of d.tasks) if (!t.done) push(local(date, '08:00'), t.lead ? 'Frist läuft heute ab' : 'Aufgabe fällig', `${t.title}${t.owner ? ` (${name(t.owner)})` : ''}`);
     for (const b of d.birthdays) {
       push(local(addDays(date, -1), '18:00'), 'Morgen Geburtstag', `🎂 ${b.title}`);
       push(local(date, '08:00'), 'Geburtstag', `🎂 ${b.title}`);
     }
+  }
+
+  // Fristen: am ersten Tag des Vorlaufs erinnern („Personalausweis läuft am … ab – jetzt kümmern“)
+  for (const t of cal.items) {
+    if (t.kind !== 'task' || t.done || !t.lead) continue;
+    const from = remindFrom(t.start, t.lead);
+    if (from >= today && from <= end) push(local(from, '08:00'), 'Frist beachten', `${t.title}: läuft am ${fmtDate(t.start)} ab – jetzt kümmern${t.owner ? ` (${name(t.owner)})` : ''}`);
   }
 
   // Wochenvorschau: Sonntag 18:00 für die Folgewoche

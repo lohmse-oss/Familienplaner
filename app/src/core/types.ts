@@ -32,8 +32,12 @@ export const NON_CALENDAR: Kind[] = ['config', 'shop', 'list', 'check', 'fact'];
 export const isCalendarKind = (k: Kind) => !NON_CALENDAR.includes(k);
 
 /** Wiederholung von Aufgaben: beim Abhaken rückt die Fälligkeit um diesen Abstand weiter. */
-export type Every = 'week' | '2weeks' | 'month' | 'quarter' | 'year';
-export const EVERY_LABEL: Record<Every, string> = { week: 'wöchentlich', '2weeks': 'alle 2 Wochen', month: 'monatlich', quarter: 'vierteljährlich', year: 'jährlich' };
+export type Every = 'week' | '2weeks' | 'month' | 'quarter' | 'year' | '2years';
+export const EVERY_LABEL: Record<Every, string> = { week: 'wöchentlich', '2weeks': 'alle 2 Wochen', month: 'monatlich', quarter: 'vierteljährlich', year: 'jährlich', '2years': 'alle 2 Jahre' };
+
+/** Vorlauf für Fristen (Ablaufdatum = Fälligkeit): ab wann die Aufgabe ansteht und erinnert wird. */
+export type Lead = '2w' | '1m' | '3m' | '6m' | '1y';
+export const LEAD_LABEL: Record<Lead, string> = { '2w': '2 Wochen', '1m': '1 Monat', '3m': '3 Monate', '6m': '6 Monate', '1y': '1 Jahr' };
 
 /** Übernahme-Anfrage an den Partner (Termin/Aufgabe). */
 export interface Ask {
@@ -83,6 +87,7 @@ export interface Item {
   contact?: string; // event/info: Kontakt / Telefon
   recur?: Recur; // event: Wiederholung (start = erstes Vorkommen; end leer = ohne Serienende)
   every?: Every; // task: wiederkehrend – Abhaken setzt die nächste Fälligkeit
+  lead?: Lead; // task: Frist mit Vorlauf (start = Ablauf-/Stichtag); bis zum Vorlauf „vorgemerkt“
   ask?: Ask; // event/task: Übernahme-Anfrage an den Partner
   parent?: string; // check: Id der Checkliste
   template?: boolean; // list: Vorlage statt aktiver Checkliste

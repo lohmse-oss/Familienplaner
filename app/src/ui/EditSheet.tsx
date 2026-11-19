@@ -1,10 +1,10 @@
 import { useUiState } from '../resume';
-import { ALL, CHILDREN, EVERY_LABEL, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Every, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
+import { ALL, CHILDREN, EVERY_LABEL, LEAD_LABEL, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Every, type Item, type Lead, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
 import { deleteItem, newId, saveItem, useStore, withUndo } from '../store';
 import { describeChange } from '../core/describe';
 import { Overlap } from './Overlap';
-import { addDays, diff, fmtShort, today } from '../core/dates';
-import { nextDue } from '../core/recur';
+import { addDays, diff, fmt, fmtShort, today } from '../core/dates';
+import { addMonths, nextDue, remindFrom } from '../core/recur';
 import { Chips, DateInput, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
@@ -16,6 +16,16 @@ export const KINDS: { kind: Exclude<Kind, 'config' | 'shop' | 'list' | 'check' |
   { kind: 'cover', short: 'Betreuung', label: 'Betreuung durch Dritte', icon: 'hand', hint: 'Oma, Freunde …' },
   { kind: 'info', short: 'Event', label: 'Event', icon: 'ticket', hint: 'Festival, Konzert, Veranstaltung – zuhause oder auswärts' },
   { kind: 'birthday', short: 'Geburtstag', label: 'Geburtstag', icon: 'cake', hint: 'jährlich' },
+];
+
+/** Typische Fristen: setzen Titel und Vorlauf (TÜV zusätzlich alle 2 Jahre). Person/Name ergänzt man im Titel. */
+const DEADLINE_PRESETS: { title: string; lead: Lead; every?: Every; icon: IconName }[] = [
+  { title: 'Personalausweis', lead: '3m', icon: 'user' },
+  { title: 'Reisepass', lead: '3m', icon: 'plane' },
+  { title: 'Führerschein', lead: '3m', icon: 'user' },
+  { title: 'TÜV / HU', lead: '1m', every: '2years', icon: 'repeat' },
+  { title: 'Vertrag kündigen bis', lead: '1m', icon: 'note' },
+  { title: 'Garantie endet', lead: '1m', icon: 'clock' },
 ];
 
 const personOpts = (list: PersonId[]) => list.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }));
@@ -127,6 +137,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     if (k === 'info' && !out.away) delete out.away;
     if (k !== 'event' || !out.recur) delete out.recur;
     if (k !== 'task' || !out.every) delete out.every;
+    if (k !== 'task' || !out.lead) delete out.lead;
     if ((k !== 'event' && k !== 'task') || !out.ask) delete out.ask;
     // Wiederkehrende Aufgabe als erledigt markiert → nächste Fälligkeit
     let label = `${what} ${isNew ? 'gespeichert' : 'geändert'}`;
@@ -215,6 +226,15 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
 
         {k === 'task' && (
           <>
+            {isNew && (
+              <div class="chips scroll presets">
+                {DEADLINE_PRESETS.map((p) => (
+                  <button key={p.title} type="button" class={`chip ${d.title?.startsWith(p.title) ? 'on' : ''}`} onClick={() => set({ title: p.title + ' ', lead: p.lead, every: p.every })}>
+                    <Ic n={p.icon} size={13} /> {p.title}
+                  </button>
+                ))}
+              </div>
+            )}
             <label>Aufgabe</label>
             <input type="text" placeholder="z. B. Geschenk besorgen" value={d.title ?? ''} onInput={(e) => set({ title: (e.target as HTMLInputElement).value })} />
             <label>Zuständig</label>
@@ -226,6 +246,28 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
               value={[d.every ?? '']}
               onChange={(v) => set({ every: (v[0] || undefined) as Every | undefined })}
             />
+            <label>Frist mit Vorlauf (z. B. Ablaufdatum)</label>
+            <Chips<string>
+              options={[{ value: '', label: 'keine' }, ...(Object.keys(LEAD_LABEL) as Lead[]).map((l) => ({ value: l, label: `${LEAD_LABEL[l]} vorher` }))]}
+              value={[d.lead ?? '']}
+              onChange={(v) => set({ lead: (v[0] || undefined) as Lead | undefined })}
+            />
+            {d.lead && (
+              <p class="hint">
+                Unten das Ablauf- bzw. Stichdatum eintragen.{' '}
+                {remindFrom(d.start, d.lead) > today()
+                  ? `Bis ${fmt(remindFrom(d.start, d.lead))} steht die Aufgabe nur unter „Vorgemerkt“ und zählt nicht als offen – ab dann erinnert die App (Startseite, Aufgaben, Benachrichtigung).`
+                  : 'Bis dahin steht die Aufgabe nur unter „Vorgemerkt“; ab Beginn des Vorlaufs erinnert die App (Startseite, Aufgaben, Benachrichtigung).'}
+              </p>
+            )}
+            {!isNew && d.lead && !d.every && (
+              <div class="renew">
+                <span class="muted small">Erneuert? Neues Ablaufdatum ab heute:</span>
+                {[1, 2, 5, 6, 10].map((y) => (
+                  <button key={y} type="button" class="chip" onClick={() => { const v = addMonths(today(), 12 * y); set({ start: v, end: v, done: false }); }}>+{y} J.</button>
+                ))}
+              </div>
+            )}
             <label class="check"><input type="checkbox" checked={!!d.done} onChange={(e) => set({ done: (e.target as HTMLInputElement).checked })} /> erledigt{d.every && !initial.done ? ' (Fälligkeit rückt dann auf den nächsten Termin)' : ''}</label>
           </>
         )}
@@ -265,7 +307,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
 
         <div class="row">
           <div>
-            <label>{single ? (k === 'task' ? 'Fällig am' : k === 'birthday' ? 'Geburtsdatum' : 'Datum') : 'Von'}</label>
+            <label>{single ? (k === 'task' ? (d.lead ? 'Läuft ab / Stichtag' : 'Fällig am') : k === 'birthday' ? 'Geburtsdatum' : 'Datum') : 'Von'}</label>
             <DateInput value={d.start} onChange={(v) => set({ start: v, end: multi ? addDays(v, diff(d.start, d.end)) : d.end < v ? v : d.end })} />
             {diff(d.start, d.end) > 400 && <p class="hint neg">Zeitraum länger als 400 Tage – ab Tag 401 wird der Eintrag nicht mehr angezeigt.</p>}
           </div>

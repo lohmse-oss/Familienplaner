@@ -4,7 +4,8 @@ import { nextGap } from '../core/gaps';
 import { budget } from '../core/report';
 import { PARENTS, PERSONS, type Item, type PersonId } from '../core/types';
 import { bridgeTips, bridgeYear } from '../core/tips';
-import { fmtDays } from '../core/dates';
+import { diff, fmtDays } from '../core/dates';
+import { isDormant, isDueSoon } from '../core/recur';
 import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
@@ -80,7 +81,8 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
   const month = Number(t.slice(5, 7));
   const yearSum = month >= 10 ? { y: py + 1, ...bridgeYear(cal, py + 1) } : null;
 
-  const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done).length;
+  const openTasks = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && !isDormant(i, t)).length;
+  const fristen = cal.items.filter((i) => isDueSoon(i, t)).sort((a, b) => a.start.localeCompare(b.start));
   const openShop = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
   const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted).length;
   const free = PARENTS.map((p) => ({ p, b: budget(cal, p, py, t) }));
@@ -165,7 +167,7 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
         </section>
       )}
 
-      {(gap || unowned > 0 || overdue > 0) && (
+      {(gap || unowned > 0 || overdue > 0 || fristen.length > 0) && (
         <section class="card attn">
           <header class="card-head"><strong>Achtung</strong></header>
           {gap && (
@@ -173,6 +175,12 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
               <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
             </div>
           )}
+          {fristen.slice(0, 3).map((f) => (
+            <div key={f.id} class="line link-row" onClick={() => edit(f)}>
+              <span class="grow"><Ic n="bell" size={15} /> {f.title}: läuft am {fmt(f.start)} ab – jetzt kümmern <span class="muted">(noch {diff(t, f.start)} Tage)</span></span><Ic n="right" size={16} />
+            </div>
+          ))}
+          {fristen.length > 3 && <div class="line link-row" onClick={() => go('tasks')}><span class="grow muted">+{fristen.length - 3} weitere Fristen</span><Ic n="right" size={16} /></div>}
           {overdue > 0 && (
             <div class="line link-row need" onClick={() => go('tasks')}>
               <span class="grow"><Ic n="tasks" size={15} /> {overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span><Ic n="right" size={16} />
