@@ -28,20 +28,6 @@ const DEADLINE_PRESETS: { title: string; lead: Lead; every?: Every; icon: IconNa
   { title: 'Garantie endet', lead: '1m', icon: 'clock' },
 ];
 
-/** Einträge im Auswahlrad „Neuer Eintrag“ (Startknopf lang drücken). key = Kind bzw. shop/list/fact. */
-export const NEW_ITEMS: { key: string; label: string; hint: string; icon: IconName }[] = [
-  { key: 'event', label: 'Termin', hint: 'Arzt, Elternabend …', icon: 'addcal' },
-  { key: 'info', label: 'Event', hint: 'Festival, Konzert …', icon: 'ticket' },
-  { key: 'task', label: 'Aufgabe', hint: 'auch Fristen & wiederkehrend', icon: 'tasks' },
-  { key: 'presence', label: 'Urlaub & Co.', hint: 'Urlaub, Dienstreise, Homeoffice', icon: 'palm' },
-  { key: 'care', label: 'Betreuungsbedarf', hint: 'Schließtag, krank …', icon: 'baby' },
-  { key: 'cover', label: 'Betreuung durch Dritte', hint: 'Oma, Freunde …', icon: 'hand' },
-  { key: 'birthday', label: 'Geburtstag', hint: 'jährlich', icon: 'cake' },
-  { key: 'shop', label: 'Einkauf', hint: 'auf die Einkaufsliste', icon: 'cart' },
-  { key: 'list', label: 'Checkliste', hint: 'neu oder aus Vorlage', icon: 'listcheck' },
-  { key: 'fact', label: 'Infomappe', hint: 'Kinderarzt, Kita, Größen …', icon: 'folder' },
-];
-
 const personOpts = (list: PersonId[]) => list.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }));
 const CARE_PRESETS: { label: string; child?: PersonId }[] = [
   { label: 'Schließtag Kita', child: 'irma' },

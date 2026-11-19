@@ -11,8 +11,7 @@ import { Birthdays } from './ui/Birthdays';
 import { CalNav } from './ui/CalNav';
 import { sheetStack } from './ui/common';
 import { DaySheet } from './ui/DaySheet';
-import { EditSheet, KindPicker, NEW_ITEMS } from './ui/EditSheet';
-import { Wheel } from './ui/Wheel';
+import { EditSheet, KindPicker } from './ui/EditSheet';
 import { Home } from './ui/Home';
 import { Lists } from './ui/Lists';
 import { Facts, FactSheet } from './ui/Facts';
@@ -47,7 +46,6 @@ type Sheet =
   | null
   | { t: 'day'; date: string }
   | { t: 'pick'; date?: string }
-  | { t: 'wheel'; start: number; armed: boolean }
   | { t: 'search' }
   | { t: 'edit'; item: Partial<Item> & { kind: Kind } }
   | { t: 'fact'; item?: Item };
@@ -58,7 +56,7 @@ export function App() {
   const [stack, setStack] = useState<Tab[]>([]); // Verlauf für „zurück“
   const [weekOf, setWeekOf] = useState(weekStart(today()));
   const [year, setYear] = useUiState('year', Number(today().slice(0, 4))); // Fokus auf heute (nach App-Wechsel: zuletzt gewähltes Jahr)
-  const [sheet, setSheet] = useUiState<Sheet>('sheet', null, { accept: (s) => s?.t !== 'wheel' }); // offenes Fenster inkl. Entwurf (s. EditSheet)
+  const [sheet, setSheet] = useUiState<Sheet>('sheet', null); // offenes Fenster inkl. Entwurf (s. EditSheet)
   const [preset, setPreset] = useState<PlanPreset | undefined>();
   const [focusShop, setFocusShop] = useState(0);
   const [newList, setNewList] = useState(0); // Signal: in Checklisten „Neue Liste“ öffnen
@@ -211,30 +209,17 @@ export function App() {
     setTimeout(() => setRefreshing(false), 400);
   };
 
-  /* ---------- Startknopf lang drücken = Auswahlrad „Neuer Eintrag“ (ersetzt den „+“-Knopf) ---------- */
-  // Das Rad startet mit dem passenden Eintrag vorne (Aufgaben → Aufgabe, Einkauf → Einkauf …).
-  // Bei „Animationen reduzieren“ kommt stattdessen die bisherige Liste.
+  /* ---------- Startknopf lang drücken = neuer Eintrag (ersetzt den „+“-Knopf) ---------- */
+  // Passend zum Bereich: in Aufgaben direkt eine Aufgabe, in Geburtstagen direkt ein Geburtstag, sonst Auswahl der Art.
   const press = useRef<{ timer?: number; fired: boolean }>({ fired: false });
-  const FRONT: Partial<Record<Tab, string>> = { tasks: 'task', birthdays: 'birthday', facts: 'fact', lists: 'list', shop: 'shop', vacation: 'presence' };
   const newEntry = () => {
     if (readOnly) return;
     haptic();
-    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return setSheet({ t: 'pick' });
-    const start = Math.max(0, NEW_ITEMS.findIndex((x) => x.key === (FRONT[tab] ?? 'event')));
-    setSheet({ t: 'wheel', start, armed: true });
-  };
-  /** Auswahl aus Rad oder Liste: Einkauf, Checkliste, Infomappe haben eigene Wege, sonst der Eintrag-Dialog. */
-  const pickNew = (key: string, date?: string) => {
-    if (key === 'shop') {
-      close();
-      nav('shop');
-      setFocusShop((n) => n + 1);
-    } else if (key === 'list') {
-      close();
-      nav('lists');
-      setNewList((n) => n + 1);
-    } else if (key === 'fact') setSheet({ t: 'fact' });
-    else setSheet({ t: 'edit', item: { kind: key as Kind, ...(date ? { start: date, end: date } : tab === 'cal' ? { start: today(), end: today() } : {}) } });
+    if (tab === 'tasks') setSheet({ t: 'edit', item: { kind: 'task' } });
+    else if (tab === 'birthdays') setSheet({ t: 'edit', item: { kind: 'birthday' } });
+    else if (tab === 'facts') setSheet({ t: 'fact' });
+    else if (tab === 'lists') setNewList((n) => n + 1);
+    else setSheet({ t: 'pick' });
   };
   const homeDown = () => {
     press.current.fired = false;
@@ -383,14 +368,13 @@ export function App() {
           }}
         />
       )}
-      {sheet?.t === 'wheel' && <Wheel items={NEW_ITEMS} start={sheet.start} armed={sheet.armed} onPick={(k) => pickNew(k)} onClose={close} />}
       {sheet?.t === 'pick' && (
         <KindPicker
           onClose={close}
-          onPick={(kind) => pickNew(kind, sheet.date)}
-          onShop={() => pickNew('shop')}
-          onList={() => pickNew('list')}
-          onFact={() => pickNew('fact')}
+          onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : tab === 'cal' ? { start: today(), end: today() } : {}) } })}
+          onShop={() => { close(); nav('shop'); setFocusShop((n) => n + 1); }}
+          onList={() => { close(); nav('lists'); setNewList((n) => n + 1); }}
+          onFact={() => setSheet({ t: 'fact' })}
         />
       )}
       {sheet?.t === 'fact' && <FactSheet key={sheet.item?.id ?? 'new'} initial={sheet.item} onClose={close} />}
