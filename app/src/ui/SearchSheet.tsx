@@ -8,7 +8,7 @@ import { Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
 const KIND_ICON: Record<string, IconName> = {
-  presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'info', task: 'tasks', birthday: 'cake', shop: 'cart',
+  presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'ticket', task: 'tasks', birthday: 'cake', shop: 'cart',
 };
 
 const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [

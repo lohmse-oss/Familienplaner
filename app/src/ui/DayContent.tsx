@@ -66,7 +66,7 @@ export function DayContent({ date, edit, add }: Props) {
         <div key={i.id} class="entry">
           <div class={`line link-row ${i.kind === 'task' && i.done ? 'done' : ''}`} onClick={() => edit(i)}>
             <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
-            <span class="grow">{timeOn(i, date) ? timeOn(i, date) + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')}{isMultiDay(i) && <small class="muted"> · {dayTag(i, date)}, {fmtRange(i.start, i.end)}</small>} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
+            <span class="grow">{timeOn(i, date) ? timeOn(i, date) + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')}{isMultiDay(i) && <small class="muted"> · {dayTag(i, date)}, {fmtRange(i.start, i.end)}</small>}{i.kind === 'info' && i.away && <small class="muted"> · auswärts</small>} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
             {i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}
           </div>
           <Details it={i} />

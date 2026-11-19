@@ -41,8 +41,8 @@ const RANK: Record<Mode, number> = { homeoffice: 1, vacation: 2, trip: 3 };
 /** Termine, bei denen jemand verbindlich zuständig sein muss (Klassenarbeit ist nur informativ). */
 export const needsOwner = (it: Item) => it.kind === 'event' && it.sub !== 'schule';
 
-/** Mehrtägiger Termin (z. B. Festival): Ende nach dem Start und keine Wiederholung (dort ist end das Serienende). */
-export const isMultiDay = (it: Item) => it.kind === 'event' && !it.recur && it.end > it.start;
+/** Mehrtägiger Termin oder Event (z. B. Festival): Ende nach dem Start und keine Wiederholung (dort ist end das Serienende). */
+export const isMultiDay = (it: Item) => (it.kind === 'event' || it.kind === 'info') && !it.recur && it.end > it.start;
 /** Uhrzeit eines Termins an diesem Tag – bei mehrtägigen nur am ersten Tag. */
 export const timeOn = (it: Item, date: string) => (isMultiDay(it) && date !== it.start ? undefined : it.time);
 /** „Tag 2/3“ bei mehrtägigen Terminen, sonst leer. */

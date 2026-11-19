@@ -1,6 +1,6 @@
-import type { Calendar, Coverage } from './calendar';
+import type { Calendar, Coverage, DayInfo } from './calendar';
 import { addDays } from './dates';
-import { PARENTS } from './types';
+import { PARENTS, type Item } from './types';
 
 export type WidgetStyle = 'dark' | 'light' | 'glass' | 'transparent';
 
@@ -30,15 +30,20 @@ export const DEFAULT_WIDGET_SCALES: WidgetScales = { nothing: 1.75, standard: 1,
 
 const HORIZON = 14;
 
+/** Wie viel steht an einem Tag an? (Widget-Kreise und Übersicht beim Eintragen) – optional ohne einen bestimmten Eintrag. */
+export function countDay(d: DayInfo, excludeId?: string): number {
+  const keep = (i: Item) => i.id !== excludeId;
+  const absent = PARENTS.filter((p) => d.workday && (d.parents[p].status === 'trip' || d.parents[p].status === 'vacation') && d.parents[p].item?.id !== excludeId).length;
+  return d.events.filter(keep).length + d.tasks.filter((t) => !t.done && keep(t)).length + d.birthdays.filter(keep).length + d.info.filter(keep).length + (d.needs.length ? 1 : 0) + absent;
+}
+
 /** Daten für das Homescreen-Widget. Reine Funktion, damit sie testbar bleibt. */
 export function buildWidgetData(cal: Calendar, today: string, now: Date, style: WidgetStyle = 'dark', scales: WidgetScales = DEFAULT_WIDGET_SCALES): WidgetData {
   const days: WidgetDay[] = [];
   for (let i = 0; i < HORIZON; i++) {
     const date = addDays(today, i);
     const d = cal.day(date);
-    const absent = PARENTS.filter((p) => d.workday && (d.parents[p].status === 'trip' || d.parents[p].status === 'vacation')).length;
-    const n = d.events.length + d.tasks.filter((t) => !t.done).length + d.birthdays.length + d.info.length + (d.needs.length ? 1 : 0) + absent;
-    days.push({ date, n, cov: d.coverage });
+    days.push({ date, n: countDay(d), cov: d.coverage });
   }
   const shopN = cal.items.filter((i) => i.kind === 'shop' && !i.done).length;
   const tasks = cal.items.filter((i) => i.kind === 'task' && !i.done);

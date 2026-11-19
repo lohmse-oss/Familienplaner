@@ -15,7 +15,7 @@ const KIND_WORDS: Record<Kind, string> = {
   care: 'betreuung betreuungsbedarf schließtag',
   cover: 'betreuung oma opa',
   event: 'termin',
-  info: 'info veranstaltung',
+  info: 'event info veranstaltung festival konzert',
   task: 'aufgabe',
   birthday: 'geburtstag',
   config: '',

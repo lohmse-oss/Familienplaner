@@ -63,7 +63,7 @@ function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
   const famEv = L.events ? d.events.filter((e) => !e.persons.length && !e.owner) : [];
   const freeTasks = L.tasks ? d.tasks.filter((x) => !x.done && !x.owner) : [];
   const extra = [
-    ...(L.events ? d.info.map((i) => i.title) : []),
+    ...(L.events ? d.info.map((i) => `${i.title}${i.away ? ' (auswärts)' : ''}`) : []),
     ...famEv.map((e) => evText(e, d.date)),
     ...freeTasks.map((x) => `Aufgabe: ${x.title}`),
   ].filter(Boolean) as string[];
@@ -85,7 +85,7 @@ function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
             {(freeTasks.length > 0 || m.info > 0 || famEv.length > 0) && (
               <span class="tl-mk">
                 {freeTasks.length > 0 && <Ic n="tasks" size={12} class={`mk-ic ${m.overdue ? 'late' : 'tk'}`} />}
-                {(m.info > 0 || famEv.length > 0) && <Ic n="info" size={12} class="mk-ic" />}
+                {(m.info > 0 || famEv.length > 0) && <Ic n="ticket" size={12} class="mk-ic" />}
               </span>
             )}
             {extra.length > 0 ? <span class="tl-txt tl-extra">{extra.join(', ')}</span> : school && <span class="tl-txt tl-school">{school}</span>}

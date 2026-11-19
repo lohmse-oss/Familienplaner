@@ -17,7 +17,7 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  *  care     – Betreuungsbedarf der Kinder (Schließtag Kita/Schule, krank, ...)
  *  cover    – Betreuung durch Dritte (Oma, Freunde) deckt Betreuungsbedarf
  *  event    – Einmaltermin (Arzt, Klassenarbeit, Elternabend)
- *  info     – nur informativ (Festival, Veranstaltung)
+ *  info     – Event (Festival, Konzert, Veranstaltung); away = auswärts statt zuhause/vor Ort
  *  task     – Aufgabe mit Fälligkeit
  *  birthday – Geburtstag (jährlich)
  *  config   – Einstellungen pro Person und Jahr (Urlaubstage)
@@ -41,7 +41,7 @@ export interface Item {
   time?: string; // HH:MM
   persons: PersonId[];
   mode?: Mode; // presence
-  away?: boolean; // presence/vacation: verreist (nicht vor Ort)
+  away?: boolean; // presence/vacation: verreist (nicht vor Ort) · info (Event): auswärts statt zuhause
   sub?: EventSub; // event
   owner?: PersonId | null; // event/task: wer kümmert sich
   done?: boolean; // task

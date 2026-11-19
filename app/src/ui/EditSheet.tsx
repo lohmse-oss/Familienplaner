@@ -1,18 +1,20 @@
 import { useUiState } from '../resume';
 import { ALL, CHILDREN, MODE_LABEL, PARENTS, PERSONS, RECUR_LABEL, SUB_LABEL, type EventSub, type Item, type Kind, type Mode, type PersonId, type Recur } from '../core/types';
-import { deleteItem, newId, saveItem, useStore } from '../store';
+import { deleteItem, newId, saveItem, useStore, withUndo } from '../store';
+import { describeChange } from '../core/describe';
+import { Overlap } from './Overlap';
 import { addDays, diff, today } from '../core/dates';
 import { Chips, DateInput, Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
-export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; label: string; icon: IconName; hint: string }[] = [
-  { kind: 'presence', label: 'Urlaub / Dienstreise / Homeoffice', icon: 'palm', hint: 'Wer ist anwesend?' },
-  { kind: 'care', label: 'Betreuungsbedarf', icon: 'baby', hint: 'Schließtag Kita/Schule, krank …' },
-  { kind: 'event', label: 'Termin', icon: 'addcal', hint: 'Arzt, Klassenarbeit, Elternabend' },
-  { kind: 'task', label: 'Aufgabe', icon: 'tasks', hint: 'mit Fälligkeit' },
-  { kind: 'cover', label: 'Betreuung durch Dritte', icon: 'hand', hint: 'Oma, Freunde …' },
-  { kind: 'info', label: 'Info (Festival, Veranstaltung)', icon: 'info', hint: 'nur zur Orientierung' },
-  { kind: 'birthday', label: 'Geburtstag', icon: 'cake', hint: 'jährlich' },
+export const KINDS: { kind: Exclude<Kind, 'config' | 'shop'>; short: string; label: string; icon: IconName; hint: string }[] = [
+  { kind: 'presence', short: 'Eintrag', label: 'Urlaub / Dienstreise / Homeoffice', icon: 'palm', hint: 'Wer ist anwesend?' },
+  { kind: 'care', short: 'Betreuungsbedarf', label: 'Betreuungsbedarf', icon: 'baby', hint: 'Schließtag Kita/Schule, krank …' },
+  { kind: 'event', short: 'Termin', label: 'Termin', icon: 'addcal', hint: 'Arzt, Klassenarbeit, Elternabend' },
+  { kind: 'task', short: 'Aufgabe', label: 'Aufgabe', icon: 'tasks', hint: 'mit Fälligkeit' },
+  { kind: 'cover', short: 'Betreuung', label: 'Betreuung durch Dritte', icon: 'hand', hint: 'Oma, Freunde …' },
+  { kind: 'info', short: 'Event', label: 'Event', icon: 'ticket', hint: 'Festival, Konzert, Veranstaltung – zuhause oder auswärts' },
+  { kind: 'birthday', short: 'Geburtstag', label: 'Geburtstag', icon: 'cake', hint: 'jährlich' },
 ];
 
 const personOpts = (list: PersonId[]) => list.map((p) => ({ value: p, label: PERSONS[p].name, color: PERSONS[p].color }));
@@ -64,6 +66,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   const multi = k === 'event' && !d.recur && d.end > d.start;
   const single = (k === 'event' && !multi) || k === 'task' || k === 'birthday';
   const info = KINDS.find((x) => x.kind === k)!;
+  const what = k === 'presence' && d.mode ? MODE_LABEL[d.mode] : info.short;
 
   const valid = (() => {
     if (['event', 'task', 'birthday', 'info'].includes(k) && !d.title?.trim()) return false;
@@ -82,9 +85,15 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
       delete out.link;
     }
     if (k !== 'presence') delete out.mode;
-    if (!(k === 'presence' && d.mode === 'vacation')) delete out.away;
+    if (!(k === 'presence' && d.mode === 'vacation') && k !== 'info') delete out.away;
+    if (k === 'info' && !out.away) delete out.away;
     if (k !== 'event' || !out.recur) delete out.recur;
-    saveItem(out);
+    // Bestätigung: was genau gespeichert wurde, mit „Rückgängig“
+    withUndo(`${what} ${isNew ? 'gespeichert' : 'geändert'}`, () => saveItem(out), describeChange({ ...out, updated: 0 })?.text);
+    onClose();
+  };
+  const remove = () => {
+    withUndo(`${what} gelöscht`, () => deleteItem(d.id), describeChange({ ...d, updated: 0 })?.text);
     onClose();
   };
 
@@ -169,7 +178,16 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
         {k === 'info' && (
           <>
             <label>Titel</label>
-            <input type="text" placeholder="z. B. Stadtfest, Festival" value={d.title ?? ''} onInput={(e) => set({ title: (e.target as HTMLInputElement).value })} />
+            <input type="text" placeholder="z. B. Stadtfest, Festival, Konzert" value={d.title ?? ''} onInput={(e) => set({ title: (e.target as HTMLInputElement).value })} />
+            <label>Wo?</label>
+            <Chips<string>
+              options={[
+                { value: 'home', label: <><Ic n="home" size={15} /> zuhause / vor Ort</> },
+                { value: 'away', label: <><Ic n="luggage" size={15} /> auswärts</> },
+              ]}
+              value={[d.away ? 'away' : 'home']}
+              onChange={(v) => set({ away: v[0] === 'away' })}
+            />
             <label>Wen betrifft es? (leer = Familie)</label>
             <Chips<PersonId> options={personOpts(ALL)} value={d.persons} onChange={(persons) => set({ persons })} multi />
           </>
@@ -216,6 +234,8 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
           )}
         </div>
 
+        {k !== 'birthday' && <Overlap start={d.start} end={single ? d.start : d.end} excludeId={d.id} />}
+
         {(k === 'event' || k === 'info') && (
           <>
             <label>Ort (optional)</label>
@@ -236,7 +256,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
       </div>
 
       <div class="actions sticky">
-        {!isNew && <button class="btn danger" onClick={() => { deleteItem(d.id); onClose(); }}>Löschen</button>}
+        {!isNew && <button class="btn danger" onClick={remove}>Löschen</button>}
         <span class="grow" />
         <button class="btn" onClick={onClose}>Abbrechen</button>
         <button class="btn primary" disabled={!valid} onClick={save}>Speichern</button>

@@ -6,7 +6,7 @@ import { Ic, type IconName } from './icons';
 const ROWS: { k: keyof Layers; label: string; icon: IconName }[] = [
   { k: 'birthdays', label: 'Geburtstage', icon: 'cake' },
   { k: 'tasks', label: 'Aufgaben (Fälligkeit)', icon: 'tasks' },
-  { k: 'events', label: 'Termine & Infos', icon: 'addcal' },
+  { k: 'events', label: 'Termine & Events', icon: 'addcal' },
 ];
 
 /** Knopf „Ebenen“: blendet Geburtstage, Aufgaben und Termine im Kalender ein oder aus. */

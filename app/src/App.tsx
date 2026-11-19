@@ -306,8 +306,15 @@ export function App() {
       )}
 
       {undo && (
-        <div class="snack" key={undo.id}>
-          <span>{undo.label}</span>
+        <div class={`snack ${undo.detail ? 'confirm' : ''}`} key={undo.id} role="status">
+          {undo.detail ? (
+            <span class="snack-body">
+              <b><Ic n="check" size={16} sw={3} /> {undo.label}</b>
+              <small>{undo.detail}</small>
+            </span>
+          ) : (
+            <span>{undo.label}</span>
+          )}
           <button onClick={undoLast}><Ic n="undo" size={15} /> Rückgängig</button>
         </div>
       )}

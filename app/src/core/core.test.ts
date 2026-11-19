@@ -9,6 +9,7 @@ import { relevant } from './filter';
 import { search, parseDateQuery } from './search';
 import { parseLink } from '../links';
 import { buildWidgetData } from './widget';
+import { overview } from './overview';
 import { gapRuns, nextGap } from './gaps';
 import { parseIcs } from './ics';
 import { planPresence } from './presence';
@@ -549,5 +550,26 @@ describe('Mehrtägige Termine (Festival)', () => {
   });
   it('Beschreibung nennt den ganzen Zeitraum', () => {
     expect(describeChange({ ...fest, created: 1, updated: 1 })!.text).toContain('09.07.–So 11.07.2027');
+  });
+});
+
+describe('Übersicht beim Eintragen', () => {
+  const fest = item({ kind: 'info', title: 'Festival', start: '2027-07-09', end: '2027-07-11', away: true });
+  const arzt = item({ kind: 'event', title: 'Arzt', start: '2027-07-10', time: '09:00' });
+  const cal = buildCalendar([fest, arzt, vac('betty', '2027-07-05', '2027-07-16')], data);
+  it('ein Tag: Kreise für zwei Tage davor/danach, Liste nur für den Tag', () => {
+    const o = overview(cal, '2027-07-10', '2027-07-10');
+    expect(o.days.map((d) => d.date)).toEqual(['2027-07-08', '2027-07-09', '2027-07-10', '2027-07-11', '2027-07-12']);
+    expect(o.days.filter((d) => d.inRange)).toHaveLength(1);
+    const texts = o.entries.map((e) => e.text);
+    expect(texts).toContain('Festival (auswärts)');
+    expect(texts).toContain('09:00 Arzt');
+    expect(texts.some((t) => t.startsWith('Betty: Urlaub'))).toBe(true);
+  });
+  it('der bearbeitete Eintrag zählt nicht mit; Zeitraum fasst Tage zusammen', () => {
+    const o = overview(cal, '2027-07-09', '2027-07-11', fest.id);
+    expect(o.entries.map((e) => e.text)).not.toContain('Festival (auswärts)');
+    expect(o.entries.find((e) => e.text.startsWith('Betty'))!.when).toBe('09.07.–11.07.');
+    expect(o.days.find((d) => d.date === '2027-07-10')!.n).toBe(1); // Arzt (Betty-Urlaub am Samstag zählt nicht)
   });
 });

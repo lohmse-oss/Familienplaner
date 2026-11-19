@@ -40,7 +40,7 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
       text = `${t || 'Termin'}${it.persons.length ? ` (${names(it.persons)})` : ''}, ${span(it.start, it.recur ? it.start : it.end)}${it.time ? `, ${it.time}${it.endTime ? `–${it.endTime}` : ''}` : ''}${it.place ? `, ${it.place}` : ''}`;
       break;
     case 'info':
-      text = `${t || 'Info'}, ${when}${it.place ? `, ${it.place}` : ''}`;
+      text = `Event: ${t || '?'}, ${when}${it.away ? ' (auswärts)' : ''}${it.place ? `, ${it.place}` : ''}`;
       break;
     case 'task':
       text = `Aufgabe: ${t || '?'}, fällig ${span(it.start, it.start)}${it.owner ? ` (${PERSONS[it.owner].name})` : ''}`;

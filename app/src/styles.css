@@ -334,6 +334,11 @@ h1, h2, h3 { margin: 0; }
 .pp-more label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 6px 0 4px; }
 .plan-panel .actions { margin-top: 10px; }
 .snack { position: fixed; left: 12px; right: 12px; bottom: calc(86px + var(--safe-b)); z-index: 40; max-width: 616px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--ink); color: var(--bg); padding: 11px 14px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.3); animation: up .18s ease-out; }
+.snack.confirm { align-items: flex-start; padding: 13px 14px; }
+.snack-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.snack-body b { display: flex; align-items: center; gap: 6px; }
+.snack-body b .ic, .snack-body b svg { color: #7ee2a8; }
+.snack-body small { opacity: .85; font-size: 13px; line-height: 1.3; }
 .snack button { border: 0; background: none; color: #9ad0ff; font-weight: 700; padding: 4px 6px; }
 
 /* ---------- Icons, Filter, Ansichten ---------- */
@@ -610,3 +615,21 @@ h1, h2, h3 { margin: 0; }
 .date-input .neg { width: 100%; font-size: 12px; }
 .tl-bar .date-input input[type="date"] { width: 150px; }
 .tl-bar .date-input input[type="text"] { width: 104px; padding: 6px 8px; border-radius: 10px; background: var(--card); }
+
+/* ---------- Eintragen: „Zu der Zeit außerdem“ (wie das 4×1-Widget) ---------- */
+.ovl { margin: 10px 0 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--bg) 60%, var(--card)); }
+.ovl-head { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.ovl-strip { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.ovl-day { flex: 1 0 40px; max-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; border-radius: 10px; opacity: .55; }
+.ovl-day.in { opacity: 1; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.ovl-wd, .ovl-dt { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.ovl-day.in .ovl-wd { color: var(--ink); }
+.ovl-c { font-style: normal; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; position: relative; }
+.ovl-c:not(.full)::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
+.ovl-c.full { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.ovl-c.cov-gap { background: var(--gap); border-color: var(--gap); color: #fff; }
+.ovl-c.cov-maybe { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--maybe); }
+.ovl-line { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; min-width: 0; }
+.ovl-line .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovl-line small { white-space: nowrap; }
+.ovl-more { font-size: 13px; margin-top: 2px; }

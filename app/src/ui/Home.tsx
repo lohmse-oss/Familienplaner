@@ -53,7 +53,7 @@ export function Home({ go, openDay }: { go: (t: Tab) => void; openDay: (d: strin
   const freeText = free.every((x) => x.b.free === undefined) ? 'Urlaubstage eintragen' : free.map((x) => `${PERSONS[x.p].name.slice(0, 3)} ${x.b.free ?? '–'}`).join(' · ') + ` frei (${py})`;
 
   const tiles: { tab: Tab; icon: IconName; title: string; sub: string; badge?: string }[] = [
-    { tab: 'cal', icon: 'week', title: 'Kalender', sub: 'Woche · Tag · Verlauf · Jahr' },
+    { tab: 'cal', icon: 'week', title: 'Kalender', sub: 'Tag · Woche · Jahr · Verlauf' },
     { tab: 'vacation', icon: 'palm', title: 'Urlaub', sub: freeText },
     { tab: 'shop', icon: 'cart', title: 'Einkauf', sub: openShop ? `${openShop} offen` : 'Alles besorgt', badge: openShop ? String(openShop) : undefined },
     { tab: 'tasks', icon: 'tasks', title: 'Aufgaben', sub: openTasks ? `${openTasks} offen` : 'Nichts offen', badge: openTasks ? String(openTasks) : undefined },
