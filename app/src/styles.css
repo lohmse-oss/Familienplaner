@@ -92,8 +92,8 @@ h1, h2, h3 { margin: 0; }
 .strip2 { display: grid; grid-template-columns: 20px repeat(7, 1fr); gap: 3px; margin-bottom: 6px; }
 .strip2 .h { font-size: 9.5px; color: var(--muted); text-align: center; align-self: end; padding-bottom: 1px; }
 .strip2 .who-l { font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.strip2 .cell { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 3px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; cursor: pointer; min-height: 40px; font: inherit; color: inherit; }
-.strip2 .q { display: flex; align-items: center; justify-content: center; gap: 1px; font-size: 10px; line-height: 1; border-radius: 6px; background: var(--bg); color: var(--muted); }
+.strip2 .cell { border: 1px solid #2a3247; background: #0B0F19; border-radius: 8px; padding: 3px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; cursor: pointer; min-height: 40px; font: inherit; }
+.strip2 .q { display: flex; align-items: center; justify-content: center; gap: 1px; font-size: 10px; line-height: 1; border-radius: 6px; background: #1A2030; }
 .strip2 .q .late { color: var(--gap); }
 .home-chips { display: flex; gap: 8px; margin-bottom: 10px; }
 .chip-tile { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1.5px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px 4px 8px; cursor: pointer; }

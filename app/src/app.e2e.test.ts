@@ -90,15 +90,20 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     const heads = [...document.querySelectorAll('.strip2 .h')].map((h) => h.textContent?.trim());
     expect(heads[1]).toBe(`${WD[dow(t2)]} ${t2.slice(8)}`); // beginnt übermorgen, nicht heute/morgen
 
-    // 2 Termine für Sebastian übermorgen → Segment eingefärbt mit Zahl 2 (erst ab >1), Icon-Farbe Pink
+    // 2 Termine für Sebastian übermorgen + 1 Familien-Termin (ohne Zuständigen) → S zeigt 3, B zeigt 1; auch einzelne Einträge werden angezeigt
     const { saveItem } = await import('./store');
     saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin 1', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
     saveItem({ id: 'e2e1b', kind: 'event', title: 'E2E-Termin 2', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
+    saveItem({ id: 'e2e3', kind: 'event', title: 'E2E-Familientermin', start: t2, end: t2, persons: [], updated: 0 } as never);
     await tick(60);
-    const q2 = [...document.querySelectorAll('.strip2 .cell .q')].find((q) => q.textContent?.trim() === '2');
-    expect(q2, 'Termin-Segment mit Zahl 2 fehlt (erst ab >1)').toBeTruthy();
-    expect((q2 as HTMLElement).style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0)
-    expect((q2 as HTMLElement).classList.contains('on')).toBe(true);
+    const qTexts = [...document.querySelectorAll('.strip2 .cell .q')].map((q) => q.textContent?.trim());
+    expect(qTexts).toContain('3'); // S: 2 eigene + 1 Familien-Termin
+    expect(qTexts).toContain('1'); // B: nur der Familien-Termin – einzelner Eintrag wird auch angezeigt
+    const qOn = [...document.querySelectorAll('.strip2 .cell .q.on')].find((q) => q.textContent?.trim() === '1') as HTMLElement;
+    expect(qOn, 'eingefärbtes Segment fehlt').toBeTruthy();
+    expect(qOn.style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0)
+    // Zellen sind dunkel wie das App-Icon
+    expect(document.querySelector('.strip2 .cell')!.className).toContain('cell');
 
     // Info-Chip „Neu vom Partner“ erscheint und lässt sich per Swipe wegwischen (dann dauerhaft weg)
     // (saveItem setzt by = me -> kurz auf Betty stellen, damit der Eintrag "vom Partner" ist)

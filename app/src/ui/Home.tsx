@@ -205,19 +205,20 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
                     <span class="who-l" style={{ color: PERSONS[p].color }} title={PERSONS[p].name}>{PERSONS[p].name[0]}</span>
                     {days.map((d) => {
                       const dd = cal.day(d);
-                      const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p)).length : 0;
-                      const tks = L.tasks ? dd.tasks.filter((x) => !x.done && x.owner === p).length : 0;
+                      // Familien-Einträge (ohne Zuständigen/Personen) zählen für beide Eltern
+                      const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p) || (!e.owner && e.persons.length === 0)).length : 0;
+                      const tks = L.tasks ? dd.tasks.filter((x) => !x.done && (x.owner === p || !x.owner)).length : 0;
                       return (
                         <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – 4 Segmente wie das App-Icon`} onClick={() => openDay(d)}>
                           {/* 4 Segmente (2x2) wie das App-Icon; eingefärbt + Zahl nur bei Inhalt, Farben = Icon-Punkte */}
                           <span class={`q ${dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' ? 'on' : ''}`} style={dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' ? { color: '#7FB7D6', background: '#7FB7D62E' } : undefined} title="Status (Anwesenheit)">
                             {dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' && <StatusIc s={dd.parents[p].status} size={11} />}
                           </span>
-                          <span class={`q ${evs > 1 ? 'on' : ''}`} style={evs > 1 ? { color: '#F06CA0', background: '#F06CA02E' } : undefined} title="Termine">
-                            {evs > 1 && <><Ic n="addcal" size={9} />{evs}</>}
+                          <span class={`q ${evs > 0 ? 'on' : ''}`} style={evs > 0 ? { color: '#F06CA0', background: '#F06CA02E' } : undefined} title="Termine">
+                            {evs > 0 && <><Ic n="addcal" size={9} />{evs}</>}
                           </span>
-                          <span class={`q ${tks > 1 ? 'on' : ''}`} style={tks > 1 ? { color: '#A98AE0', background: '#A98AE02E' } : undefined} title="Aufgaben">
-                            {tks > 1 && <><Ic n="tasks" size={9} />{tks}</>}
+                          <span class={`q ${tks > 0 ? 'on' : ''}`} style={tks > 0 ? { color: '#A98AE0', background: '#A98AE02E' } : undefined} title="Aufgaben">
+                            {tks > 0 && <><Ic n="tasks" size={9} />{tks}</>}
                           </span>
                           <span class={`q ${dd.needs.length > 0 || dd.coverage !== 'none' ? 'on' : ''}`} style={dd.needs.length > 0 || dd.coverage !== 'none' ? { color: '#FF8A5C', background: '#FF8A5C2E' } : undefined} title="Betreuung">
                             {dd.needs.length > 0 ? <Ic n="alert" size={9} /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : null}
@@ -230,7 +231,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
               </div>
             );
           })()}
-          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Segmente wie das App-Icon, eingefärbt nur bei Inhalt (Termine/Aufgaben ab 2) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
+          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Segmente wie das App-Icon, eingefärbt bei jedem Eintrag (ab 1) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
         </section>
       )}
       </div>
