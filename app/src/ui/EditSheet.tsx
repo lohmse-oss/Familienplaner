@@ -126,9 +126,9 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     return d.end >= d.start;
   })();
 
-  const save = () => {
+  const save = (forceDone?: boolean) => {
     const clean = (v?: string) => v?.trim() || undefined;
-    const out: Item = { ...d, title: clean(d.title), place: clean(d.place), contact: clean(d.contact), link: clean(d.link), end: single ? d.start : d.end };
+    const out: Item = { ...d, done: forceDone ?? d.done, title: clean(d.title), place: clean(d.place), contact: clean(d.contact), link: clean(d.link), end: single ? d.start : d.end };
     if (k !== 'event') delete out.endTime;
     if (k !== 'event' && k !== 'info') {
       delete out.place;
@@ -162,7 +162,17 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   };
 
   return (
-    <Sheet title={`${isNew ? '' : 'Bearbeiten: '}${info.label}`} onClose={onClose}>
+    <Sheet
+      title={`${isNew ? '' : 'Bearbeiten: '}${info.label}`} onClose={onClose}
+      footer={
+        <div class="actions">
+          {!isNew && <button class="btn danger" onClick={remove}>Löschen</button>}
+          <span class="grow" />
+          <button class="btn" onClick={onClose}>Abbrechen</button>
+          <button class="btn primary" disabled={!valid} onClick={() => save()}>Speichern</button>
+        </div>
+      }
+    >
       <div class="form">
         {k === 'presence' && (
           <>
@@ -278,7 +288,11 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
                 ))}
               </div>
             )}
-            <label class="check"><input type="checkbox" checked={!!d.done} onChange={(e) => set({ done: (e.target as HTMLInputElement).checked })} /> erledigt{d.every && !initial.done ? ' (Fälligkeit rückt dann auf den nächsten Termin)' : ''}</label>
+            <div class="actions wrap">
+              <button type="button" class={`btn ${d.done ? '' : 'primary'}`} onClick={() => save(!d.done)}>
+                <Ic n={d.done ? 'reset' : 'check'} size={15} /> {d.done ? 'Wieder offen' : 'Als erledigt markieren'}{d.every && !initial.done && !d.done ? ' – rückt auf die nächste Fälligkeit' : ''}
+              </button>
+            </div>
           </>
         )}
 
@@ -365,12 +379,6 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
         )}
       </div>
 
-      <div class="actions sticky">
-        {!isNew && <button class="btn danger" onClick={remove}>Löschen</button>}
-        <span class="grow" />
-        <button class="btn" onClick={onClose}>Abbrechen</button>
-        <button class="btn primary" disabled={!valid} onClick={save}>Speichern</button>
-      </div>
       {!isNew && d.by && <p class="hint">Zuletzt geändert von {PERSONS[d.by].name}</p>}
     </Sheet>
   );

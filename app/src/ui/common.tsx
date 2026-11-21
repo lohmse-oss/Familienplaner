@@ -2,8 +2,9 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Coverage, ParentStatus } from '../core/calendar';
 import { parseUserDate } from '../core/dates';
-import { ALL, PERSONS, type PersonId } from '../core/types';
-import { updateSettings, useStore } from '../store';
+import { ALL, PERSONS, type Item, type PersonId } from '../core/types';
+import { haptic } from '../haptics';
+import { toggleTask, updateSettings, useStore } from '../store';
 import { Ic } from './icons';
 
 export const STATUS_LABEL: Record<ParentStatus, string> = {
@@ -21,6 +22,25 @@ export const COVERAGE_LABEL: Record<Coverage, string> = {
 };
 
 export const Dot = ({ p }: { p: PersonId }) => <span class="dot" style={{ background: PERSONS[p].color }} title={PERSONS[p].name} />;
+
+/** Runder Haken für Aufgaben – überall wo Aufgaben angezeigt werden (Abhaken ohne Öffnen des Eintrags). */
+export function TaskCheck({ t }: { t: Item }) {
+  const { readOnly } = useStore();
+  if (readOnly || t.kind !== 'task') return null;
+  return (
+    <button
+      class="check-btn"
+      onClick={(e) => {
+        e.stopPropagation();
+        haptic(t.done ? 'light' : 'success');
+        toggleTask(t);
+      }}
+      aria-label={t.done ? 'wieder offen' : 'als erledigt markieren'}
+    >
+      {t.done && <Ic n="check" size={16} sw={3} />}
+    </button>
+  );
+}
 
 export const PersonTag = ({ p }: { p: PersonId }) => (
   <span class="ptag" style={{ background: PERSONS[p].soft, color: PERSONS[p].color }}>

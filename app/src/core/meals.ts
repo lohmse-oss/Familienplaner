@@ -1,3 +1,5 @@
+import type { Calendar } from './calendar';
+import { addDays } from './dates';
 import type { Item } from './types';
 
 export const isMeal = (i: Item) => i.kind === 'meal' && !i.deleted;
@@ -19,6 +21,13 @@ export const overdueMeals = (items: Item[], t0: string) => items.filter((i) => i
 
 /** Mahlzeit, die an einem Tag geplant ist (falls vorhanden). */
 export const mealOn = (items: Item[], date: string) => items.find((i) => isMeal(i) && !i.pool && i.start === date);
+
+/** Nächster Schulferien-Tag nach t0 (Pool-Eintrag legt sich default darauf); ohne Ferien innerhalb 400 Tagen: t0. */
+export function nextHolidayAfter(cal: Calendar, t0: string): string {
+  const end = addDays(t0, 400);
+  for (let d = addDays(t0, 1); d <= end; d = addDays(d, 1)) if (cal.day(d).school.length) return d;
+  return t0;
+}
 
 /**
  * Zwei Mahlzeiten tauschen – in derselben Reihenfolge wie übergeben zurückgegeben.

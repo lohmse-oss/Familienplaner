@@ -2,7 +2,7 @@ import { dayTag, isMultiDay, needsOwner, timeOn } from '../core/calendar';
 import { ageOn, fmt, fmtRange, dow, WD_LONG } from '../core/dates';
 import { isCalendarKind, PARENTS, PERSONS, type Item, type Kind, type Mode } from '../core/types';
 import { setPresence, useStore } from '../store';
-import { Chips, Dot, PersonTag, Pill, STATUS_LABEL } from './common';
+import { Chips, Dot, PersonTag, Pill, STATUS_LABEL, TaskCheck } from './common';
 import { KINDS } from './EditSheet';
 import { Details } from './Details';
 import { Ic, StatusIc } from './icons';
@@ -65,6 +65,7 @@ export function DayContent({ date, edit, add }: Props) {
       {items.map((i) => (
         <div key={i.id} class="entry">
           <div class={`line link-row ${i.kind === 'task' && i.done ? 'done' : ''}`} onClick={() => edit(i)}>
+            {i.kind === 'task' && <TaskCheck t={i} />}
             <Ic n={KINDS.find((k) => k.kind === i.kind)?.icon ?? 'info'} class="muted" />
             <span class="grow">{timeOn(i, date) ? timeOn(i, date) + ' ' : ''}{i.title || (i.mode ? STATUS_LABEL[i.mode] : '')}{isMultiDay(i) && <small class="muted"> · {dayTag(i, date)}, {fmtRange(i.start, i.end)}</small>}{i.kind === 'info' && i.away && <small class="muted"> · auswärts</small>} {i.persons.map((p) => <Dot key={p} p={p} />)}</span>
             {i.ask?.state === 'open' ? <span class="asked">angefragt</span> : null}{i.owner ? <PersonTag p={i.owner} /> : i.kind === 'event' && needsOwner(i) ? <span class="open">offen</span> : null}

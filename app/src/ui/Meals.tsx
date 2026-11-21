@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useUiState } from '../resume';
-import { addDays, fmtDay, fmtShort, today, weekStart } from '../core/dates';
-import { doneMeals, mealOn, plannedMeals, poolMeals } from '../core/meals';
+import { addDays, fmtDay, fmtShort, range, today } from '../core/dates';
+import { doneMeals, mealOn, nextHolidayAfter, poolMeals } from '../core/meals';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
 import { addMeal, addMealToPool, batch, confirmMeal, deleteMeal, moveMealToPool, saveItem, setMealDate, swapMealEntries, sync, unconfirmMeal, useStore } from '../store';
@@ -21,14 +21,12 @@ export function Meals() {
   const [swapId, setSwapId] = useState<string | null>(null);
   const [edit, setEdit] = useState<Item | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const [showWeek, setShowWeek] = useState(true);
+  const [showOv, setShowOv] = useState(true);
+  const [daysN, setDaysN] = useState(7); // Übersicht: heute + 6 Tage, manuell erweiterbar
 
-  const planned = plannedMeals(items);
   const pool = poolMeals(items);
   const done = doneMeals(items).filter((m) => m.start >= addDays(t0, -7)); // letzte Woche
   const occupied = mealOn(items, date);
-  const ws = weekStart(t0);
-  const weekDays = [0, 1, 2, 3, 4, 5, 6].map((n) => addDays(ws, n));
 
   // Solange die Liste offen ist, schneller abgleichen (beide planen parallel)
   useEffect(() => {
@@ -99,12 +97,12 @@ export function Meals() {
 
   return (
     <div class="page">
-      <button class="link done-toggle" onClick={() => setShowWeek(!showWeek)}>
-        <Ic n={showWeek ? 'down' : 'right'} size={15} /> Diese Woche ({fmtShort(ws)}\u2013{fmtShort(addDays(ws, 6))})
+      <button class="link done-toggle" onClick={() => setShowOv(!showOv)}>
+        <Ic n={showOv ? 'down' : 'right'} size={15} /> Übersicht (heute + {daysN - 1} Tage, bis {fmtShort(addDays(t0, daysN - 1))})
       </button>
-      {showWeek && (
+      {showOv && (
         <section class="card shop-list">
-          {weekDays.map((d) => {
+          {[...range(t0, addDays(t0, daysN - 1))].map((d) => {
             const m = mealOn(items, d);
             return (
               <div key={d} class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''}`} onClick={() => (m ? setEdit(m) : !readOnly && setDate(d))}>
@@ -115,6 +113,10 @@ export function Meals() {
               </div>
             );
           })}
+          <div class="actions wrap">
+            {daysN < 60 && <button class="btn small" onClick={() => setDaysN(daysN + 7)}>+7 Tage</button>}
+            {daysN > 7 && <button class="btn small" onClick={() => setDaysN(Math.max(7, daysN - 7))}>−7 Tage</button>}
+          </div>
         </section>
       )}
 
@@ -146,14 +148,6 @@ export function Meals() {
         </div>
       )}
 
-      <h3 class="section">Geplant ({planned.length})</h3>
-      <section class="card shop-list">
-        {planned.length === 0 && (
-          <div class="empty"><Ic n="meal" size={26} /><br />Noch nichts geplant.<br /><span class="muted">Oben Tag und Mahlzeit eintragen – beide Handys sehen es sofort.</span></div>
-        )}
-        {planned.map((m) => <Row key={m.id} m={m} />)}
-      </section>
-
       <h3 class="section">Pool ({pool.length})</h3>
       {!readOnly && (
         <form class="shop-add meal-add" onSubmit={submitPoolInline}>
@@ -184,9 +178,10 @@ export function Meals() {
 
 /** Bearbeiten einer Mahlzeit: Titel/T ag ändern, tauschen, in den Pool schieben oder löschen. */
 function MealSheet({ item, onClose, onSwap }: { item: Item; onClose: () => void; onSwap: () => void }) {
-  const { readOnly } = useStore();
+  const { readOnly, cal } = useStore();
+  const t0 = today();
   const [title, setTitle] = useState(item.title ?? '');
-  const [date, setDate] = useState(item.pool ? today() : item.start);
+  const [date, setDate] = useState(item.pool ? nextHolidayAfter(cal, t0) : item.start); // Pool-Eintrag landet default auf dem nächsten Ferien-Tag
   const changed = title.trim() !== (item.title ?? '') || date !== item.start;
   const save = () => {
     batch(() => {

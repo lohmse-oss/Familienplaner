@@ -8,7 +8,7 @@ import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
 import { describeChange, verbOf } from '../core/describe';
-import { Dot, PersonTag, Pill, Sheet, STATUS_LABEL } from './common';
+import { Dot, PersonTag, Pill, Sheet, STATUS_LABEL, TaskCheck } from './common';
 import { Ic, StatusIc, type IconName } from './icons';
 
 const ago = (ms: number) => {
@@ -42,7 +42,7 @@ function DayLines({ d, date }: { d: DayInfo; date: string }) {
           {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
         </div>
       ))}
-      {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><Ic n="tasks" size={16} /> {x.title}</div>)}
+      {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><TaskCheck t={x} /><Ic n="tasks" size={16} /> {x.title}</div>)}
       {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
     </>
   );
@@ -163,6 +163,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
           {soonAll.map(({ date, key, icon, text, e }) => (
             <div key={key + date} class="line link-row" onClick={() => openDay(date)}>
               <span class="time wide">{WD[dow(date)]} {fmtShort(date)}</span>
+              {e.kind === 'task' && <TaskCheck t={e} />}
               <Ic n={icon} size={15} class="muted" />
               <span class="grow">{text}</span>
               {e.owner ? <PersonTag p={e.owner} /> : e.kind === 'event' && needsOwner(e) ? <span class="open">offen</span> : null}
