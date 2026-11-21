@@ -78,6 +78,7 @@ jobs:
           gh release create latest familienplaner.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Aktuelle APK (Build ${{ github.run_number }})" \
             --notes "Familienplaner, Stand: ${GITHUB_SHA::7}. Datei familienplaner.apk herunterladen und installieren."
+          gh release edit latest --draft=false --repo "$GITHUB_REPOSITORY" || true # sicherstellen, dass "latest" veröffentlicht ist
 
       # Versionierter Release auf Knopfdruck: Actions → "Android APK" → Run workflow → Version eintragen.
       - name: Release mit Version
