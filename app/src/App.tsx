@@ -6,7 +6,7 @@ import { haptic } from './haptics';
 import { parseLink } from './links';
 import type { CalView, Tab } from './nav';
 import { useUiState } from './resume';
-import { dismissNotice, sync as syncNow, undoLast, updateSettings, useStore } from './store';
+import { dismissNotice, dismissUndo, sync as syncNow, undoLast, updateSettings, useStore } from './store';
 import { Birthdays } from './ui/Birthdays';
 import { CalNav } from './ui/CalNav';
 import { sheetStack } from './ui/common';
@@ -322,7 +322,7 @@ export function App() {
       )}
 
       {undo && (
-        <div class={`snack ${undo.detail ? 'confirm' : ''}`} key={undo.id} role="status">
+        <div class={`snack ${undo.detail ? 'confirm' : ''}`} key={undo.id} role="status" onClick={dismissUndo} title="Antippen = schließen">
           {undo.detail ? (
             <span class="snack-body">
               <b><Ic n="check" size={16} sw={3} /> {undo.label}</b>
@@ -331,7 +331,8 @@ export function App() {
           ) : (
             <span>{undo.label}</span>
           )}
-          <button onClick={undoLast}><Ic n="undo" size={15} /> Rückgängig</button>
+          <button onClick={(e) => { e.stopPropagation(); undoLast(); }}><Ic n="undo" size={15} /> Rückgängig</button>
+          <button class="icon-btn" aria-label="Schließen" onClick={(e) => { e.stopPropagation(); dismissUndo(); }}><Ic n="x" size={14} /></button>
         </div>
       )}
 

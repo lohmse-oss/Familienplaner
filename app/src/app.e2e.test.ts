@@ -54,6 +54,12 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     click(check);
     await tick();
     expect(document.body.textContent).toContain('Erledigt (1)');
+    // Undo-Snackbar erscheint und bleibt bis zum Antippen (kein Auto-Dismiss)
+    const snack = document.querySelector('.snack');
+    expect(snack, 'Undo-Snackbar fehlt').toBeTruthy();
+    click(snack!);
+    await tick();
+    expect(document.querySelector('.snack')).toBeNull();
 
     // Direkt in den Pool (Inline-Formular im Pool-Block)
     const poolForm = [...document.querySelectorAll('.meal-add')].find((f) => (f.querySelector('input[type="text"]') as HTMLInputElement).placeholder.includes('Pool')) as HTMLFormElement;

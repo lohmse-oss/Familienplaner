@@ -177,11 +177,14 @@ export function withUndo(label: string, fn: () => void, detail?: string) {
       }
     });
   undoInfo = { id: Date.now(), label, detail, restore };
+  clearTimeout(undoTimer); // kein Auto-Dismiss mehr: Snackbar bleibt bis Antippen/Wegwischen stehen
+  emit();
+}
+
+/** Snackbar (Info + Rückgängig) schließen, ohne rückgängig zu machen. */
+export function dismissUndo() {
+  undoInfo = null;
   clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => {
-    undoInfo = null;
-    emit();
-  }, 7000);
   emit();
 }
 
