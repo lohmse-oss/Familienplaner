@@ -48,7 +48,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 * **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – **Aufgaben** (Fristen, wiederkehrend, Übernahme), Checklisten, Infomappe.
 * **Einstellungen** über das **Zahnrad in der Kopfzeile** (von überall): Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien · Kalender importieren · Über diese App (Version, Build, Commit).
   „synchron“/„offline“ in der Kopfzeile antippen öffnet direkt den Abschnitt Synchronisierung.
-* Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Tag · Woche · Jahr · Verlauf**.
+* Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Woche · Jahr · Verlauf** (einzelne Tage über das Tagesblatt, z. B. Klick auf einen Tag im Start-Streifen).
 
 ## Schnell finden und bewegen
 * **Suche & Sprung** (Lupe in der Kopfzeile): Volltext über Termine, Aufgaben, Geburtstage, Urlaub, Betreuung und Einkauf (Titel, Notiz, Ort, Kontakt, Personen); ein Datum wie „14.7.“ springt direkt zum Tag;
