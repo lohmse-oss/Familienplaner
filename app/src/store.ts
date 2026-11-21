@@ -344,14 +344,15 @@ export function removeShop(ids: string[]) {
 
 /* ---------- Mahlzeiten (fortlaufende Liste je Tag + Pool) ---------- */
 
-/** Mahlzeit für einen Tag eintragen; belegter Tag: die bisherige Mahlzeit wandert in den Pool. */
+/** Mahlzeit für einen Tag eintragen; belegter Tag: die bisherige Mahlzeit wandert in den Pool. Leerer Tag → heute. */
 export function addMeal(date: string, title: string) {
   const t = title.trim();
   if (!t) return;
+  const d = date || today();
   batch(() => {
-    const old = mealOn(items, date);
+    const old = mealOn(items, d);
     if (old) saveItem({ ...old, pool: true });
-    saveItem({ id: newId(), kind: 'meal', title: t, persons: [], start: date, end: date, ts: Date.now() });
+    saveItem({ id: newId(), kind: 'meal', title: t, persons: [], start: d, end: d, ts: Date.now() });
   });
 }
 
@@ -378,7 +379,7 @@ export function unconfirmMeal(id: string) {
 /** Mahlzeit auf ein anderes Datum legen (Donnerstag → Freitag; Pool-Eintrag → Tag); belegtes Datum: die Einträge tauschen. */
 export function setMealDate(id: string, date: string) {
   const m = items.find((i) => i.id === id);
-  if (!m || (!m.pool && m.start === date)) return;
+  if (!m || !date || (!m.pool && m.start === date)) return;
   const other = mealOn(items, date);
   batch(() => {
     if (other && other.id !== id) {

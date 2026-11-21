@@ -17,6 +17,7 @@ export function Meals() {
   const t0 = today();
   const [date, setDate] = useUiState('meal.date', t0);
   const [text, setText] = useUiState('meal.text', '');
+  const [poolText, setPoolText] = useUiState('meal.pooltext', '');
   const [swapId, setSwapId] = useState<string | null>(null);
   const [edit, setEdit] = useState<Item | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -44,6 +45,13 @@ export function Meals() {
     addMealToPool(text);
     haptic();
     setText('');
+  };
+  const submitPoolInline = (e: Event) => {
+    e.preventDefault();
+    if (!poolText.trim()) return;
+    addMealToPool(poolText);
+    haptic();
+    setPoolText('');
   };
 
   const pickSwap = (target: Item) => {
@@ -73,11 +81,12 @@ export function Meals() {
           {m.done && <Ic n="check" size={16} sw={3} />}
         </button>
       )}
-      <span class="meal-date">{inPool ? `war ${fmtDay(m.start)}` : fmtDay(m.start)}</span>
+      <span class="meal-date">{inPool ? (m.start ? `war ${fmtDay(m.start)}` : 'Pool') : m.start ? fmtDay(m.start) : '–'}</span>
       <span class="grow">{m.title}</span>
       {m.by && m.by !== settings.me && <i class="dot" style={{ background: PERSONS[m.by].color }} title={`von ${PERSONS[m.by].name}`} />}
       {!readOnly && (
         <>
+          {inPool && <button class="x-btn" onClick={(e) => { e.stopPropagation(); haptic(); setMealDate(m.id, t0); }} aria-label="auf heute legen" title="Auf heute legen"><Ic n="today" size={16} /></button>}
           <button class={`x-btn ${swapId === m.id ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); setSwapId(swapId === m.id ? null : m.id); }} aria-label="tauschen" title="Tauschen mit …"><Ic n="swap" size={16} /></button>
           <button class="x-btn" onClick={(e) => { e.stopPropagation(); deleteMeal(m.id); }} aria-label="löschen"><Ic n="x" size={16} /></button>
         </>
@@ -124,8 +133,14 @@ export function Meals() {
       </section>
 
       <h3 class="section">Pool ({pool.length})</h3>
+      {!readOnly && (
+        <form class="shop-add meal-add" onSubmit={submitPoolInline}>
+          <input type="text" placeholder="Direkt in den Pool …" value={poolText} onInput={(e) => setPoolText((e.target as HTMLInputElement).value)} enterkeyhint="done" autocomplete="off" aria-label="Mahlzeit direkt in den Pool" />
+          <button class="btn primary" type="submit" disabled={!poolText.trim()} aria-label="in den Pool" title="In den Pool"><Ic n="pool" size={20} /></button>
+        </form>
+      )}
       <section class="card shop-list">
-        {pool.length === 0 && <div class="empty">Der Pool ist leer.<br /><span class="muted">Nicht bestätigte Mahlzeiten wandern nach dem Tag automatisch hierher – neueste zuerst. Oben auch direkt eintragen (Kisten-Symbol).</span></div>}
+        {pool.length === 0 && <div class="empty">Der Pool ist leer.<br /><span class="muted">Nicht bestätigte Mahlzeiten wandern nach dem Tag automatisch hierher – neueste zuerst. Oben oder hier direkt eintragen.</span></div>}
         {pool.map((m) => <Row key={m.id} m={m} inPool />)}
       </section>
 
