@@ -5,7 +5,7 @@ import { PARENTS, PERSONS, type Item } from '../core/types';
 import { isDueSoon } from '../core/recur';
 import { mealOn } from '../core/meals';
 import { Fragment } from 'preact';
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
 import { describeChange, verbOf } from '../core/describe';
@@ -67,6 +67,17 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
     }
   };
   const [pop, setPop] = useState<null | 'attn' | 'asks' | 'partner'>(null);
+  // Info-Chips per Swipe wegwischen: gemerkt pro Typ mit damaliger Zahl; bei mehr Inhalt kommen sie wieder
+  const [chipOff, setChipOff] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('fp.chipOff') ?? '{}') as Record<string, number>; } catch { return {}; }
+  });
+  const chipDrag = useRef(0);
+  const showChip = (type: string, n: number) => n > (chipOff[type] ?? 0);
+  const dismissChip = (type: string, n: number) => {
+    const next = { ...chipOff, [type]: n };
+    setChipOff(next);
+    try { localStorage.setItem('fp.chipOff', JSON.stringify(next)); } catch { /* egal */ }
+  };
   const { cal, settings, items, readOnly } = useStore();
   const t = today();
   const d = cal.day(t);
@@ -119,20 +130,23 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       <div class="home-feed">
 
       {/* Status-Chips: Symbol + Zahl – Klick öffnet Pop-up mit den Details */}
-      {(attnN > 0 || askN > 0 || recent.length > 0) && (
+      {(showChip('attn', attnN) || showChip('asks', askN) || showChip('partner', recent.length)) && (
         <div class="home-chips">
-          {attnN > 0 && (
-            <button class={`chip-tile ${gap || overdue > 0 ? 'bad' : ''}`} onClick={() => setPop('attn')}>
+          {showChip('attn', attnN) && (
+            <button class={`chip-tile ${gap || overdue > 0 ? 'bad' : ''}`} onClick={() => setPop('attn')} title="Klick = Details · seitlich wischen = ausblenden"
+              onPointerDown={(e) => { chipDrag.current = e.clientX; }} onPointerUp={(e) => { if (Math.abs(e.clientX - chipDrag.current) > 50) dismissChip('attn', attnN); }}>
               <Ic n="warn" size={20} /><b>{attnN}</b><small>Achtung</small>
             </button>
           )}
-          {askN > 0 && (
-            <button class="chip-tile" onClick={() => setPop('asks')}>
+          {showChip('asks', askN) && (
+            <button class="chip-tile" onClick={() => setPop('asks')} title="Klick = Details · seitlich wischen = ausblenden"
+              onPointerDown={(e) => { chipDrag.current = e.clientX; }} onPointerUp={(e) => { if (Math.abs(e.clientX - chipDrag.current) > 50) dismissChip('asks', askN); }}>
               <Ic n="send" size={20} /><b>{askN}</b><small>Anfragen</small>
             </button>
           )}
-          {recent.length > 0 && (
-            <button class="chip-tile" onClick={() => setPop('partner')}>
+          {showChip('partner', recent.length) && (
+            <button class="chip-tile" onClick={() => setPop('partner')} title="Klick = Details · seitlich wischen = ausblenden"
+              onPointerDown={(e) => { chipDrag.current = e.clientX; }} onPointerUp={(e) => { if (Math.abs(e.clientX - chipDrag.current) > 50) dismissChip('partner', recent.length); }}>
               <Ic n="bell" size={20} /><b>{recent.length}</b><small>Neu</small>
             </button>
           )}
@@ -194,11 +208,11 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
                       const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p)).length : 0;
                       const tks = L.tasks ? dd.tasks.filter((x) => !x.done && x.owner === p).length : 0;
                       return (
-                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)}`} onClick={() => openDay(d)}>
-                          <span class="q"><StatusIc s={dd.parents[p].status} size={12} /></span>
-                          <span class="q">{evs > 0 && <><Ic n="addcal" size={9} />{evs}</>}</span>
-                          <span class="q">{tks > 0 && <><Ic n="tasks" size={9} />{tks}</>}</span>
-                          <span class="q">{dd.needs.length > 0 ? <Ic n="alert" size={10} class="late" /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : null}</span>
+                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – Status · Termine · Aufgaben · Betreuung`} onClick={() => openDay(d)}>
+                          <span class="q" title="Status"><StatusIc s={dd.parents[p].status} size={12} /></span>
+                          <span class="q" title="Termine"><Ic n="addcal" size={9} />{evs}</span>
+                          <span class="q" title="Aufgaben"><Ic n="tasks" size={9} />{tks}</span>
+                          <span class="q" title="Betreuung">{dd.needs.length > 0 ? <Ic n="alert" size={10} class="late" /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : <Ic n="check" size={9} />}</span>
                         </button>
                       );
                     })}
@@ -207,7 +221,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
               </div>
             );
           })()}
-          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Felder: Status, Termine, Aufgaben, Betreuung · Tag antippen = Details</div>
+          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Felder (Status, Termine, Aufgaben, Betreuung) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
         </section>
       )}
       </div>

@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { h, render } from 'preact';
-import { addDays, today } from './core/dates';
+import { addDays, dow, today, WD } from './core/dates';
 
 const click = (el: Element) => void el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 const setInput = (el: HTMLInputElement, v: string) => {
@@ -77,5 +77,37 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     await tick();
     expect(document.querySelector('.today-card')?.textContent).toContain('Nudeln');
     expect(document.body.textContent).toContain('Demnächst');
+
+    // Demnächst-Streifen: 2 Zeilen (S/B), 7 Tage ab übermorgen, je Zelle genau 4 Felder
+    const cells = [...document.querySelectorAll('.strip2 .cell')];
+    expect(cells.length).toBe(14); // 2 Personen × 7 Tage
+    expect(document.querySelectorAll('.strip2 .who-l').length).toBe(2);
+    expect(cells.every((c) => c.querySelectorAll('.q').length === 4)).toBe(true); // je Tag 4 Elemente
+    const t2 = addDays(today(), 2);
+    const heads = [...document.querySelectorAll('.strip2 .h')].map((h) => h.textContent?.trim());
+    expect(heads[1]).toBe(`${WD[dow(t2)]} ${t2.slice(8)}`); // beginnt übermorgen, nicht heute/morgen
+
+    // Termin für Sebastian übermorgen → im Streifen als Zahl sichtbar
+    const { saveItem } = await import('./store');
+    saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
+    await tick(60);
+    const cellWithEv = cells.find((c) => c.querySelector('.q:nth-child(2)')?.textContent?.trim() === '1');
+    expect(cellWithEv, 'Termin-Zahl im Streifen fehlt').toBeTruthy();
+
+    // Info-Chip „Neu vom Partner“ erscheint und lässt sich per Swipe wegwischen (dann dauerhaft weg)
+    // (saveItem setzt by = me -> kurz auf Betty stellen, damit der Eintrag "vom Partner" ist)
+    const { saveItem: si, updateSettings } = await import('./store');
+    updateSettings({ me: 'betty' });
+    const now = Date.now();
+    si({ id: 'e2e2', kind: 'event', title: 'E2E-Partner', start: t2, end: t2, persons: [], created: now } as never);
+    await tick(60);
+    const chip = () => [...document.querySelectorAll('.chip-tile')].find((c) => c.textContent?.includes('Neu'));
+    expect(chip(), 'Chip „Neu“ fehlt').toBeTruthy();
+    const el = chip()!;
+    el.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 300 }));
+    el.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 120 })); // Swipe nach links
+    await tick();
+    expect(chip(), 'Chip wurde nicht weggewischt').toBeUndefined();
+    expect(JSON.parse(localStorage.getItem('fp.chipOff') ?? '{}').partner).toBeGreaterThan(0); // Zahl gemerkt
   });
 });
