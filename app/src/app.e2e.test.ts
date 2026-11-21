@@ -60,6 +60,16 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     click(snack!);
     await tick();
     expect(document.querySelector('.snack')).toBeNull();
+    // zusätzlich per Swipe schließbar (Timer bleibt parallel aktiv)
+    const { withUndo } = await import('./store');
+    withUndo('E2E-Test', () => {});
+    await tick();
+    const snack2 = document.querySelector('.snack');
+    expect(snack2, 'Snackbar nach withUndo fehlt').toBeTruthy();
+    snack2!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 300 }));
+    snack2!.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 100 }));
+    await tick();
+    expect(document.querySelector('.snack')).toBeNull();
 
     // Direkt in den Pool (Inline-Formular im Pool-Block)
     const poolForm = [...document.querySelectorAll('.meal-add')].find((f) => (f.querySelector('input[type="text"]') as HTMLInputElement).placeholder.includes('Pool')) as HTMLFormElement;

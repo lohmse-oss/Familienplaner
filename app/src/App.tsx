@@ -63,6 +63,7 @@ export function App() {
   const [focusShop, setFocusShop] = useState(0);
   const [newList, setNewList] = useState(0); // Signal: in Checklisten „Neue Liste“ öffnen
   const [pull, setPull] = useState(0);
+  const snackDrag = useRef(0);
   const [refreshing, setRefreshing] = useState(false);
   const calView = settings.calView;
   const close = () => setSheet(null);
@@ -322,7 +323,9 @@ export function App() {
       )}
 
       {undo && (
-        <div class={`snack ${undo.detail ? 'confirm' : ''}`} key={undo.id} role="status" onClick={dismissUndo} title="Antippen = schließen">
+        <div class={`snack ${undo.detail ? 'confirm' : ''}`} key={undo.id} role="status" onClick={dismissUndo} title="Antippen/Wischen = schließen"
+          onPointerDown={(e) => { snackDrag.current = e.clientX; }}
+          onPointerUp={(e) => { if (Math.abs(e.clientX - snackDrag.current) > 50) dismissUndo(); }}>
           {undo.detail ? (
             <span class="snack-body">
               <b><Ic n="check" size={16} sw={3} /> {undo.label}</b>
