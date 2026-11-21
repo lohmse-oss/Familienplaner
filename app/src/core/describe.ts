@@ -48,6 +48,9 @@ export function describeChange(it: Item): { verb: Verb; text: string } | null {
     case 'birthday':
       text = `Geburtstag: ${t || '?'}, ${fmtShort(it.start)}`;
       break;
+    case 'meal':
+      text = `Mahlzeit: ${t || '?'}, ${when}${it.pool ? ' (Pool)' : ''}${it.done ? ' – gegessen' : ''}`;
+      break;
     default:
       return null;
   }
