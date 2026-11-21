@@ -4,7 +4,7 @@
  * Tab öffnen → Mahlzeit eintragen → in Übersicht sichtbar → bestätigen → Erledigt →
  * direkt in den Pool → Pool-Eintrag anklicken (Sheet mit nächstem freien Tag, nicht heute) → Start zeigt Mahlzeit.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { h, render } from 'preact';
 import { addDays, dow, today, WD } from './core/dates';
 
@@ -140,5 +140,26 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     await tick();
     expect(chip(), 'Chip wurde nicht weggewischt').toBeUndefined();
     expect(JSON.parse(localStorage.getItem('fp.chipOff') ?? '{}').partner).toBeGreaterThan(0); // Zahl gemerkt
+  });
+
+  it('zeigt sonntags Briefing UND Demnächst-Streifen', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-22T12:00:00')); // Sonntag
+    try {
+      document.body.innerHTML = ''; // alte App-Instanz aus dem ersten Test entfernen
+      localStorage.clear();
+      const { App } = await import('./App');
+      const root = document.createElement('div');
+      document.body.appendChild(root);
+      render(h(App, {}), root);
+      await vi.advanceTimersByTimeAsync(100);
+      const txt = document.body.textContent ?? '';
+      expect(txt).toContain('Briefing'); // Sonntags-Briefing
+      expect(txt).toContain('Demnächst'); // Streifen bleibt sichtbar
+      expect(document.querySelector('.strip2')).toBeTruthy();
+      expect(document.querySelectorAll('.strip2 .cell').length).toBe(14); // 2 Personen x 7 Tage
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
