@@ -106,6 +106,9 @@ export function Meals() {
             const m = mealOn(items, d);
             return (
               <div key={d} class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''}`} onClick={() => (m ? setEdit(m) : !readOnly && setDate(d))}>
+                {m && !m.done && m.start <= t0 && !readOnly && (
+                  <button class="check-btn" onClick={(e) => { e.stopPropagation(); haptic('success'); confirmMeal(m.id); }} aria-label="als gegessen bestätigen" />
+                )}
                 <span class="meal-date">{fmtDay(d)}</span>
                 <span class="grow">{m ? m.title : <span class="muted">nicht geplant</span>}</span>
                 {m?.done && <Ic n="check" size={16} class="muted" />}
