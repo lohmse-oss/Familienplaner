@@ -17,6 +17,7 @@ import { parseIcs } from './ics';
 import { planPresence } from './presence';
 import { buildNotices } from './notify';
 import { budget, vacationReport } from './report';
+import { doneMeals, mealOn, overdueMeals, plannedMeals, poolMeals, swapMeals } from './meals';
 import type { HolidayData, Item, PersonId } from './types';
 
 const data = hd as HolidayData;
@@ -691,6 +692,56 @@ describe('Fristen mit Vorlauf (Ablaufdaten)', () => {
     expect(n[0].body).toBe('Personalausweis Betty: läuft am 15.06.2031 ab – jetzt kümmern');
   });
   it('Beschreibung', () => {
-    expect(describeChange(ausweis)!.text).toBe('Frist: Personalausweis Betty, läuft ab So 15.06.2031, Erinnerung 3 Monate vorher');
+    expect(describeChange(ausweis)!.text).toBe('Frist: Personalausweis Betty, l\u00e4uft ab So 15.06.2031, Erinnerung 3 Monate vorher');
+  });
+});
+
+describe('Mahlzeiten (fortlaufende Liste, Pool, Tauschen)', () => {
+  const m = (id: string, start: string, extra: Partial<Item> = {}) => item({ id, kind: 'meal', title: `Essen ${id}`, start, ...extra });
+  it('Geplant/Pool/Erledigt getrennt; Pool zeitlich absteigend (neueste zuerst, alte hinten)', () => {
+    const items = [
+      m('a', '2027-07-12'),
+      m('b', '2027-07-10', { pool: true }),
+      m('c', '2027-07-14', { pool: true }),
+      m('d', '2027-07-11', { done: true }),
+      m('e', '2027-07-13', { deleted: true }),
+    ];
+    expect(plannedMeals(items).map((x) => x.id)).toEqual(['a']);
+    expect(poolMeals(items).map((x) => x.id)).toEqual(['c', 'b']);
+    expect(doneMeals(items).map((x) => x.id)).toEqual(['d']);
+    expect(mealOn(items, '2027-07-12')?.id).toBe('a');
+    expect(mealOn(items, '2027-07-10')).toBeUndefined(); // Pool-Eintrag belegt keinen Tag
+  });
+  it('Rollover: vergangene, nicht best\u00e4tigte Mahlzeiten \u2192 Pool (heute noch nicht)', () => {
+    const items = [m('a', '2027-07-10'), m('b', '2027-07-12'), m('c', '2027-07-10', { done: true }), m('d', '2027-07-09', { pool: true })];
+    expect(overdueMeals(items, '2027-07-11').map((x) => x.id)).toEqual(['a']);
+    expect(overdueMeals(items, '2027-07-12').map((x) => x.id)).toEqual(['a']); // heute selbst noch nicht
+    expect(overdueMeals(items, '2027-07-13').map((x) => x.id)).toEqual(['a', 'b']);
+  });
+  it('Tauschen Tag \u2194 Tag: die Tage tauschen', () => {
+    const [a, b] = swapMeals(m('a', '2027-07-12'), m('b', '2027-07-14'));
+    expect(a.start).toBe('2027-07-14');
+    expect(b.start).toBe('2027-07-12');
+    expect(a.pool).toBeUndefined();
+  });
+  it('Tauschen Tag \u2194 Pool: Pool-Eintrag \u00fcbernimmt den Tag, Tag-Eintrag wandert in den Pool', () => {
+    const [a, b] = swapMeals(m('a', '2027-07-12'), m('p', '2027-07-08', { pool: true }));
+    expect(a.pool).toBe(true);
+    expect(a.start).toBe('2027-07-12');
+    expect(b.pool).toBe(false);
+    expect(b.start).toBe('2027-07-12');
+  });
+  it('Tauschen Pool \u2194 Pool: unver\u00e4ndert', () => {
+    const [a, b] = swapMeals(m('p', '2027-07-08', { pool: true }), m('q', '2027-07-09', { pool: true }));
+    expect(a.pool).toBe(true);
+    expect(b.pool).toBe(true);
+    expect(a.start).toBe('2027-07-08');
+  });
+  it('Suche findet Mahlzeiten (auch Stichwort Pool), Beschreibung f\u00fcr Hinweise', () => {
+    const items = [m('a', '2027-07-12', { title: 'Spinat' })];
+    expect(search(items, 'spinat', '2027-07-11')[0].text).toContain('Mahlzeit: Spinat');
+    expect(search(items, 'pool', '2027-07-11')).toHaveLength(1);
+    expect(describeChange(m('p', '2027-07-08', { pool: true, title: 'Suppe' }))!.text).toContain('Mahlzeit: Suppe');
+    expect(describeChange(m('p', '2027-07-08', { pool: true, title: 'Suppe' }))!.text).toContain('(Pool)');
   });
 });

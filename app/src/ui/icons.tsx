@@ -2,6 +2,7 @@ import {
   Backpack, Baby, Building2, CalendarDays, CalendarPlus, CalendarRange, Cake, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, Clock, Flag, GraduationCap, Handshake, House, Info, Link2, ListChecks, Moon, Pencil, Plane, Plus, School, Settings,
   ShoppingCart, Stethoscope, Sun, Trash2, TreePalm, TriangleAlert, Undo2, User, Users, UsersRound, X, MapPin, Phone, StickyNote, ExternalLink, Bell, Menu, Rows3, Columns3, Eye, CalendarCheck, Layers, Search, RefreshCw, Ticket, Luggage, Repeat, ListTodo, FolderHeart, Lock, Send, Copy, RotateCcw,
+  UtensilsCrossed, ArrowLeftRight,
 } from 'lucide-preact';
 import type { ParentStatus } from '../core/calendar';
 
@@ -66,6 +67,8 @@ const MAP = {
   layers: Layers,
   search: Search,
   refresh: RefreshCw,
+  meal: UtensilsCrossed,
+  swap: ArrowLeftRight,
 } as const;
 
 export type IconName = keyof typeof MAP;

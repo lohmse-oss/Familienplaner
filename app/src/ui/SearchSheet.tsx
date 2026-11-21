@@ -8,7 +8,7 @@ import { Sheet } from './common';
 import { Ic, type IconName } from './icons';
 
 const KIND_ICON: Record<string, IconName> = {
-  list: 'listcheck', check: 'listcheck', fact: 'folder', presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'ticket', task: 'tasks', birthday: 'cake', shop: 'cart',
+  list: 'listcheck', check: 'listcheck', fact: 'folder', presence: 'palm', care: 'baby', cover: 'hand', event: 'addcal', info: 'ticket', task: 'tasks', birthday: 'cake', shop: 'cart', meal: 'meal',
 };
 
 const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
@@ -17,6 +17,7 @@ const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
   { label: 'Jahr', icon: 'year', tab: 'cal', view: 'year' },
   { label: 'Urlaub', icon: 'palm', tab: 'vacation' },
   { label: 'Einkauf', icon: 'cart', tab: 'shop' },
+  { label: 'Mahlzeiten', icon: 'meal', tab: 'meals' },
   { label: 'Aufgaben', icon: 'tasks', tab: 'tasks' },
   { label: 'Geburtstage', icon: 'cake', tab: 'birthdays' },
   { label: 'Checklisten', icon: 'listcheck', tab: 'lists' },
@@ -64,7 +65,7 @@ export function SearchSheet({ onClose, onDay, onGo }: { onClose: () => void; onD
 
       {q.trim() && !hits.length && !jump && <div class="empty"><Ic n="search" size={24} /><br />Nichts gefunden für „{q.trim()}“.</div>}
       {hits.map((h) => (
-        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' ? onGo('shop') : h.kind === 'list' || h.kind === 'check' ? onGo('lists') : h.kind === 'fact' ? onGo('facts') : onDay(h.date)))}>
+        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' ? onGo('shop') : h.kind === 'meal' ? onGo('meals') : h.kind === 'list' || h.kind === 'check' ? onGo('lists') : h.kind === 'fact' ? onGo('facts') : onDay(h.date)))}>
           <Ic n={KIND_ICON[h.kind] ?? 'info'} class="muted" />
           <span class="grow">{h.text}</span>
           <span class="muted small">{hitDateLabel(h)}</span>

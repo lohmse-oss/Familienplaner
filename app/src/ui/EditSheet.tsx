@@ -9,7 +9,7 @@ import { Chips, DateInput, Sheet } from './common';
 import { RangePicker } from './RangePicker';
 import { Ic, type IconName } from './icons';
 
-export const KINDS: { kind: Exclude<Kind, 'config' | 'shop' | 'list' | 'check' | 'fact'>; short: string; label: string; icon: IconName; hint: string }[] = [
+export const KINDS: { kind: Exclude<Kind, 'config' | 'shop' | 'list' | 'check' | 'fact' | 'meal'>; short: string; label: string; icon: IconName; hint: string }[] = [
   { kind: 'presence', short: 'Eintrag', label: 'Urlaub / Dienstreise / Homeoffice', icon: 'palm', hint: 'Wer ist anwesend?' },
   { kind: 'care', short: 'Betreuungsbedarf', label: 'Betreuungsbedarf', icon: 'baby', hint: 'Schließtag Kita/Schule, krank …' },
   { kind: 'event', short: 'Termin', label: 'Termin', icon: 'addcal', hint: 'Arzt, Klassenarbeit, Elternabend' },
