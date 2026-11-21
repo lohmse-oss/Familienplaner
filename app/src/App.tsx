@@ -287,12 +287,12 @@ export function App() {
       </div>
 
       <main key={tab}>
-        {tab === 'home' && <Home go={go} openDay={openDay} plan={plan} edit={edit} />}
+        {tab === 'home' && <Home go={go} openDay={openDay} edit={edit} />}
         {tab === 'cal' && (
           <>
             <CalNav />
             {(calView === 'week' || calView === 'day') && <Week weekOf={weekOf} setWeekOf={setWeekOf} openDay={openDay} edit={edit} plan={plan} add={addAt} />}
-            {calView === 'timeline' && <Timeline openDay={openDay} />}
+            {calView === 'timeline' && <Timeline openDay={openDay} plan={plan} />}
             {calView === 'year' && <Year year={year} setYear={setYear} openDay={openDay} preset={preset} />}
           </>
         )}

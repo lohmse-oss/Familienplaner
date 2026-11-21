@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { evText, type DayInfo } from '../core/calendar';
-import { addDays, dow, isoWeek, MONTHS, range, today, weekStart, WD } from '../core/dates';
+import { addDays, dow, fmt, fmtDays, fmtShort, isoWeek, MONTHS, range, today, weekStart, WD } from '../core/dates';
 import { marksOf, type Layers } from '../core/layers';
-import { ALL, PERSONS, type PersonId } from '../core/types';
+import { bridgeTips, bridgeYear } from '../core/tips';
+import { ALL, PARENTS, PERSONS, type PersonId } from '../core/types';
 import { useStore } from '../store';
 import { DateInput, STATUS_LABEL } from './common';
 import { Ic, StatusIc } from './icons';
@@ -100,8 +101,8 @@ function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
  * Verlauf: fortlaufende Tage ohne Wochenumbruch, Tabelle transponiert –
  * Tage als Zeilen, Personen als Spalten. Lädt beim Weiterscrollen automatisch weitere Tage nach.
  */
-export function Timeline({ openDay }: { openDay: (d: string) => void }) {
-  const { cal, settings } = useStore();
+export function Timeline({ openDay, plan }: { openDay: (d: string) => void; plan: (days?: string[], persons?: PersonId[]) => void }) {
+  const { cal, settings, readOnly } = useStore();
   const t = today();
   const L = settings.layers;
   const [from, setFrom] = useState(weekStart(t));
@@ -150,10 +151,39 @@ export function Timeline({ openDay }: { openDay: (d: string) => void }) {
     </div>
   );
 
+  // Brückentage-Tipps gehören in den Verlauf (Jahresplanung), nicht auf die Startseite
+  const tips = readOnly ? [] : bridgeTips(cal, t, 3);
+  const month = Number(t.slice(5, 7));
+  const py = Number(t.slice(0, 4));
+  const yearSum = month >= 10 ? { y: py + 1, ...bridgeYear(cal, py + 1) } : null;
+
   let lastMonth = '';
   return (
     <div class="page timeline">
       {bar}
+      {(tips.length > 0 || (yearSum && yearSum.count > 0)) && (
+        <section class="card">
+          <header class="card-head"><strong><Ic n="bridge" size={15} /> Brückentage-Tipps</strong></header>
+          {yearSum && yearSum.count > 0 && (
+            <div class="bridge-sum">
+              <b>{yearSum.y}:</b> {yearSum.count} Brückentage – mit <b>{fmtDays(yearSum.cost)} Urlaubstagen</b> zusammen <b>{yearSum.total} Tage frei</b>. Jetzt ist die Zeit für die Urlaubsanträge.
+            </div>
+          )}
+          {tips.map((b) => (
+            <div key={b.gapStart} class="line bridge-tip">
+              <span class="grow">
+                <b>{b.gapStart === b.gapEnd ? `${WD[dow(b.gapStart)]} ${fmt(b.gapStart)}` : `${WD[dow(b.gapStart)]} ${fmtShort(b.gapStart)}–${WD[dow(b.gapEnd)]} ${fmt(b.gapEnd)}`}</b>
+                <small>
+                  {fmtDays(b.cost)} Urlaubstag{b.cost === 1 ? '' : 'e'} → {b.total} Tage frei · {[...new Set(b.holidays)].join(', ')}
+                  {b.idaFree === b.days ? ' · Ida hat schulfrei' : ''}
+                  {b.taken.length ? ` · ${b.taken.map((p) => PERSONS[p].name).join(', ')} hat schon Urlaub` : ''}
+                </small>
+              </span>
+              {!readOnly && <button class="btn small" onClick={() => plan([b.gapStart, b.gapEnd], PARENTS.filter((p) => !b.taken.includes(p)))}>Planen</button>}
+            </div>
+          ))}
+        </section>
+      )}
       <button class="btn small wide-btn" onClick={() => { const a = addDays(from, -30); setFrom(a); }}><Ic n="up" size={14} /> Frühere Tage laden</button>
       <div class="tl-rows" style={{ '--n': persons.length } as preact.JSX.CSSProperties}>
         <div class="tl-row tl-head">

@@ -1,15 +1,14 @@
-import { addDays, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/dates';
-import { dayTag, evText, isMultiDay, needsOwner, timeOn } from '../core/calendar';
+import { addDays, diff, dow, fmt, fmtShort, range, today, WD, WD_LONG } from '../core/dates';
+import { dayTag, evText, isMultiDay, needsOwner, timeOn, type DayInfo } from '../core/calendar';
 import { nextGap } from '../core/gaps';
-import { PARENTS, PERSONS, type Item, type PersonId } from '../core/types';
-import { bridgeTips, bridgeYear } from '../core/tips';
-import { diff, fmtDays } from '../core/dates';
+import { PARENTS, PERSONS, type Item } from '../core/types';
 import { isDueSoon } from '../core/recur';
+import { countDay } from '../core/widget';
 import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
 import { describeChange, verbOf } from '../core/describe';
-import { Dot, PersonTag, Pill, STATUS_LABEL } from './common';
+import { Dot, PersonTag, Pill, Sheet, STATUS_LABEL } from './common';
 import { Ic, StatusIc, type IconName } from './icons';
 
 const ago = (ms: number) => {
@@ -30,7 +29,26 @@ const seenAsks = (): string[] => {
   }
 };
 
-export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDay: (d: string) => void; plan: (days?: string[], persons?: PersonId[]) => void; edit: (it: Item) => void }) {
+/** Einträge eines Tages (Feiertag, Betreuungsbedarf, Termine, Aufgaben, Geburtstage) – für Heute- und Morgen-Karte. */
+function DayLines({ d, date }: { d: DayInfo; date: string }) {
+  return (
+    <>
+      {d.holiday && <div class="line"><Ic n="flag" size={16} /> {d.holiday}</div>}
+      {d.needs.map((n) => <div key={n.child + n.reason} class={`line ${d.coverage === 'gap' ? 'need' : ''}`}><Dot p={n.child} />{PERSONS[n.child].name}: {n.reason}</div>)}
+      {d.events.map((e) => (
+        <div key={e.id} class="line">
+          <span class="time">{timeOn(e, date) ?? '·'}</span>
+          <span class="grow">{e.title}{dayTag(e, date) && <small class="muted"> · {dayTag(e, date)}</small>}</span>
+          {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
+        </div>
+      ))}
+      {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><Ic n="tasks" size={16} /> {x.title}</div>)}
+      {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
+    </>
+  );
+}
+
+export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d: string) => void; edit: (it: Item) => void }) {
   const [seen, setSeen] = useState(seenAsks);
   const markSeen = (key: string) => {
     const next = [...seen, key].slice(-50);
@@ -41,24 +59,25 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
       /* egal */
     }
   };
+  const [pop, setPop] = useState<null | 'attn' | 'asks' | 'partner'>(null);
   const { cal, settings, items, readOnly } = useStore();
   const t = today();
   const d = cal.day(t);
+  const tm = cal.day(addDays(t, 1));
   const gap = nextGap(cal, t, 90);
-  const py = Number(t.slice(0, 4)); // laufendes Jahr
+  const sunday = dow(t) === 6;
 
-  // Termine der nächsten 7 Tage (ohne heute)
+  // Termine/Aufgaben/Geburtstage der nächsten 7 Tage (ohne heute)
   const L = settings.layers;
-  const soon = [...range(addDays(t, 1), addDays(t, 7))]
+  const soonAll = [...range(addDays(t, 1), addDays(t, 7))]
     .flatMap((date) => {
-      const d = cal.day(date);
+      const dd = cal.day(date);
       return [
-        ...(L.events ? d.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date), e })) : []),
-        ...(L.tasks ? d.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
-        ...(L.birthdays ? d.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
+        ...(L.events ? dd.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date), e })) : []),
+        ...(L.tasks ? dd.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
+        ...(L.birthdays ? dd.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
       ];
-    })
-    .slice(0, 6);
+    });
   const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t).length;
   const unowned = [...range(t, addDays(t, 14))].reduce((n, date) => n + cal.day(date).events.filter((e) => needsOwner(e) && !e.owner).length, 0);
 
@@ -67,7 +86,7 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
   const recent = items
     .filter((i) => !i.deleted && i.by === partner && verbOf(i) === 'new' && describeChange(i) && i.updated > Date.now() - 7 * 864e5)
     .sort((a, b) => b.updated - a.updated)
-    .slice(0, 5);
+    .slice(0, 10);
 
   // Übernahme-Anfragen: an mich (beantworten) und Antworten auf meine (zur Kenntnis, 7 Tage)
   const asks = cal.items.filter((i) => i.ask && (i.kind === 'event' || i.kind === 'task'));
@@ -75,12 +94,10 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
   const myAsks = readOnly ? [] : asks.filter((i) => i.ask!.from === settings.me && (i.ask!.state === 'open' || (i.ask!.at > Date.now() - 7 * 864e5 && !seen.includes(`${i.id}:${i.ask!.at}`))));
   const askWhen = (i: Item) => `${WD[dow(i.start)]} ${fmtShort(i.start)}${i.time ? `, ${i.time}` : ''}`;
 
-  // Brückentage-Tipps (Oktober–Dezember zusätzlich die Bilanz fürs Folgejahr, wenn die Urlaubsplanung ansteht)
-  const tips = readOnly ? [] : bridgeTips(cal, t, 3);
-  const month = Number(t.slice(5, 7));
-  const yearSum = month >= 10 ? { y: py + 1, ...bridgeYear(cal, py + 1) } : null;
-
   const fristen = cal.items.filter((i) => isDueSoon(i, t)).sort((a, b) => a.start.localeCompare(b.start));
+
+  const attnN = (gap ? 1 : 0) + fristen.length + (overdue > 0 ? 1 : 0) + (unowned > 0 ? 1 : 0);
+  const askN = askMe.length + myAsks.length;
 
   return (
     <div class="page home">
@@ -94,6 +111,27 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
 
       <div class="home-feed">
 
+      {/* Status-Chips: Symbol + Zahl – Klick öffnet Pop-up mit den Details */}
+      {(attnN > 0 || askN > 0 || recent.length > 0) && (
+        <div class="home-chips">
+          {attnN > 0 && (
+            <button class={`chip-tile ${gap || overdue > 0 ? 'bad' : ''}`} onClick={() => setPop('attn')}>
+              <Ic n="warn" size={20} /><b>{attnN}</b><small>Achtung</small>
+            </button>
+          )}
+          {askN > 0 && (
+            <button class="chip-tile" onClick={() => setPop('asks')}>
+              <Ic n="send" size={20} /><b>{askN}</b><small>Anfragen</small>
+            </button>
+          )}
+          {recent.length > 0 && (
+            <button class="chip-tile" onClick={() => setPop('partner')}>
+              <Ic n="bell" size={20} /><b>{recent.length}</b><small>Neu</small>
+            </button>
+          )}
+        </div>
+      )}
+
       <section class="card today-card" onClick={() => openDay(t)}>
         <header class="card-head"><strong>Heute</strong><Pill coverage={d.coverage} /></header>
         <div class="who-row">
@@ -103,27 +141,86 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
             </span>
           ))}
         </div>
-        {d.holiday && <div class="line"><Ic n="flag" size={16} /> {d.holiday}</div>}
-        {d.needs.map((n) => <div key={n.child + n.reason} class={`line ${d.coverage === 'gap' ? 'need' : ''}`}><Dot p={n.child} />{PERSONS[n.child].name}: {n.reason}</div>)}
-        {d.events.map((e) => (
-          <div key={e.id} class="line">
-            <span class="time">{timeOn(e, t) ?? '·'}</span>
-            <span class="grow">{e.title}{dayTag(e, t) && <small class="muted"> · {dayTag(e, t)}</small>}</span>
-            {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
-          </div>
-        ))}
-        {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><Ic n="tasks" size={16} /> {x.title}</div>)}
-        {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
+        <DayLines d={d} date={t} />
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>
 
-      {askMe.length + myAsks.length > 0 && (
-        <section class="card ask-card">
-          <header class="card-head"><strong><Ic n="send" size={15} /> Übernahme-Anfragen</strong></header>
+      <section class="card today-card" onClick={() => openDay(addDays(t, 1))}>
+        <header class="card-head"><strong>Morgen</strong><span class="muted small">{WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</span><Pill coverage={tm.coverage} /></header>
+        <DayLines d={tm} date={addDays(t, 1)} />
+        {!tm.holiday && !tm.needs.length && !tm.events.length && !tm.birthdays.length && <div class="line muted">Morgen nichts Besonderes.</div>}
+      </section>
+
+      {sunday ? (
+        <section class="card">
+          <header class="card-head"><strong><Ic n="week" size={15} /> Briefing: Woche ab {WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</strong></header>
+          {gap && (
+            <div class="line link-row need" onClick={() => go('vacation')}>
+              <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
+            </div>
+          )}
+          {soonAll.length === 0 && !gap && <div class="line muted">Nächste Woche steht noch nichts an.</div>}
+          {soonAll.map(({ date, key, icon, text, e }) => (
+            <div key={key + date} class="line link-row" onClick={() => openDay(date)}>
+              <span class="time wide">{WD[dow(date)]} {fmtShort(date)}</span>
+              <Ic n={icon} size={15} class="muted" />
+              <span class="grow">{text}</span>
+              {e.owner ? <PersonTag p={e.owner} /> : e.kind === 'event' && needsOwner(e) ? <span class="open">offen</span> : null}
+            </div>
+          ))}
+        </section>
+      ) : (
+        <section class="card">
+          <header class="card-head"><strong>Demnächst</strong>{overdue > 0 && <span class="pill pill-gap">{overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span>}</header>
+          <div class="strip">
+            {[...range(addDays(t, 1), addDays(t, 7))].map((date) => {
+              const dd = cal.day(date);
+              const n = countDay(dd);
+              return (
+                <button key={date} class="strip-cell" title={`${WD_LONG[dow(date)]}, ${fmt(date)}`} onClick={() => openDay(date)}>
+                  <small>{WD[dow(date)]} {date.slice(8)}</small>
+                  <b>{n > 0 ? n : '·'}</b>
+                  {dd.coverage === 'gap' && <i class="lamp lamp-gap" />}
+                </button>
+              );
+            })}
+          </div>
+          <div class="hint">Tag antippen = Details des Tages</div>
+        </section>
+      )}
+      </div>
+
+      {pop === 'attn' && (
+        <Sheet title="Achtung" onClose={() => setPop(null)}>
+          {gap && (
+            <div class="line link-row need" onClick={() => { setPop(null); go('vacation'); }}>
+              <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
+            </div>
+          )}
+          {fristen.map((f) => (
+            <div key={f.id} class="line link-row" onClick={() => { setPop(null); edit(f); }}>
+              <span class="grow"><Ic n="bell" size={15} /> {f.title}: läuft am {fmt(f.start)} ab – jetzt kümmern <span class="muted">(noch {diff(t, f.start)} Tage)</span></span><Ic n="right" size={16} />
+            </div>
+          ))}
+          {overdue > 0 && (
+            <div class="line link-row need" onClick={() => { setPop(null); go('tasks'); }}>
+              <span class="grow"><Ic n="tasks" size={15} /> {overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span><Ic n="right" size={16} />
+            </div>
+          )}
+          {unowned > 0 && (
+            <div class="line link-row" onClick={() => { setPop(null); go('cal'); }}>
+              <span class="grow"><Ic n="warn" size={15} /> {unowned} Termin{unowned === 1 ? '' : 'e'} in den nächsten 14 Tagen ohne Zuständigen</span><Ic n="right" size={16} />
+            </div>
+          )}
+        </Sheet>
+      )}
+
+      {pop === 'asks' && (
+        <Sheet title="Übernahme-Anfragen" onClose={() => setPop(null)}>
           {askMe.map((i) => (
             <div key={i.id} class="ask">
-              <div class="link-row" onClick={() => edit(i)}>
-                <b>{PERSONS[i.ask!.from].name} fragt: Übernimmst du?</b>
+              <div class="link-row" onClick={() => { setPop(null); edit(i); }}>
+                <b>{PERSONS[i.ask!.from].name} fragt: übernimmst du?</b>
                 <div>{i.title} <span class="muted">· {askWhen(i)}</span></div>
               </div>
               <div class="actions">
@@ -138,7 +235,7 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
             return (
               <div key={i.id} class={`line ask-reply ${a.state}`}>
                 <Ic n={a.state === 'accepted' ? 'check' : a.state === 'declined' ? 'x' : 'clock'} size={15} />
-                <span class="grow link-row" onClick={() => edit(i)}>
+                <span class="grow link-row" onClick={() => { setPop(null); edit(i); }}>
                   {a.state === 'open' ? `Warte auf ${who}: ` : a.state === 'accepted' ? `${who} übernimmt: ` : `${who} kann nicht: `}
                   {i.title} <span class="muted">· {askWhen(i)}</span>
                 </span>
@@ -146,86 +243,19 @@ export function Home({ go, openDay, plan, edit }: { go: (t: Tab) => void; openDa
               </div>
             );
           })}
-        </section>
+        </Sheet>
       )}
 
-      {(gap || unowned > 0 || overdue > 0 || fristen.length > 0) && (
-        <section class="card attn">
-          <header class="card-head"><strong>Achtung</strong></header>
-          {gap && (
-            <div class="line link-row need" onClick={() => go('vacation')}>
-              <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
-            </div>
-          )}
-          {fristen.slice(0, 3).map((f) => (
-            <div key={f.id} class="line link-row" onClick={() => edit(f)}>
-              <span class="grow"><Ic n="bell" size={15} /> {f.title}: läuft am {fmt(f.start)} ab – jetzt kümmern <span class="muted">(noch {diff(t, f.start)} Tage)</span></span><Ic n="right" size={16} />
-            </div>
-          ))}
-          {fristen.length > 3 && <div class="line link-row" onClick={() => go('tasks')}><span class="grow muted">+{fristen.length - 3} weitere Fristen</span><Ic n="right" size={16} /></div>}
-          {overdue > 0 && (
-            <div class="line link-row need" onClick={() => go('tasks')}>
-              <span class="grow"><Ic n="tasks" size={15} /> {overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span><Ic n="right" size={16} />
-            </div>
-          )}
-          {unowned > 0 && (
-            <div class="line link-row" onClick={() => go('cal')}>
-              <span class="grow"><Ic n="warn" size={15} /> {unowned} Termin{unowned === 1 ? '' : 'e'} in den nächsten 14 Tagen ohne Zuständigen</span><Ic n="right" size={16} />
-            </div>
-          )}
-        </section>
-      )}
-
-      {!readOnly && recent.length > 0 && (
-        <section class="card">
-          <header class="card-head"><strong><Ic n="bell" size={15} /> Neu von {PERSONS[partner].name}</strong></header>
+      {pop === 'partner' && (
+        <Sheet title={`Neu von ${PERSONS[partner].name}`} onClose={() => setPop(null)}>
           {recent.map((i) => (
-            <div key={i.id} class="line link-row" onClick={() => openDay(i.start)}>
+            <div key={i.id} class="line link-row" onClick={() => { setPop(null); openDay(i.start); }}>
               <span class="grow">{describeChange(i)!.text}</span>
               <span class="muted small">{ago(i.updated)}</span>
             </div>
           ))}
-        </section>
+        </Sheet>
       )}
-
-      {soon.length > 0 && (
-        <section class="card">
-          <header class="card-head"><strong>Demnächst</strong>{overdue > 0 && <span class="pill pill-gap">{overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span>}</header>
-          {soon.map(({ date, key, icon, text, e }) => (
-            <div key={key + date} class="line link-row" onClick={() => openDay(date)}>
-              <span class="time wide">{WD[dow(date)]} {fmtShort(date)}</span>
-              <Ic n={icon} size={15} class="muted" />
-              <span class="grow">{text}</span>
-              {e.owner ? <PersonTag p={e.owner} /> : e.kind === 'event' && needsOwner(e) ? <span class="open">offen</span> : null}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {(tips.length > 0 || (yearSum && yearSum.count > 0)) && (
-        <section class="card">
-          <header class="card-head"><strong><Ic n="bridge" size={15} /> Brückentage-Tipps</strong><button class="link small" onClick={() => go('vacation')}>alle</button></header>
-          {yearSum && yearSum.count > 0 && (
-            <div class="bridge-sum">
-              <b>{yearSum.y}:</b> {yearSum.count} Brückentage – mit <b>{fmtDays(yearSum.cost)} Urlaubstagen</b> zusammen <b>{yearSum.total} Tage frei</b>. Jetzt ist die Zeit für die Urlaubsanträge.
-            </div>
-          )}
-          {tips.map((b) => (
-            <div key={b.gapStart} class="line bridge-tip">
-              <span class="grow">
-                <b>{b.gapStart === b.gapEnd ? `${WD[dow(b.gapStart)]} ${fmt(b.gapStart)}` : `${WD[dow(b.gapStart)]} ${fmtShort(b.gapStart)}–${WD[dow(b.gapEnd)]} ${fmt(b.gapEnd)}`}</b>
-                <small>
-                  {fmtDays(b.cost)} Urlaubstag{b.cost === 1 ? '' : 'e'} → {b.total} Tage frei · {[...new Set(b.holidays)].join(', ')}
-                  {b.idaFree === b.days ? ' · Ida hat schulfrei' : ''}
-                  {b.taken.length ? ` · ${b.taken.map((p) => PERSONS[p].name).join(', ')} hat schon Urlaub` : ''}
-                </small>
-              </span>
-              <button class="btn small" onClick={() => plan([b.gapStart, b.gapEnd], PARENTS.filter((p) => !b.taken.includes(p)))}>Planen</button>
-            </div>
-          ))}
-        </section>
-      )}
-      </div>
     </div>
   );
 }
