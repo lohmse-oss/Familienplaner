@@ -355,6 +355,14 @@ export function addMeal(date: string, title: string) {
   });
 }
 
+/** Mahlzeit direkt in den Pool eintragen (ohne Tag; Pool-Sortierung läuft über start = heute). */
+export function addMealToPool(title: string) {
+  const t = title.trim();
+  if (!t) return;
+  const d = today();
+  saveItem({ id: newId(), kind: 'meal', title: t, persons: [], start: d, end: d, pool: true, ts: Date.now() });
+}
+
 /** Mahlzeit als gegessen bestätigen (bleibt als erledigt in der Liste). */
 export function confirmMeal(id: string) {
   const m = items.find((i) => i.id === id);
