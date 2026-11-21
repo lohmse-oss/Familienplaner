@@ -208,11 +208,12 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
                       const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p)).length : 0;
                       const tks = L.tasks ? dd.tasks.filter((x) => !x.done && x.owner === p).length : 0;
                       return (
-                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – Status · Termine · Aufgaben · Betreuung`} onClick={() => openDay(d)}>
-                          <span class="q" title="Status"><StatusIc s={dd.parents[p].status} size={12} /></span>
-                          <span class="q" title="Termine"><Ic n="addcal" size={9} />{evs}</span>
-                          <span class="q" title="Aufgaben"><Ic n="tasks" size={9} />{tks}</span>
-                          <span class="q" title="Betreuung">{dd.needs.length > 0 ? <Ic n="alert" size={10} class="late" /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : <Ic n="check" size={9} />}</span>
+                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – nur belegte Felder`} onClick={() => openDay(d)}>
+                          {/* nur Felder mit Inhalt; Farben wie die 4 Punkte des App-Icons */}
+                          {dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' && <span class="q" style={{ color: '#7FB7D6' }} title="Status"><StatusIc s={dd.parents[p].status} size={12} /></span>}
+                          {evs > 0 && <span class="q" style={{ color: '#F06CA0' }} title="Termine"><Ic n="addcal" size={9} />{evs}</span>}
+                          {tks > 0 && <span class="q" style={{ color: '#A98AE0' }} title="Aufgaben"><Ic n="tasks" size={9} />{tks}</span>}
+                          {(dd.needs.length > 0 || dd.coverage !== 'none') && <span class="q" style={{ color: '#FF8A5C' }} title="Betreuung">{dd.needs.length > 0 ? <Ic n="alert" size={10} /> : <i class={`lamp lamp-${dd.coverage}`} />}</span>}
                         </button>
                       );
                     })}
@@ -221,7 +222,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
               </div>
             );
           })()}
-          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Felder (Status, Termine, Aufgaben, Betreuung) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
+          <div class="hint">S/B = Sebastian/Betty · je Tag nur belegte Felder in Icon-Farben (Status, Termine, Aufgaben, Betreuung) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
         </section>
       )}
       </div>

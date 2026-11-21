@@ -44,6 +44,9 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     await tick();
     expect(document.body.textContent).toContain('Nudeln');
     expect(document.querySelector('.meal-row.today')?.textContent).toContain('Nudeln');
+    // „+1 Tag“ nur wenn alle Tage im Bereich belegt (hier nur heute) – und kein „+7 Tage“ mehr
+    expect(document.body.textContent).not.toContain('+1 Tag');
+    expect(document.body.textContent).not.toContain('+7 Tage');
 
     // Bestätigen (Haken in der Heute-Zeile) → wandert in „Erledigt“
     const check = document.querySelector('.meal-row.today .check-btn') as HTMLButtonElement;
@@ -82,7 +85,7 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     const cells = [...document.querySelectorAll('.strip2 .cell')];
     expect(cells.length).toBe(14); // 2 Personen × 7 Tage
     expect(document.querySelectorAll('.strip2 .who-l').length).toBe(2);
-    expect(cells.every((c) => c.querySelectorAll('.q').length === 4)).toBe(true); // je Tag 4 Elemente
+    expect(cells.every((c) => c.querySelectorAll('.q').length <= 4)).toBe(true); // max. 4 Felder, nur belegte
     const t2 = addDays(today(), 2);
     const heads = [...document.querySelectorAll('.strip2 .h')].map((h) => h.textContent?.trim());
     expect(heads[1]).toBe(`${WD[dow(t2)]} ${t2.slice(8)}`); // beginnt übermorgen, nicht heute/morgen
@@ -91,8 +94,9 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     const { saveItem } = await import('./store');
     saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
     await tick(60);
-    const cellWithEv = cells.find((c) => c.querySelector('.q:nth-child(2)')?.textContent?.trim() === '1');
-    expect(cellWithEv, 'Termin-Zahl im Streifen fehlt').toBeTruthy();
+    const q1 = [...document.querySelectorAll('.strip2 .cell .q')].find((q) => q.textContent?.trim() === '1');
+    expect(q1, 'Termin-Zahl im Streifen fehlt').toBeTruthy();
+    expect((q1 as HTMLElement).style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0) fürs Termin-Feld
 
     // Info-Chip „Neu vom Partner“ erscheint und lässt sich per Swipe wegwischen (dann dauerhaft weg)
     // (saveItem setzt by = me -> kurz auf Betty stellen, damit der Eintrag "vom Partner" ist)

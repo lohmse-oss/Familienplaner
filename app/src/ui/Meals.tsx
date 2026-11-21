@@ -27,6 +27,8 @@ export function Meals() {
   const pool = poolMeals(items);
   const done = doneMeals(items).filter((m) => m.start >= addDays(t0, -7)); // letzte Woche
   const occupied = mealOn(items, date);
+  const ovDays = [...range(t0, addDays(t0, daysN - 1))];
+  const allBooked = ovDays.every((d) => !!mealOn(items, d)); // „+1 Tag“ nur anzeigen, wenn alle Tage belegt
 
   // Solange die Liste offen ist, schneller abgleichen (beide planen parallel)
   useEffect(() => {
@@ -102,7 +104,7 @@ export function Meals() {
       </button>
       {showOv && (
         <section class="card shop-list">
-          {[...range(t0, addDays(t0, daysN - 1))].map((d) => {
+          {ovDays.map((d) => {
             const m = mealOn(items, d);
             return (
               <div key={d} class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''}`} onClick={() => (m ? setEdit(m) : !readOnly && setDate(d))}>
@@ -117,8 +119,7 @@ export function Meals() {
             );
           })}
           <div class="actions wrap">
-            {daysN < 60 && <button class="btn small" onClick={() => setDaysN(daysN + 7)}>+7 Tage</button>}
-            {daysN > 7 && <button class="btn small" onClick={() => setDaysN(Math.max(7, daysN - 7))}>−7 Tage</button>}
+            {allBooked && daysN < 60 && <button class="btn small" onClick={() => setDaysN(daysN + 1)}>+1 Tag</button>}
           </div>
         </section>
       )}
