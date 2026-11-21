@@ -85,18 +85,20 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     const cells = [...document.querySelectorAll('.strip2 .cell')];
     expect(cells.length).toBe(14); // 2 Personen × 7 Tage
     expect(document.querySelectorAll('.strip2 .who-l').length).toBe(2);
-    expect(cells.every((c) => c.querySelectorAll('.q').length <= 4)).toBe(true); // max. 4 Felder, nur belegte
+    expect(cells.every((c) => c.querySelectorAll('.q').length === 4)).toBe(true); // je Zelle 4 Segmente (2x2) wie das App-Icon
     const t2 = addDays(today(), 2);
     const heads = [...document.querySelectorAll('.strip2 .h')].map((h) => h.textContent?.trim());
     expect(heads[1]).toBe(`${WD[dow(t2)]} ${t2.slice(8)}`); // beginnt übermorgen, nicht heute/morgen
 
-    // Termin für Sebastian übermorgen → im Streifen als Zahl sichtbar
+    // 2 Termine für Sebastian übermorgen → Segment eingefärbt mit Zahl 2 (erst ab >1), Icon-Farbe Pink
     const { saveItem } = await import('./store');
-    saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
+    saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin 1', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
+    saveItem({ id: 'e2e1b', kind: 'event', title: 'E2E-Termin 2', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
     await tick(60);
-    const q1 = [...document.querySelectorAll('.strip2 .cell .q')].find((q) => q.textContent?.trim() === '1');
-    expect(q1, 'Termin-Zahl im Streifen fehlt').toBeTruthy();
-    expect((q1 as HTMLElement).style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0) fürs Termin-Feld
+    const q2 = [...document.querySelectorAll('.strip2 .cell .q')].find((q) => q.textContent?.trim() === '2');
+    expect(q2, 'Termin-Segment mit Zahl 2 fehlt (erst ab >1)').toBeTruthy();
+    expect((q2 as HTMLElement).style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0)
+    expect((q2 as HTMLElement).classList.contains('on')).toBe(true);
 
     // Info-Chip „Neu vom Partner“ erscheint und lässt sich per Swipe wegwischen (dann dauerhaft weg)
     // (saveItem setzt by = me -> kurz auf Betty stellen, damit der Eintrag "vom Partner" ist)
