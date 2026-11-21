@@ -95,13 +95,17 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     saveItem({ id: 'e2e1', kind: 'event', title: 'E2E-Termin 1', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
     saveItem({ id: 'e2e1b', kind: 'event', title: 'E2E-Termin 2', start: t2, end: t2, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
     saveItem({ id: 'e2e3', kind: 'event', title: 'E2E-Familientermin', start: t2, end: t2, persons: [], updated: 0 } as never);
+    saveItem({ id: 'e2e4', kind: 'info', title: 'E2E-Familienevent', start: t2, end: t2, persons: [], updated: 0 } as never);
     await tick(60);
     const qTexts = [...document.querySelectorAll('.strip2 .cell .q')].map((q) => q.textContent?.trim());
     expect(qTexts).toContain('3'); // S: 2 eigene + 1 Familien-Termin
     expect(qTexts).toContain('1'); // B: nur der Familien-Termin – einzelner Eintrag wird auch angezeigt
-    const qOn = [...document.querySelectorAll('.strip2 .cell .q.on')].find((q) => q.textContent?.trim() === '1') as HTMLElement;
+    const qOn = [...document.querySelectorAll('.strip2 .cell .q.on')].find((q) => q.textContent?.trim() === '1' && (q as HTMLElement).style.color === 'rgb(240, 108, 160)') as HTMLElement;
     expect(qOn, 'eingefärbtes Segment fehlt').toBeTruthy();
     expect(qOn.style.color).toBe('rgb(240, 108, 160)'); // Icon-Farbe Pink (#F06CA0)
+    // BR-Segment = Events (kind info), orange #FF8A5C
+    const qEv = [...document.querySelectorAll('.strip2 .cell .q.on')].find((q) => q.textContent?.trim() === '1' && (q as HTMLElement).style.color === 'rgb(255, 138, 92)') as HTMLElement;
+    expect(qEv, 'Event-Segment (orange) fehlt').toBeTruthy();
     // Zellen sind dunkel wie das App-Icon
     expect(document.querySelector('.strip2 .cell')!.className).toContain('cell');
 
