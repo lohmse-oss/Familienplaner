@@ -5,6 +5,10 @@ import { PARENTS, PERSONS } from '../core/types';
 import { useStore } from '../store';
 import { Ic, type IconName } from './icons';
 
+/** Überfällige Aufgaben (Zahl fürs „Mehr“-Menü). */
+export const overdueCount = (items: { kind: string; deleted?: boolean; done?: boolean; start: string }[], t0: string) =>
+  items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t0).length;
+
 /** Nächster Geburtstag ab heute (Monat/Tag). */
 function nextBirthday(list: { title?: string; start: string }[], t: string) {
   const md = t.slice(5);
@@ -26,6 +30,7 @@ export function More({ go }: { go: (t: Tab) => void }) {
   const nb = nextBirthday(bdays, t0);
   const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template).length;
   const facts = items.filter((i) => i.kind === 'fact' && !i.deleted && !(readOnly && i.private)).length;
+  const overdue = overdueCount(items, t0);
 
   const groups: { title: string; rows: { tab: Tab; icon: IconName; title: string; sub: string }[] }[] = [
     {
@@ -38,6 +43,7 @@ export function More({ go }: { go: (t: Tab) => void }) {
     {
       title: 'Organisieren',
       rows: [
+        { tab: 'tasks', icon: 'tasks', title: 'Aufgaben', sub: overdue ? `${overdue} überfällig · Fristen & wiederkehrend` : 'Fristen & wiederkehrend' },
         { tab: 'lists', icon: 'listcheck', title: 'Checklisten', sub: activeLists ? `${activeLists} aktiv · Packlisten & Vorlagen` : 'Packlisten & Vorlagen' },
         { tab: 'facts', icon: 'folder', title: 'Infomappe', sub: facts ? `${facts} Karte${facts === 1 ? '' : 'n'}` : 'Kinderarzt, Kita, Größen …' },
       ],

@@ -23,6 +23,7 @@ const KIND_WORDS: Record<Kind, string> = {
   list: 'checkliste liste vorlage packliste',
   check: 'checkliste liste',
   fact: 'infomappe info kontakt',
+  meal: 'mahlzeit essen gericht kochen pool',
 };
 
 const NO_DATE: Kind[] = ['shop', 'list', 'check', 'fact'];

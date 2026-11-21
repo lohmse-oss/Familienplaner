@@ -16,7 +16,8 @@ import { Home } from './ui/Home';
 import { Lists } from './ui/Lists';
 import { Facts, FactSheet } from './ui/Facts';
 import { Ic, type IconName } from './ui/icons';
-import { More } from './ui/More';
+import { Meals } from './ui/Meals';
+import { More, overdueCount } from './ui/More';
 import { ScrollTop } from './ui/ScrollTop';
 import { SearchSheet } from './ui/SearchSheet';
 import { Settings } from './ui/Settings';
@@ -38,9 +39,10 @@ const TITLES: Record<Tab, string> = {
   settings: 'Einstellungen',
   lists: 'Checklisten',
   facts: 'Infomappe',
+  meals: 'Mahlzeiten',
 };
 /** Wohin führt „zurück“, wenn es keinen Verlauf gibt? */
-const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'home', lists: 'more', facts: 'more' };
+const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'home', lists: 'more', facts: 'more', meals: 'home' };
 
 type Sheet =
   | null
@@ -229,9 +231,10 @@ export function App() {
   /* ---------- Zahlen an den Tabs ---------- */
   const t0 = today();
   const shopOpen = items.filter((i) => i.kind === 'shop' && !i.deleted && !i.done).length;
-  const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t0).length;
+  const overdue = overdueCount(items, t0);
+  const poolN = items.filter((i) => i.kind === 'meal' && !i.deleted && i.pool).length;
   const gapToday = cal.day(t0).coverage === 'gap' || cal.day(addDays(t0, 1)).coverage === 'gap';
-  const navActive: Tab = tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' ? 'more' : tab;
+  const navActive: Tab = tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' || tab === 'tasks' ? 'more' : tab;
   const parent = stack.length ? stack[stack.length - 1] : PARENT[tab];
 
   return (
@@ -295,6 +298,7 @@ export function App() {
         )}
         {tab === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
         {tab === 'shop' && <Shop focusSignal={focusShop} />}
+        {tab === 'meals' && <Meals />}
         {tab === 'more' && <More go={go} />}
         {tab === 'tasks' && <Tasks edit={edit} />}
         {tab === 'birthdays' && <Birthdays edit={edit} />}
@@ -333,7 +337,7 @@ export function App() {
 
       <nav class="tabs">
         <TabBtn on={navActive === 'cal'} icon="week" label="Kalender" dot={gapToday} onClick={() => go('cal')} />
-        <TabBtn on={navActive === 'tasks'} icon="tasks" label="Aufgaben" count={overdue} red onClick={() => go('tasks')} />
+        <TabBtn on={navActive === 'meals'} icon="meal" label="Mahlzeit" count={poolN} onClick={() => go('meals')} />
         <button
           class={`home-btn ${navActive === 'home' ? 'on' : ''}`}
           onClick={() => { if (!press.current.fired) go('home'); press.current.fired = false; }}
@@ -348,7 +352,7 @@ export function App() {
           <span><Ic n="home" size={26} /></span>
         </button>
         <TabBtn on={navActive === 'shop'} icon="cart" label="Einkauf" count={shopOpen} onClick={() => go('shop')} />
-        <TabBtn on={navActive === 'more'} icon="menu" label="Mehr" onClick={() => go('more')} />
+        <TabBtn on={navActive === 'more'} icon="menu" label="Mehr" count={overdue} red onClick={() => go('more')} />
       </nav>
 
       {sheet?.t === 'day' && <DaySheet date={sheet.date} onClose={close} edit={edit} add={addAt} />}

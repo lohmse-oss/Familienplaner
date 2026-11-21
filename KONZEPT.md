@@ -30,6 +30,7 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 | Aufgabe | Geschenk besorgen, Kita-Beitrag | Fälligkeit, Zuständiger, erledigt; **wiederkehrend** (wöchentlich … jährlich: Abhaken rückt die Fälligkeit weiter), Übernahme anfragen |
 | Frist (Aufgabe mit Vorlauf) | Personalausweis, Reisepass, Führerschein, TÜV, Vertrag kündigen, Garantie | Fälligkeit = Ablauf-/Stichtag, Vorlauf 2 Wochen … 1 Jahr: bis dahin „vorgemerkt“ (zählt nicht als offen), ab Vorlauf auf Startseite, in „Fristen – jetzt kümmern“ und als Benachrichtigung; Schnellwahl „+6 J.“/„+10 J.“ nach dem Erneuern |
 | Geburtstag | Oma Helga | jährlich |
+| Mahlzeit | Nudeln, Pizza … | eigener Tab unten, fortlaufende Liste je Tag (nicht im Kalender); am Tag nicht bestätigt → **Pool** (zeitlich absteigend, neueste zuerst, nach Tagesablauf automatisch); tauschbar Tag ↔ Tag und Tag ↔ Pool |
 
 ## Automatische Daten (keine Stammdatenpflege)
 * **Feiertage + Schulferien Sachsen** von [OpenHolidays API](https://www.openholidaysapi.org/) (`DE-SN`), serverseitig täglich aktualisiert und gecacht;
@@ -40,17 +41,17 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
   enthält einen Feiertag. Anzeige „x Urlaubstage → y Tage frei“, Hinweis wenn Ida ohnehin schulfrei hat, Eintragen mit einem Tap.
 
 ## Menüführung (jede Funktion hat genau einen Platz)
-* **Untere Leiste = Alltag:** **Kalender** · **Aufgaben** · **Start** (rund, Mitte; lang drücken = neuer Eintrag) · **Einkauf** · **Mehr** (auf Tablets als Seitenleiste).
+* **Untere Leiste = Alltag:** **Kalender** · **Mahlzeiten** · **Start** (rund, Mitte; lang drücken = neuer Eintrag) · **Einkauf** · **Mehr** (auf Tablets als Seitenleiste).
 * **Start** ist eine reine Tagesübersicht ohne Kacheln: Heute, Übernahme-Anfragen, Achtung (Lücken, Fristen, Überfälliges), Demnächst, Brückentage-Tipps; auf breiten Bildschirmen zweispaltig.
-* **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – Checklisten, Infomappe.
+* **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – **Aufgaben** (Fristen, wiederkehrend, Übernahme), Checklisten, Infomappe.
 * **Einstellungen** über das **Zahnrad in der Kopfzeile** (von überall): Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien · Kalender importieren · Über diese App (Version, Build, Commit).
   „synchron“/„offline“ in der Kopfzeile antippen öffnet direkt den Abschnitt Synchronisierung.
 * Die Kalenderansichten sind in **einer Gruppe** gebündelt (umschaltbar oben, mit gemeinsamem Personenfilter): **Tag · Woche · Jahr · Verlauf**.
 
 ## Schnell finden und bewegen
 * **Suche & Sprung** (Lupe in der Kopfzeile): Volltext über Termine, Aufgaben, Geburtstage, Urlaub, Betreuung und Einkauf (Titel, Notiz, Ort, Kontakt, Personen); ein Datum wie „14.7.“ springt direkt zum Tag;
-  ohne Eingabe stehen „Gehe zu“-Ziele bereit (Heute, Verlauf, Jahr, Urlaub, Einkauf, Aufgaben, Einstellungen).
-* **Zahlen an den Tabs:** Einkauf (offene Artikel), Mehr (überfällige Aufgaben, rot), Kalender (roter Punkt bei ungeklärter Betreuung heute/morgen).
+  ohne Eingabe stehen „Gehe zu“-Ziele bereit (Heute, Verlauf, Jahr, Urlaub, Einkauf, Mahlzeiten, Aufgaben, Einstellungen).
+* **Zahlen an den Tabs:** Einkauf (offene Artikel), Mahlzeiten (Einträge im Pool), Mehr (überfällige Aufgaben, rot), Kalender (roter Punkt bei ungeklärter Betreuung heute/morgen).
 * **Zurück mit Verlauf:** „Zurück“ (Pfeil, Android-Taste, Wischen vom linken Rand) führt dorthin, wo du herkamst; aktiven Tab nochmal tippen = nach oben. Jede Ansicht **merkt sich ihre Scrollposition**.
 * **Herunterziehen** am Seitenanfang gleicht sofort ab.
 * **Neuer Eintrag = Start-Knopf lang drücken:** immer die volle Auswahl (Urlaub, Termin, Event, Aufgabe, Betreuungsbedarf, Geburtstag, Einkauf, Checkliste, Infomappe) – in jedem Bereich gleich. Die Tagesdetails behalten ihre Symbolreihe (mit Datum vorbelegt).
@@ -78,6 +79,7 @@ Die Startseite zeigt „Heute“, Warnungen, die nächsten Termine, „Neu vom P
 * **Urlaub** (Urlaubsverwaltung): je Elternteil Urlaubskonto (genommen / geplant / **noch frei**), Jahresband, Zeiträume von–bis mit Urlaubstagen (bearbeiten/löschen),
   Betreuungslücken mit „planen“, Brückentage mit Ein-Tap-Eintragen.
 * **Einkauf**: fließende Liste für beide Handys – eintragen (mehrere mit Komma), antippen = quittiert, Vorschläge aus der Historie, Erledigte-Bereich.
+* **Mahlzeiten** (eigener Tab unten): fortlaufende Liste – je Tag eine Mahlzeit eintragen (Tag wählen: heute/morgen/übermorgen oder Datum). Am Tag antippen = **als gegessen bestätigt** (bleibt als erledigt in der Liste, einklappbar). Wird sie nicht bestätigt, wandert sie nach Tagesablauf automatisch in den **Pool** (neueste zuerst). **Tauschen**: Swap-Knopf auf einem Eintrag, dann Ziel antippen – Tag↔Tag tauschen die Tage, Tag↔Pool tauschen die Plätze. Belegter Tag beim Neueintragen: bisherige Mahlzeit → Pool.
 * **Aufgaben & Geburtstage**, **Einstellungen**.
 * **Checklisten**: Vorlagen (z. B. Packliste Urlaub, Festival, Ausflug – Beispiele per Knopf) und aktive Listen; „Starten“ kopiert eine Vorlage, beide Handys haken gemeinsam ab (jeder Punkt ist ein eigener Eintrag), Haken zurücksetzen, aktive Liste als Vorlage speichern.
 * **Infomappe**: Karten nach Kategorien (Kontakte, Gesundheit, Kita & Schule, Größen, Dokumente, Sonstiges) mit Inhalt, Telefon (tippen wählt), Adresse (öffnet Karten), Link; „nur Eltern“ blendet eine Karte im Lesezugriff aus (auf dem Server liegt sie trotzdem).

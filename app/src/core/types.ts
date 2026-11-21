@@ -25,10 +25,11 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  *  list     – Checkliste (title) oder Vorlage (template = true)
  *  check    – Punkt einer Checkliste/Vorlage (parent = Id der Liste, title, done) – eigene Einträge, damit beide parallel abhaken können
  *  fact     – Karte der Familien-Infomappe (title, cat, note, contact, link, place; private = nur Eltern)
+ *  meal     – Mahlzeit an einem Tag (start = Tag; done = als gegessen bestätigt; pool = in den Pool gewandert, weil nicht bestätigt)
  */
-export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop' | 'list' | 'check' | 'fact';
-/** Arten, die nicht im Kalender erscheinen (Listen, Einstellungen, Infomappe). */
-export const NON_CALENDAR: Kind[] = ['config', 'shop', 'list', 'check', 'fact'];
+export type Kind = 'presence' | 'care' | 'cover' | 'event' | 'info' | 'task' | 'birthday' | 'config' | 'shop' | 'list' | 'check' | 'fact' | 'meal';
+/** Arten, die nicht im Kalender erscheinen (Listen, Einstellungen, Infomappe, Mahlzeiten). */
+export const NON_CALENDAR: Kind[] = ['config', 'shop', 'list', 'check', 'fact', 'meal'];
 export const isCalendarKind = (k: Kind) => !NON_CALENDAR.includes(k);
 
 /** Wiederholung von Aufgaben: beim Abhaken rückt die Fälligkeit um diesen Abstand weiter. */
@@ -93,6 +94,7 @@ export interface Item {
   template?: boolean; // list: Vorlage statt aktiver Checkliste
   cat?: FactCat; // fact: Kategorie der Infomappe
   private?: boolean; // fact: nur für Eltern sichtbar (nicht im Lesezugriff)
+  pool?: boolean; // meal: liegt im Pool (Tag abgelaufen ohne Bestätigung) statt auf einem Tag
 }
 
 export interface Span {

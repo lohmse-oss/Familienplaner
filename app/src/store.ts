@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import bundled from './data/holidays.json';
 import { buildCalendar, type Calendar } from './core/calendar';
-import { contiguousRuns, fmtShort } from './core/dates';
+import { contiguousRuns, fmtShort, today } from './core/dates';
+import { mealOn, overdueMeals, swapMeals } from './core/meals';
 import { nextDue } from './core/recur';
 import { planPresence, type PresenceOptions } from './core/presence';
 import type { PersonFilter } from './core/filter';
@@ -341,6 +342,88 @@ export function removeShop(ids: string[]) {
   });
 }
 
+/* ---------- Mahlzeiten (fortlaufende Liste je Tag + Pool) ---------- */
+
+/** Mahlzeit für einen Tag eintragen; belegter Tag: die bisherige Mahlzeit wandert in den Pool. */
+export function addMeal(date: string, title: string) {
+  const t = title.trim();
+  if (!t) return;
+  batch(() => {
+    const old = mealOn(items, date);
+    if (old) saveItem({ ...old, pool: true });
+    saveItem({ id: newId(), kind: 'meal', title: t, persons: [], start: date, end: date, ts: Date.now() });
+  });
+}
+
+/** Mahlzeit als gegessen bestätigen (bleibt als erledigt in der Liste). */
+export function confirmMeal(id: string) {
+  const m = items.find((i) => i.id === id);
+  if (!m || m.done) return;
+  withUndo('Als gegessen markiert', () => saveItem({ ...m, done: true }), m.title);
+}
+
+export function unconfirmMeal(id: string) {
+  const m = items.find((i) => i.id === id);
+  if (m?.done) saveItem({ ...m, done: false });
+}
+
+/** Mahlzeit auf ein anderes Datum legen (Donnerstag → Freitag; Pool-Eintrag → Tag); belegtes Datum: die Einträge tauschen. */
+export function setMealDate(id: string, date: string) {
+  const m = items.find((i) => i.id === id);
+  if (!m || (!m.pool && m.start === date)) return;
+  const other = mealOn(items, date);
+  batch(() => {
+    if (other && other.id !== id) {
+      const [a, b] = swapMeals(m, other);
+      saveItem(a);
+      saveItem(b);
+    } else saveItem({ ...m, start: date, end: date, pool: false });
+  });
+}
+
+/** Geplante Mahlzeit manuell in den Pool schieben. */
+export function moveMealToPool(id: string) {
+  const m = items.find((i) => i.id === id);
+  if (m && !m.pool && !m.done) saveItem({ ...m, pool: true });
+}
+
+/** Zwei Mahlzeiten tauschen: Tag ↔ Tag (Datum tauschen) oder Tag ↔ Pool (Plätze tauschen). */
+export function swapMealEntries(aId: string, bId: string) {
+  const a = items.find((i) => i.id === aId);
+  const b = items.find((i) => i.id === bId);
+  if (!a || !b || a.id === b.id || !!a.pool === !!b.pool && a.pool) return; // Pool ↔ Pool: nichts zu tauschen
+  batch(() => {
+    const [x, y] = swapMeals(a, b);
+    saveItem(x);
+    saveItem(y);
+  });
+}
+
+export function deleteMeal(id: string) {
+  const m = items.find((i) => i.id === id);
+  withUndo('Mahlzeit gelöscht', () => deleteItem(id), m?.title);
+}
+
+/** Nicht bestätigte Mahlzeiten vergangener Tage wandern automatisch in den Pool (nach Tagesablauf). */
+export function rolloverMeals() {
+  if (settings.role === 'read') return;
+  const due = overdueMeals(items, today());
+  if (due.length) batch(() => void due.forEach((m) => saveItem({ ...m, pool: true })));
+}
+
+let rolloverTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleRollover() {
+  clearTimeout(rolloverTimer);
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 30); // kurz nach Mitternacht
+  rolloverTimer = setTimeout(() => {
+    rolloverMeals();
+    scheduleRollover();
+  }, next.getTime() - now.getTime());
+}
+rolloverMeals();
+scheduleRollover();
+
 export function updateSettings(patch: Partial<Settings>) {
   settings = { ...settings, ...patch };
   write(LS.settings, settings);
@@ -461,11 +544,13 @@ export async function sync(): Promise<void> {
     syncState = { status: 'error', last: syncState.last, msg: e instanceof Error ? e.message : String(e) };
   } finally {
     running = false;
+    rolloverMeals();
     persist();
   }
 }
 
 export function startBackgroundSync() {
+  rolloverMeals();
   void sync();
   setInterval(() => document.visibilityState === 'visible' && void sync(), 60_000);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void sync());
