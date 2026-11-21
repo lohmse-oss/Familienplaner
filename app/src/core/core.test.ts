@@ -17,7 +17,7 @@ import { parseIcs } from './ics';
 import { planPresence } from './presence';
 import { buildNotices } from './notify';
 import { budget, vacationReport } from './report';
-import { doneMeals, mealOn, nextHolidayAfter, overdueMeals, plannedMeals, poolMeals, swapMeals } from './meals';
+import { doneMeals, mealOn, nextFreeMealDay, overdueMeals, plannedMeals, poolMeals, swapMeals } from './meals';
 import type { HolidayData, Item, PersonId } from './types';
 
 const data = hd as HolidayData;
@@ -737,13 +737,11 @@ describe('Mahlzeiten (fortlaufende Liste, Pool, Tauschen)', () => {
     expect(b.pool).toBe(true);
     expect(a.start).toBe('2027-07-08');
   });
-  it('Pool -> naechster Ferien-Tag nach heute', () => {
-    const cal = buildCalendar([], data);
-    const span = data.school.find((s) => s.start > '2027-06-01')!;
-    expect(nextHolidayAfter(cal, addDays(span.start, -1))).toBe(span.start); // Tag vor Ferienbeginn -> Ferienbeginn
-    const after = nextHolidayAfter(cal, span.end);
-    expect(after > span.end).toBe(true);
-    expect(data.school.some((s) => s.start <= after && s.end >= after)).toBe(true); // landet in den Ferien
+  it('Pool -> naechster freier Tag nach heute (heute zaehlt nicht)', () => {
+    const items = [m('a', '2027-07-12'), m('b', '2027-07-13'), m('t', '2027-07-11')];
+    expect(nextFreeMealDay(items, '2027-07-11')).toBe('2027-07-14'); // 12./13. belegt, heute nicht
+    expect(nextFreeMealDay([], '2027-07-11')).toBe('2027-07-12'); // alles frei -> morgen
+    expect(nextFreeMealDay([m('x', '2027-07-12')], '2027-07-12')).toBe('2027-07-13'); // heute selbst frei -> trotzdem nicht heute
   });
   it('Suche findet Mahlzeiten (auch Stichwort Pool), Beschreibung für Hinweise', () => {
     const items = [m('a', '2027-07-12', { title: 'Spinat' })];

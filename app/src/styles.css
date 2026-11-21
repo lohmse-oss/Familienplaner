@@ -89,19 +89,18 @@ h1, h2, h3 { margin: 0; }
 .icon-btn { border: 0; background: var(--card); width: 40px; height: 40px; border-radius: 12px; font-size: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .link { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 8px; }
 
-.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 10px; }
-button.strip-cell { font: inherit; cursor: pointer; }
-.strip-cell small { font-size: 10.5px; color: var(--muted); }
-.strip-cell b { font-size: 15px; }
+.strip2 { display: grid; grid-template-columns: 20px repeat(7, 1fr); gap: 3px; margin-bottom: 6px; }
+.strip2 .h { font-size: 9.5px; color: var(--muted); text-align: center; align-self: end; padding-bottom: 1px; }
+.strip2 .who-l { font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.strip2 .cell { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 2px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; cursor: pointer; min-height: 36px; font: inherit; color: inherit; }
+.strip2 .q { display: flex; align-items: center; justify-content: center; gap: 1px; font-size: 10px; line-height: 1; border-radius: 4px; color: var(--muted); }
+.strip2 .q .late { color: var(--gap); }
 .home-chips { display: flex; gap: 8px; margin-bottom: 10px; }
 .chip-tile { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1.5px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px 4px 8px; cursor: pointer; }
 .chip-tile b { font-size: 18px; line-height: 1.1; }
 .chip-tile small { color: var(--muted); font-size: 11px; }
 .chip-tile.bad { border-color: var(--gap); }
 .chip-tile.bad b { color: var(--gap); }
-.strip-cell { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 5px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; }
-.strip-cell.off { color: var(--muted); }
-.strip-cell.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 
 .lamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
 .lamp-ok { background: var(--ok); } .lamp-maybe { background: var(--maybe); } .lamp-gap { background: var(--gap); } .lamp-none { background: transparent; border: 1px solid var(--line); }

@@ -3,7 +3,8 @@ import { dayTag, evText, isMultiDay, needsOwner, timeOn, type DayInfo } from '..
 import { nextGap } from '../core/gaps';
 import { PARENTS, PERSONS, type Item } from '../core/types';
 import { isDueSoon } from '../core/recur';
-import { countDay } from '../core/widget';
+import { mealOn } from '../core/meals';
+import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
 import type { Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
@@ -29,10 +30,16 @@ const seenAsks = (): string[] => {
   }
 };
 
-/** Einträge eines Tages (Feiertag, Betreuungsbedarf, Termine, Aufgaben, Geburtstage) – für Heute- und Morgen-Karte. */
-function DayLines({ d, date }: { d: DayInfo; date: string }) {
+/** Einträge eines Tages (Mahlzeit, Feiertag, Betreuungsbedarf, Termine, Aufgaben, Geburtstage) – für Heute- und Morgen-Karte. */
+function DayLines({ d, date, items, go }: { d: DayInfo; date: string; items: Item[]; go: (t: Tab) => void }) {
+  const meal = mealOn(items, date);
   return (
     <>
+      {meal && (
+        <div class={`line link-row ${meal.done ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); go('meals'); }} title="Zu den Mahlzeiten">
+          <Ic n="meal" size={16} /> <span class="grow">{meal.title}</span>{meal.done && <Ic n="check" size={14} class="muted" />}
+        </div>
+      )}
       {d.holiday && <div class="line"><Ic n="flag" size={16} /> {d.holiday}</div>}
       {d.needs.map((n) => <div key={n.child + n.reason} class={`line ${d.coverage === 'gap' ? 'need' : ''}`}><Dot p={n.child} />{PERSONS[n.child].name}: {n.reason}</div>)}
       {d.events.map((e) => (
@@ -141,13 +148,13 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
             </span>
           ))}
         </div>
-        <DayLines d={d} date={t} />
+        <DayLines d={d} date={t} items={items} go={go} />
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>
 
       <section class="card today-card" onClick={() => openDay(addDays(t, 1))}>
         <header class="card-head"><strong>Morgen</strong><span class="muted small">{WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</span><Pill coverage={tm.coverage} /></header>
-        <DayLines d={tm} date={addDays(t, 1)} />
+        <DayLines d={tm} date={addDays(t, 1)} items={items} go={go} />
         {!tm.holiday && !tm.needs.length && !tm.events.length && !tm.birthdays.length && <div class="line muted">Morgen nichts Besonderes.</div>}
       </section>
 
@@ -173,20 +180,34 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       ) : (
         <section class="card">
           <header class="card-head"><strong>Demnächst</strong>{overdue > 0 && <span class="pill pill-gap">{overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span>}</header>
-          <div class="strip">
-            {[...range(addDays(t, 1), addDays(t, 7))].map((date) => {
-              const dd = cal.day(date);
-              const n = countDay(dd);
-              return (
-                <button key={date} class="strip-cell" title={`${WD_LONG[dow(date)]}, ${fmt(date)}`} onClick={() => openDay(date)}>
-                  <small>{WD[dow(date)]} {date.slice(8)}</small>
-                  <b>{n > 0 ? n : '·'}</b>
-                  {dd.coverage === 'gap' && <i class="lamp lamp-gap" />}
-                </button>
-              );
-            })}
-          </div>
-          <div class="hint">Tag antippen = Details des Tages</div>
+          {(() => {
+            const days = [...range(addDays(t, 2), addDays(t, 8))]; // heute & morgen sind eigene Karten oben
+            return (
+              <div class="strip2">
+                <span class="h" />
+                {days.map((d) => <span key={d} class="h">{WD[dow(d)]} {d.slice(8)}</span>)}
+                {PARENTS.map((p) => (
+                  <Fragment key={p}>
+                    <span class="who-l" style={{ color: PERSONS[p].color }} title={PERSONS[p].name}>{PERSONS[p].name[0]}</span>
+                    {days.map((d) => {
+                      const dd = cal.day(d);
+                      const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p)).length : 0;
+                      const tks = L.tasks ? dd.tasks.filter((x) => !x.done && x.owner === p).length : 0;
+                      return (
+                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)}`} onClick={() => openDay(d)}>
+                          <span class="q"><StatusIc s={dd.parents[p].status} size={12} /></span>
+                          <span class="q">{evs > 0 && <><Ic n="addcal" size={9} />{evs}</>}</span>
+                          <span class="q">{tks > 0 && <><Ic n="tasks" size={9} />{tks}</>}</span>
+                          <span class="q">{dd.needs.length > 0 ? <Ic n="alert" size={10} class="late" /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : null}</span>
+                        </button>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
+            );
+          })()}
+          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Felder: Status, Termine, Aufgaben, Betreuung · Tag antippen = Details</div>
         </section>
       )}
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useUiState } from '../resume';
 import { addDays, fmtDay, fmtShort, range, today } from '../core/dates';
-import { doneMeals, mealOn, nextHolidayAfter, poolMeals } from '../core/meals';
+import { doneMeals, mealOn, nextFreeMealDay, poolMeals } from '../core/meals';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
 import { addMeal, addMealToPool, batch, confirmMeal, deleteMeal, moveMealToPool, saveItem, setMealDate, swapMealEntries, sync, unconfirmMeal, useStore } from '../store';
@@ -178,10 +178,10 @@ export function Meals() {
 
 /** Bearbeiten einer Mahlzeit: Titel/T ag ändern, tauschen, in den Pool schieben oder löschen. */
 function MealSheet({ item, onClose, onSwap }: { item: Item; onClose: () => void; onSwap: () => void }) {
-  const { readOnly, cal } = useStore();
+  const { readOnly, items } = useStore();
   const t0 = today();
   const [title, setTitle] = useState(item.title ?? '');
-  const [date, setDate] = useState(item.pool ? nextHolidayAfter(cal, t0) : item.start); // Pool-Eintrag landet default auf dem nächsten Ferien-Tag
+  const [date, setDate] = useState(item.pool ? nextFreeMealDay(items, t0) : item.start); // Pool-Eintrag landet default auf dem nächsten freien Tag (nicht heute)
   const changed = title.trim() !== (item.title ?? '') || date !== item.start;
   const save = () => {
     batch(() => {
