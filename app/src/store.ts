@@ -74,6 +74,7 @@ function applyLook() {
 }
 // ältere Version: weekView 'day' → calView 'day'
 if ((settings as unknown as { weekView?: string }).weekView === 'day' && settings.calView === 'week') settings.calView = 'day';
+if (settings.calView === 'day') settings.calView = 'week'; // Tag-Ansicht entfällt, Details über DaySheet
 // ältere Versionen: timeLayout (Zeilen/Spalten) entfällt, Personenfilter war Einzelauswahl
 delete (settings as unknown as Record<string, unknown>).timeLayout;
 if (typeof settings.filter === 'string' && settings.filter !== 'all') settings.filter = [settings.filter as PersonId];

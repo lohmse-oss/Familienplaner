@@ -208,12 +208,20 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
                       const evs = L.events ? dd.events.filter((e) => e.owner === p || e.persons.includes(p)).length : 0;
                       const tks = L.tasks ? dd.tasks.filter((x) => !x.done && x.owner === p).length : 0;
                       return (
-                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – nur belegte Felder`} onClick={() => openDay(d)}>
-                          {/* nur Felder mit Inhalt; Farben wie die 4 Punkte des App-Icons */}
-                          {dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' && <span class="q" style={{ color: '#7FB7D6' }} title="Status"><StatusIc s={dd.parents[p].status} size={12} /></span>}
-                          {evs > 0 && <span class="q" style={{ color: '#F06CA0' }} title="Termine"><Ic n="addcal" size={9} />{evs}</span>}
-                          {tks > 0 && <span class="q" style={{ color: '#A98AE0' }} title="Aufgaben"><Ic n="tasks" size={9} />{tks}</span>}
-                          {(dd.needs.length > 0 || dd.coverage !== 'none') && <span class="q" style={{ color: '#FF8A5C' }} title="Betreuung">{dd.needs.length > 0 ? <Ic n="alert" size={10} /> : <i class={`lamp lamp-${dd.coverage}`} />}</span>}
+                        <button key={d} class="cell" title={`${PERSONS[p].name}, ${WD_LONG[dow(d)]}, ${fmt(d)} – 4 Segmente wie das App-Icon`} onClick={() => openDay(d)}>
+                          {/* 4 Segmente (2x2) wie das App-Icon; eingefärbt + Zahl nur bei Inhalt, Farben = Icon-Punkte */}
+                          <span class={`q ${dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' ? 'on' : ''}`} style={dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' ? { color: '#7FB7D6', background: '#7FB7D62E' } : undefined} title="Status (Anwesenheit)">
+                            {dd.parents[p].status !== 'free' && dd.parents[p].status !== 'office' && <StatusIc s={dd.parents[p].status} size={11} />}
+                          </span>
+                          <span class={`q ${evs > 1 ? 'on' : ''}`} style={evs > 1 ? { color: '#F06CA0', background: '#F06CA02E' } : undefined} title="Termine">
+                            {evs > 1 && <><Ic n="addcal" size={9} />{evs}</>}
+                          </span>
+                          <span class={`q ${tks > 1 ? 'on' : ''}`} style={tks > 1 ? { color: '#A98AE0', background: '#A98AE02E' } : undefined} title="Aufgaben">
+                            {tks > 1 && <><Ic n="tasks" size={9} />{tks}</>}
+                          </span>
+                          <span class={`q ${dd.needs.length > 0 || dd.coverage !== 'none' ? 'on' : ''}`} style={dd.needs.length > 0 || dd.coverage !== 'none' ? { color: '#FF8A5C', background: '#FF8A5C2E' } : undefined} title="Betreuung">
+                            {dd.needs.length > 0 ? <Ic n="alert" size={9} /> : dd.coverage !== 'none' ? <i class={`lamp lamp-${dd.coverage}`} /> : null}
+                          </span>
                         </button>
                       );
                     })}
@@ -222,7 +230,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
               </div>
             );
           })()}
-          <div class="hint">S/B = Sebastian/Betty · je Tag nur belegte Felder in Icon-Farben (Status, Termine, Aufgaben, Betreuung) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
+          <div class="hint">S/B = Sebastian/Betty · je Tag 4 Segmente wie das App-Icon, eingefärbt nur bei Inhalt (Termine/Aufgaben ab 2) · Tag antippen = Details · Chips seitlich wischen = ausblenden</div>
         </section>
       )}
       </div>
