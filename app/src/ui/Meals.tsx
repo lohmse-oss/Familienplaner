@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useUiState } from '../resume';
-import { addDays, fmtDay, today } from '../core/dates';
+import { addDays, fmtDay, fmtShort, today, weekStart } from '../core/dates';
 import { doneMeals, mealOn, plannedMeals, poolMeals } from '../core/meals';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
@@ -21,11 +21,14 @@ export function Meals() {
   const [swapId, setSwapId] = useState<string | null>(null);
   const [edit, setEdit] = useState<Item | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [showWeek, setShowWeek] = useState(true);
 
   const planned = plannedMeals(items);
   const pool = poolMeals(items);
   const done = doneMeals(items).filter((m) => m.start >= addDays(t0, -7)); // letzte Woche
   const occupied = mealOn(items, date);
+  const ws = weekStart(t0);
+  const weekDays = [0, 1, 2, 3, 4, 5, 6].map((n) => addDays(ws, n));
 
   // Solange die Liste offen ist, schneller abgleichen (beide planen parallel)
   useEffect(() => {
@@ -96,6 +99,25 @@ export function Meals() {
 
   return (
     <div class="page">
+      <button class="link done-toggle" onClick={() => setShowWeek(!showWeek)}>
+        <Ic n={showWeek ? 'down' : 'right'} size={15} /> Diese Woche ({fmtShort(ws)}\u2013{fmtShort(addDays(ws, 6))})
+      </button>
+      {showWeek && (
+        <section class="card shop-list">
+          {weekDays.map((d) => {
+            const m = mealOn(items, d);
+            return (
+              <div key={d} class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''}`} onClick={() => (m ? setEdit(m) : !readOnly && setDate(d))}>
+                <span class="meal-date">{fmtDay(d)}</span>
+                <span class="grow">{m ? m.title : <span class="muted">nicht geplant</span>}</span>
+                {m?.done && <Ic n="check" size={16} class="muted" />}
+                {!m && !readOnly && <Ic n="plus" size={15} class="muted" />}
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       {!readOnly && (
         <>
           <form class="shop-add meal-add" onSubmit={submit}>
