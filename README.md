@@ -1,6 +1,6 @@
 # Familienplaner
 
-Wochenplaner mit Jahresforecast für die Familie (Chemnitz, Sachsen). Konzept und Entscheidungen: [KONZEPT.md](KONZEPT.md).
+Wochenplaner mit Jahresforecast für die Familie (Chemnitz, Sachsen). Konzept und Entscheidungen: [KONZEPT.md](KONZEPT.md) · Teststrategie (ISO/IEC 25010): [TESTSTRATEGIE.md](TESTSTRATEGIE.md).
 
 ```
 app/      Android-App (Preact + TypeScript + Capacitor)
@@ -29,7 +29,7 @@ Der Build läuft in GitHub Actions (`.github/workflows/android.yml`) – lokal i
 * Die APK ist mit einem festen Schlüssel signiert (`app/android/app/familienplaner.keystore`), spätere Versionen installieren sich daher als Update, ohne Datenverlust.
 
 Beim ersten Start: *Mehr* → „Dieses Handy gehört“ wählen → Familiencode eintragen (die Server-Adresse ist in `app/src/store.ts` als `DEFAULT_SERVER` voreingestellt) → *Speichern & verbinden*.
-Danach Urlaubstage je Person im Tab *Urlaub* eintragen.
+Danach Urlaubstage je Person im Kalender-Reiter *Urlaubsplanung* eintragen.
 
 **Widget:** Homescreen lange drücken → Widgets → „Familienplaner Heute“ (Nothing-Stil, nur Grafik; Hintergrund transparent/Glas/dunkel/hell unter *Mehr → Einstellungen → Darstellung & Widget*).
 

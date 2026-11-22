@@ -48,12 +48,11 @@ export interface Ask {
   at: number; // ms – letzte Änderung der Anfrage
 }
 
-export type FactCat = 'kontakt' | 'gesundheit' | 'kita' | 'groessen' | 'dokumente' | 'sonstiges';
+export type FactCat = 'kontakt' | 'gesundheit' | 'kita' | 'dokumente' | 'sonstiges';
 export const FACT_CAT_LABEL: Record<FactCat, string> = {
   kontakt: 'Kontakte',
   gesundheit: 'Gesundheit',
   kita: 'Kita & Schule',
-  groessen: 'Größen & Kleidung',
   dokumente: 'Dokumente & Verträge',
   sonstiges: 'Sonstiges',
 };
@@ -71,7 +70,7 @@ export interface Item {
   title?: string;
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD, inklusive
-  time?: string; // HH:MM
+  time?: string; // event/info: HH:MM (Start-Uhrzeit)
   persons: PersonId[];
   mode?: Mode; // presence
   away?: boolean; // presence/vacation: verreist (nicht vor Ort) · info (Event): auswärts statt zuhause

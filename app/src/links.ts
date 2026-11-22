@@ -1,4 +1,4 @@
-export type Tab = 'home' | 'cal' | 'vacation' | 'shop' | 'more' | 'tasks' | 'birthdays' | 'settings' | 'lists' | 'facts' | 'meals';
+export type Tab = 'home' | 'cal' | 'shop' | 'more' | 'tasks' | 'birthdays' | 'settings' | 'lists' | 'facts' | 'meals';
 
 export type Link =
   | { type: 'tab'; tab: Tab }
@@ -7,7 +7,7 @@ export type Link =
   | { type: 'new'; what: 'event' | 'task' | 'shop' };
 
 export const SCHEME = 'de.familie.planer://';
-const TABS: Tab[] = ['home', 'cal', 'vacation', 'shop', 'more', 'tasks', 'birthdays', 'settings', 'lists', 'facts', 'meals'];
+const TABS: Tab[] = ['home', 'cal', 'shop', 'more', 'tasks', 'birthdays', 'settings', 'lists', 'facts', 'meals'];
 
 /**
  * Direktlinks aus Widget-Kreisen und Launcher-Schnellaktionen:

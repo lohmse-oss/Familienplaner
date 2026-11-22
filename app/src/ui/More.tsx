@@ -1,7 +1,5 @@
 import type { Tab } from '../nav';
 import { fmtShort, today } from '../core/dates';
-import { budget } from '../core/report';
-import { PARENTS, PERSONS } from '../core/types';
 import { useStore } from '../store';
 import { Ic, type IconName } from './icons';
 
@@ -21,11 +19,9 @@ function nextBirthday(list: { title?: string; start: string }[], t: string) {
  * Einstellungen, Zugriff, Abgleich und Versionsinfo liegen unter dem Zahnrad in der Kopfzeile.
  */
 export function More({ go }: { go: (t: Tab) => void }) {
-  const { items, cal, readOnly } = useStore();
+  const { items, readOnly } = useStore();
   const t0 = today();
   const py = Number(t0.slice(0, 4));
-  const free = PARENTS.map((p) => budget(cal, p, py, t0));
-  const freeText = free.every((b) => b.free === undefined) ? 'Urlaubstage eintragen' : free.map((b, i) => `${PERSONS[PARENTS[i]].name.slice(0, 3)} ${b.free ?? '–'}`).join(' · ') + ` frei (${py})`;
   const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted);
   const nb = nextBirthday(bdays, t0);
   const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template).length;
@@ -36,7 +32,6 @@ export function More({ go }: { go: (t: Tab) => void }) {
     {
       title: 'Planen',
       rows: [
-        { tab: 'vacation', icon: 'palm', title: 'Urlaub', sub: `Urlaubskonto, Zeiträume, Brückentage · ${freeText}` },
         { tab: 'birthdays', icon: 'cake', title: 'Geburtstage', sub: nb ? `nächster: ${nb.title}, ${fmtShort(`${py}-${nb.start.slice(5)}`)}` : 'noch keine eingetragen' },
       ],
     },

@@ -24,5 +24,14 @@ export default defineConfig({
     __COMMIT__: JSON.stringify(commit),
     __BUILT_AT__: JSON.stringify(new Date().toISOString()),
   },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    // CI-Schwelle (npm test -- --coverage): Kernlogik in src/core muss abgedeckt bleiben
+    coverage: {
+      provider: 'v8',
+      include: ['src/core/**'],
+      thresholds: { statements: 95, lines: 95, functions: 95, branches: 85 },
+    },
+  },
 });

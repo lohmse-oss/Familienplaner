@@ -15,7 +15,7 @@ const GOTO: { label: string; icon: IconName; tab: Tab; view?: CalView }[] = [
   { label: 'Heute', icon: 'today', tab: 'cal', view: 'week' },
   { label: 'Verlauf', icon: 'rows', tab: 'cal', view: 'timeline' },
   { label: 'Jahr', icon: 'year', tab: 'cal', view: 'year' },
-  { label: 'Urlaub', icon: 'palm', tab: 'vacation' },
+  { label: 'Urlaubsplanung', icon: 'palm', tab: 'cal', view: 'vacation' },
   { label: 'Einkauf', icon: 'cart', tab: 'shop' },
   { label: 'Mahlzeiten', icon: 'meal', tab: 'meals' },
   { label: 'Aufgaben', icon: 'tasks', tab: 'tasks' },

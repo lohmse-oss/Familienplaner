@@ -26,7 +26,6 @@ export function Meals() {
 
   const pool = poolMeals(items);
   const done = doneMeals(items).filter((m) => m.start >= addDays(t0, -7)); // letzte Woche
-  const occupied = mealOn(items, date);
   const ovDays = [...range(t0, addDays(t0, daysN - 1))];
   const allBooked = ovDays.every((d) => !!mealOn(items, d)); // „+1 Tag“ nur anzeigen, wenn alle Tage belegt
 
@@ -78,7 +77,7 @@ export function Meals() {
           {m.done && <Ic n="check" size={16} sw={3} />}
         </button>
       )}
-      <span class="meal-date">{inPool ? (m.start ? `war ${fmtDay(m.start)}` : 'Pool') : m.start ? fmtDay(m.start) : '–'}</span>
+      <span class="meal-date">{inPool ? '' : m.start ? fmtDay(m.start) : '–'}</span>
       <span class="grow">{m.title}</span>
       {m.by && m.by !== settings.me && <i class="dot" style={{ background: PERSONS[m.by].color }} title={`von ${PERSONS[m.by].name}`} />}
       {!readOnly && (
@@ -135,7 +134,6 @@ export function Meals() {
               );
             })}
           </div>
-          {occupied && <div class="hint neg">Am {fmtDay(date)} ist schon „{occupied.title}“ geplant – die wandert beim Speichern in den Pool.</div>}
         </>
       )}
 

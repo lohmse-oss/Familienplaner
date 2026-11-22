@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { DayInfo } from '../core/calendar';
-import { dayTag, needsOwner, timeOn } from '../core/calendar';
+import { dayTag, evText, needsOwner, timeOn } from '../core/calendar';
 import { addDays, ageOn, dow, fmtRange, fmtShort, isoWeek, today, weekStart, WD } from '../core/dates';
 import { relevant, type PersonFilter } from '../core/filter';
 import type { Layers } from '../core/layers';
@@ -163,7 +163,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
                   const need = d.needs.some((n) => n.child === c);
                   const fam = d.family.includes(c);
                   return (
-                    <button key={d.date} class={`mx-cell kid ${need && !fam ? 'need' : ''} ${d.workday && !need && !fam ? 'faint' : ''} ${d.workday ? '' : 'off'}`} style={need && !fam ? { background: PERSONS[c].soft, color: PERSONS[c].color } : undefined} onClick={() => openDay(d.date)}>
+                    <button key={d.date} class={`mx-cell kid ${need && !fam ? 'need' : ''} ${d.workday && !need && !fam ? 'faint' : ''} ${d.workday ? '' : 'off'}`} style={need && !fam ? { background: PERSONS[c].soft, color: PERSONS[c].color } : undefined} onClick={() => openDay(d.date)} aria-label={`${PERSONS[c].name} ${d.date}${need ? ` – Betreuung nötig: ${d.needs.find((n) => n.child === c)?.reason ?? ''}` : ''}${fam ? ' – mit im Urlaub' : ''}`}>
                       {!d.workday ? null : fam ? <Ic n="palm" size={18} /> : need ? <Ic n={d.cover.length ? 'hand' : 'alert'} size={18} /> : <Ic n={c === 'ida' ? 'backpack' : 'baby'} size={18} />}
                     </button>
                   );
@@ -294,7 +294,7 @@ function AgendaDay({ d, c, today: t, openDay, edit }: { d: DayInfo; c: ReturnTyp
           <Details it={e} />
         </div>
       ))}
-      {c.info.map((i) => <div key={i.id} class="ag-line info" onClick={() => edit(i)}><Ic n={i.away ? 'luggage' : 'ticket'} size={16} /> {i.title}{i.away && <small class="muted"> · auswärts</small>}{dayTag(i, d.date) && <small class="muted"> · {dayTag(i, d.date)}</small>}</div>)}
+      {c.info.map((i) => <div key={i.id} class="ag-line info" onClick={() => edit(i)}><Ic n={i.away ? 'luggage' : 'ticket'} size={16} /> {evText(i, d.date)}{i.away && <small class="muted"> · auswärts</small>}</div>)}
       {c.tasks.map((x) => <div key={x.id} class={`ag-line ${x.done ? 'done' : ''}`} onClick={() => edit(x)}><Ic n="tasks" size={16} /> {x.title}{x.owner ? <PersonTag p={x.owner} /> : null}</div>)}
       {c.birthdays.map((b) => {
         const age = ageOn(b.start, d.date);

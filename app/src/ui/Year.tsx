@@ -11,7 +11,7 @@ import { haptic } from '../haptics';
 import { Ic, type IconName } from './icons';
 import { MonthGrid } from './MonthGrid';
 
-export type PlanMode = 'vacation' | 'homeoffice' | 'trip' | 'office' | 'care' | 'cover';
+export type PlanMode = 'vacation' | 'homeoffice' | 'office' | 'care' | 'cover';
 export interface PlanPreset {
   id: number; // neue Id = Vorgabe erneut anwenden
   start?: string;
@@ -23,13 +23,12 @@ export interface PlanPreset {
 const MODE_DEF: { value: PlanMode; text: string; icon: IconName }[] = [
   { value: 'vacation', text: 'Urlaub', icon: 'palm' },
   { value: 'homeoffice', text: 'Homeoffice', icon: 'home' },
-  { value: 'trip', text: 'Dienstreise', icon: 'plane' },
   { value: 'office', text: 'Büro (zurücksetzen)', icon: 'office' },
   { value: 'care', text: 'Schließtag / Betreuung nötig', icon: 'baby' },
   { value: 'cover', text: 'Betreuung durch Dritte', icon: 'hand' },
 ];
 const MODES = MODE_DEF.map((m) => ({ value: m.value, label: <><Ic n={m.icon} size={15} /> {m.text}</> }));
-const VERB: Record<PlanMode, string> = { vacation: 'Urlaub', homeoffice: 'Homeoffice', trip: 'Dienstreise', office: 'Büro', care: 'Betreuungsbedarf', cover: 'Betreuung' };
+const VERB: Record<PlanMode, string> = { vacation: 'Urlaub', homeoffice: 'Homeoffice', office: 'Büro', care: 'Betreuungsbedarf', cover: 'Betreuung' };
 const CARE_PRESETS: { label: string; child: PersonId }[] = [
   { label: 'Schließtag Kita', child: 'irma' },
   { label: 'Schließtag Schule', child: 'ida' },
@@ -64,6 +63,9 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
   const [gapsOpen, setGapsOpen] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
 
+  // ältere Version: Dienstreise war im Jahresplaner wählbar
+  useEffect(() => { if ((mode as string) === 'trip') setModeRaw('vacation'); }, []);
+
   const bridges = useMemo(() => findBridges(cal, year), [cal, year]);
   const bridgeDays = useMemo(() => new Set(bridges.flatMap((b) => [...range(b.gapStart, b.gapEnd)])), [bridges]);
   const gaps = useMemo(() => {
@@ -80,7 +82,6 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
       }
       const m = new Map<string, Mode>();
       for (const per of periods.filter((x) => x.person === p)) for (const d of range(per.start, per.end)) m.set(d, 'vacation');
-      for (const d of range(`${year}-01-01`, `${year}-12-31`)) if (cal.day(d).parents[p].status === 'trip') m.set(d, 'trip');
       out[p] = m;
     }
     return out;
@@ -266,7 +267,7 @@ export function Year({ year, setYear, openDay, preset }: { year: number; setYear
         <span><i class="sw sw-school" /> Ferien</span>
         <span><i class="sw sw-holiday" /> Feiertag</span>
         <span><i class="sw sw-bridge" /> Brückentag</span>
-        <span><i class="sw sw-stripe" /> Urlaub je Person · blass = Dienstreise</span>
+        <span><i class="sw sw-stripe" /> Urlaub je Person</span>
         <span><i class="mk-leg mk-b" /> Geburtstag</span>
         <span><i class="mk-leg mk-t" /> Aufgabe fällig <i class="mk-leg mk-t late" /> überfällig</span>
         <span><i class="mk-leg mk-e" /> Termin</span>

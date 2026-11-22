@@ -43,8 +43,8 @@ export const needsOwner = (it: Item) => it.kind === 'event' && it.sub !== 'schul
 
 /** Mehrtägiger Termin oder Event (z. B. Festival): Ende nach dem Start und keine Wiederholung (dort ist end das Serienende). */
 export const isMultiDay = (it: Item) => (it.kind === 'event' || it.kind === 'info') && !it.recur && it.end > it.start;
-/** Uhrzeit eines Termins an diesem Tag – bei mehrtägigen nur am ersten Tag. */
-export const timeOn = (it: Item, date: string) => (isMultiDay(it) && date !== it.start ? undefined : it.time);
+/** Uhrzeit an diesem Tag – bei mehrtägigen Terminen (event) nur am ersten Tag, bei Events (info) an jedem Tag. */
+export const timeOn = (it: Item, date: string) => (it.kind === 'event' && isMultiDay(it) && date !== it.start ? undefined : it.time);
 /** „Tag 2/3“ bei mehrtägigen Terminen, sonst leer. */
 export const dayTag = (it: Item, date: string) => (isMultiDay(it) ? `Tag ${diff(it.start, date) + 1}/${diff(it.start, it.end) + 1}` : '');
 /** Kurztext für Listen: „18:00 Titel“ bzw. „Titel (Tag 2/3)“. */
