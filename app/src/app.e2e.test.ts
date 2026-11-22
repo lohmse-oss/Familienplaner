@@ -219,8 +219,9 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       expect(wm!.textContent).toContain('Sebastian');
       expect(wm!.textContent).not.toContain('Homeoffice'); // nur Name + Symbol, Label als Tooltip
       expect(cards[1].querySelector('.who[title*="Homeoffice"]'), 'Status-Tooltip fehlt').toBeTruthy(); // Mo = morgen (relativ zu So)
-      // erledigte Aufgaben nicht auf Start
+      // erledigte Aufgaben nicht auf Start; keine Kommentar-Texte im UI
       expect(cards[0].textContent).not.toContain('Erledigte Dummy-Aufgabe');
+      expect(document.body.textContent).not.toContain('nur im Archiv');
       // Tagesblatt (aus Start geöffnet): offene Aufgabe ja, erledigte (Archiv) nein
       click(cards[0]);
       await vi.advanceTimersByTimeAsync(60);

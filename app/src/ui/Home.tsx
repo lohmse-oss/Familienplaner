@@ -61,7 +61,7 @@ function DayLines({ d, date, items, go }: { d: DayInfo; date: string; items: Ite
           {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
         </div>
       ))}
-      {d.tasks.filter((x) => !x.done).map((x) => <div key={x.id} class="line"><TaskCheck t={x} /><Ic n="tasks" size={16} /> {x.title}</div>)} // erledigte Aufgaben nur im Archiv
+      {d.tasks.filter((x) => !x.done).map((x) => <div key={x.id} class="line"><TaskCheck t={x} /><Ic n="tasks" size={16} /> {x.title}</div>)}
       {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
     </>
   );
