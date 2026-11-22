@@ -1,6 +1,6 @@
 # Familienplaner
 
-Wochenplaner mit Jahresforecast für die Familie (Chemnitz, Sachsen). Konzept und Entscheidungen: [KONZEPT.md](KONZEPT.md).
+Wochenplaner mit Jahresforecast für die Familie (Chemnitz, Sachsen). Konzept und Entscheidungen: [KONZEPT.md](KONZEPT.md) · Teststrategie (ISO/IEC 25010): [TESTSTRATEGIE.md](TESTSTRATEGIE.md).
 
 ```
 app/      Android-App (Preact + TypeScript + Capacitor)
