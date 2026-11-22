@@ -163,7 +163,7 @@ export function Week({ weekOf, setWeekOf, openDay, edit, plan, add }: Props) {
                   const need = d.needs.some((n) => n.child === c);
                   const fam = d.family.includes(c);
                   return (
-                    <button key={d.date} class={`mx-cell kid ${need && !fam ? 'need' : ''} ${d.workday && !need && !fam ? 'faint' : ''} ${d.workday ? '' : 'off'}`} style={need && !fam ? { background: PERSONS[c].soft, color: PERSONS[c].color } : undefined} onClick={() => openDay(d.date)}>
+                    <button key={d.date} class={`mx-cell kid ${need && !fam ? 'need' : ''} ${d.workday && !need && !fam ? 'faint' : ''} ${d.workday ? '' : 'off'}`} style={need && !fam ? { background: PERSONS[c].soft, color: PERSONS[c].color } : undefined} onClick={() => openDay(d.date)} aria-label={`${PERSONS[c].name} ${d.date}${need ? ` – Betreuung nötig: ${d.needs.find((n) => n.child === c)?.reason ?? ''}` : ''}${fam ? ' – mit im Urlaub' : ''}`}>
                       {!d.workday ? null : fam ? <Ic n="palm" size={18} /> : need ? <Ic n={d.cover.length ? 'hand' : 'alert'} size={18} /> : <Ic n={c === 'ida' ? 'backpack' : 'baby'} size={18} />}
                     </button>
                   );

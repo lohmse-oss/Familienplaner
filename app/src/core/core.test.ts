@@ -340,6 +340,35 @@ describe('ICS-Import', () => {
     expect(parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR')).toEqual([]);
     expect(parseIcs('hallo welt')).toEqual([]);
   });
+  it('Allday (VALUE=DATE): DTEND exklusiv; ohne DTEND ein Tag; mit Uhrzeit mehrtägig', () => {
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'DTSTART;VALUE=DATE:20270501',
+      'DTEND;VALUE=DATE:20270504',
+      'SUMMARY:Brückenwoche',
+      'END:VEVENT',
+      'BEGIN:VEVENT',
+      'DTSTART;VALUE=DATE:20270510',
+      'SUMMARY:Ein Tag',
+      'END:VEVENT',
+      'BEGIN:VEVENT',
+      'DTSTART:20270601T090000Z',
+      'DTEND:20270603T170000Z',
+      'SUMMARY:Mit Uhrzeit über mehrere Tage',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    const evs = parseIcs(ics);
+    expect(evs).toHaveLength(3);
+    expect(evs[0]).toMatchObject({ start: '2027-05-01', end: '2027-05-03', time: undefined }); // DTEND exklusiv
+    expect(evs[1]).toMatchObject({ start: '2027-05-10', end: '2027-05-10' });
+    expect(evs[2]).toMatchObject({ start: '2027-06-01', end: '2027-06-03', time: '09:00', endTime: '17:00' });
+  });
+  it('VEVENT ohne gültiges DTSTART wird übersprungen', () => {
+    const ics = ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'DTSTART:kaputt', 'SUMMARY:X', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    expect(parseIcs(ics)).toEqual([]);
+  });
 });
 
 describe('Datumseingabe (Text) & Alter', () => {

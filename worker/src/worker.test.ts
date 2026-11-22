@@ -129,6 +129,14 @@ describe('Worker', () => {
     expect(all.role).toBe('write');
     expect(all.items).toHaveLength(1); // der abgelehnte Eintrag wurde nicht gespeichert
   });
+  it('behält unbekannte Zusatzfelder (Kompatibilität mit neueren/älteren Clients)', async () => {
+    const res = await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [item('nf1', 1, { futureField: { nested: [1, 2] }, time: '10:00' })] }) });
+    expect(res.status).toBe(200);
+    const back = await call(e, '/api/sync', { method: 'POST', body: JSON.stringify({ since: 0, items: [] }) });
+    const data = (await back.json()) as { items: Record<string, unknown>[] };
+    const got = data.items.find((i) => i.id === 'nf1');
+    expect(got).toMatchObject({ kind: 'event', time: '10:00', futureField: { nested: [1, 2] } }); // bleibt verlustfrei erhalten
+  });
   it('ohne gesetzten Lesecode bleibt nur der Familiencode gültig', async () => {
     const e2: Env = { DB: fakeD1(), FAMILY_CODE: 'geheim' };
     expect((await call(e2, '/api/sync', { method: 'POST', body: '{}', code: 'nurlesen' })).status).toBe(401);
