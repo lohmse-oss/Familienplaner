@@ -189,18 +189,24 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       saveItem({ id: 'd2', kind: 'presence', title: 'Messe', start: t2, end: addDays(t2, 1), persons: ['betty'], mode: 'trip', updated: 0 } as never);
       saveItem({ id: 'd3', kind: 'event', title: 'Elternabend', start: t1, end: t1, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
       saveItem({ id: 'd4', kind: 'task', title: 'Dummy-Aufgabe', start: t2, end: t2, persons: [], updated: 0 } as never);
+      saveItem({ id: 'd5', kind: 'task', title: 'Erledigte Dummy-Aufgabe', start: t, end: t, persons: [], done: true, updated: 0 } as never);
       const root = document.createElement('div');
       document.body.appendChild(root);
       render(h(App, {}), root);
       await vi.advanceTimersByTimeAsync(120);
 
-      // Sonntags-Briefing als Fließtext: Anwesenheit + Abwesenheit + Event mit Person + Aufgabe
-      const flow = document.querySelector('.brief-flow');
-      expect(flow, 'Briefing-Fließtext fehlt').toBeTruthy();
-      expect(flow!.textContent).toContain('Sebastian: Homeoffice');
-      expect(flow!.textContent).toContain('Betty: Dienstreise');
-      expect(flow!.textContent).toContain('Elternabend (Sebastian)');
-      expect(flow!.textContent).toContain('Dummy-Aufgabe');
+      // Sonntags-Briefing: je Tag eine Zeile, steht NACH dem Demnächst-Streifen
+      const html = document.body.innerHTML;
+      expect(html.indexOf('Demnächst')).toBeGreaterThanOrEqual(0);
+      expect(html.indexOf('Demnächst')).toBeLessThan(html.indexOf('Briefing'));
+      const days = [...document.querySelectorAll('.brief-day')];
+      expect(days.length, 'Briefing-Zeilen je Tag fehlen').toBeGreaterThanOrEqual(2); // Mo (HO+Elternabend) und Di (DR+Aufgabe)
+      const flowTxt = days.map((d) => d.textContent ?? '').join('\n');
+      expect(flowTxt).toContain('Sebastian: Homeoffice');
+      expect(flowTxt).toContain('Betty: Dienstreise');
+      expect(flowTxt).toContain('Elternabend (Sebastian)');
+      expect(flowTxt).toContain('Dummy-Aufgabe');
+      expect(days[0].querySelector('.bf-day'), 'Tag-Label je Briefing-Zeile fehlt').toBeTruthy();
       expect(document.body.textContent).not.toContain('Betreuung offen'); // redundant zum Achtung-Chip
 
       // Morgen-Karte: gleiche Inhaltskategorien wie Heute (Wer-Zeile mit Status)
@@ -210,7 +216,10 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       const wm = cards[1].querySelector('.who-row');
       expect(wm, 'Morgen-Karte ohne Wer-Zeile').toBeTruthy();
       expect(wm!.textContent).toContain('Sebastian');
-      expect(wm!.textContent).toContain('Homeoffice'); // Mo = morgen (relativ zu So)
+      expect(wm!.textContent).not.toContain('Homeoffice'); // nur Name + Symbol, Label als Tooltip
+      expect(cards[1].querySelector('.who[title*="Homeoffice"]'), 'Status-Tooltip fehlt').toBeTruthy(); // Mo = morgen (relativ zu So)
+      // erledigte Aufgaben nicht auf Start
+      expect(cards[0].textContent).not.toContain('Erledigte Dummy-Aufgabe');
 
       // Neuanlage Geburtstag: manuelles Datumsfeld leer + Plausibilitäts-Maske
       const { EditSheet } = await import('./ui/EditSheet');

@@ -28,7 +28,7 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 | Einmaltermin | Kinderarzt, Klassenarbeit, Elternabend | Uhrzeit, Betroffene, **„Wer kümmert sich?“** (offen = Warnung), optional mehrtägig oder wiederkehrend, **Übernahme anfragen** |
 | Event | Festival, Konzert, Veranstaltung | zuhause oder auswärts, auch mehrtägig; keine Logik |
 | Aufgabe | Geschenk besorgen, Kita-Beitrag | Fälligkeit, Zuständiger, erledigt; **wiederkehrend** (wöchentlich … jährlich: Abhaken rückt die Fälligkeit weiter), Übernahme anfragen |
-Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (Start, Tagesansicht, Aufgabenliste); im Bearbeiten-Dialog ist „erledigt“ ein **Button** (setzt sofort + schließt den Dialog), die Aktionsleiste liegt im Sheet-Footer und überlagert den Kalender-Picker nicht mehr.
+Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (Start, Tagesansicht, Aufgabenliste); im Bearbeiten-Dialog ist „erledigt“ ein **Button** (setzt sofort + schließt den Dialog), die Aktionsleiste liegt im Sheet-Footer und überlagert den Kalender-Picker nicht mehr. Erledigte Aufgaben werden auf **Start nicht mehr angezeigt** (nur im Aufgabenarchiv).
 
 | Frist (Aufgabe mit Vorlauf) | Personalausweis, Reisepass, Führerschein, TÜV, Vertrag kündigen, Garantie | Fälligkeit = Ablauf-/Stichtag, Vorlauf 2 Wochen … 1 Jahr: bis dahin „vorgemerkt“ (zählt nicht als offen), ab Vorlauf auf Startseite, in „Fristen – jetzt kümmern“ und als Benachrichtigung; Schnellwahl „+6 J.“/„+10 J.“ nach dem Erneuern |
 | Geburtstag | Oma Helga | jährlich |
@@ -44,7 +44,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 
 ## Menüführung (jede Funktion hat genau einen Platz)
 * **Untere Leiste = Alltag:** **Kalender** · **Mahlzeiten** · **Start** (rund, Mitte; lang drücken = neuer Eintrag) · **Einkauf** · **Mehr** (auf Tablets als Seitenleiste).
-* **Start** ist kompakt und visuell: **Status-Chips** (Achtung / Übernahme-Anfragen / Neu vom Partner – Symbol + Zahl, Klick = Pop-up mit den Details) · **Heute + Morgen** als Karten (gleiche Inhaltskategorien: Wer-Zeile mit Status, dann Linien inkl. Mahlzeit) · **Demnächst** als 7-Tage-Streifen (Zahl je Tag, Tag antippen = Tagesdetails) · **sonntags zusätzlich Briefing für die Folgewoche als Fließtext** (Demnächst-Streifen bleibt; inkl. Anwesenheit/Abwesenheit Homeoffice/Dienstreise/Urlaub und Event-Personen; „Betreuung offen“ entfällt – redundant zum Achtung-Chip). Brückentage-Tipps nur im **Verlauf**. Zweispaltig auf breiten Bildschirmen.
+* **Start** ist kompakt und visuell: **Status-Chips** (Achtung / Übernahme-Anfragen / Neu vom Partner – Symbol + Zahl, Klick = Pop-up mit den Details) · **Heute + Morgen** als Karten (gleiche Inhaltskategorien: Wer-Zeile nur Name + Status-Symbol, Label als Tooltip; dann Linien inkl. Mahlzeit) · **Demnächst** als 7-Tage-Streifen (Zahl je Tag, Tag antippen = Tagesdetails) · **sonntags Briefing** kommt **nach dem Demnächst-Streifen**, **je Tag eine Zeile** (inkl. Anwesenheit/Abwesenheit Homeoffice/Dienstreise/Urlaub und Event-Personen; „Betreuung offen“ entfällt – redundant zum Achtung-Chip). Brückentage-Tipps nur im **Verlauf**. Zweispaltig auf breiten Bildschirmen.
 * **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – **Aufgaben** (Fristen, wiederkehrend, Übernahme), Checklisten, Infomappe.
 * **Einstellungen** über das **Zahnrad in der Kopfzeile** (von überall): Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien · Kalender importieren · Über diese App (Version, Build, Commit).
   „synchron“/„offline“ in der Kopfzeile antippen öffnet direkt den Abschnitt Synchronisierung.
@@ -65,7 +65,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 * **Schnellaktionen am App-Symbol** (lang drücken): Einkauf eintragen, Neuer Termin, Neue Aufgabe, Heute. Technisch Direktlinks `de.familie.planer://shop | tasks | today | day/<Datum> | new/event | new/task | new/shop`.
 
 ## Ansichten
-Die Startseite zeigt Status-Chips mit Zählern (Pop-up bei Klick), die Karten „Heute“ und „Morgen“ (inkl. Mahlzeit des Tages, Klick = Mahlzeiten-Tab), den 7-Tage-Streifen „Demnächst“ (immer) und sonntags zusätzlich ein Briefing für die kommende Woche als Fließtext inkl. Anwesenheit/Abwesenheit (HO/Dienstreise/Urlaub) und Event-Personen (ohne „Betreuung offen“, redundant zum Achtung-Chip).
+Die Startseite zeigt Status-Chips mit Zählern (Pop-up bei Klick), die Karten „Heute“ und „Morgen“ (inkl. Mahlzeit des Tages, Klick = Mahlzeiten-Tab), den 7-Tage-Streifen „Demnächst“ (immer) und sonntags ein Briefing für die kommende Woche (nach dem Streifen, je Tag eine Zeile) inkl. Anwesenheit/Abwesenheit (HO/Dienstreise/Urlaub) und Event-Personen (ohne „Betreuung offen“, redundant zum Achtung-Chip).
 * **Woche**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
   für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
 * **Tag**: Tagesstreifen mit Ampel und Terminzahl, darunter alle Details des gewählten Tages.
@@ -92,7 +92,7 @@ Neben Anwesenheit und Betreuung zeigen alle Kalenderansichten auch **Geburtstage
 * **Jahr**: Marker oben links im Tag – pinker Punkt = Geburtstag, gelbes Quadrat = Aufgabe fällig (rot = überfällig), blauer Punkt = Termin/Info.
 * **Woche**: eigene Zeile „Termine“ (Torte, Aufgabe, Terminzahl) unter den Personen; Agenda darunter wie bisher. **Tag**: Zähler im Tagesstreifen.
 * **Verlauf**: Termine und Aufgaben in der Spalte der zuständigen Person; was niemandem gehört (Geburtstage, Infos, Familien-Termine, Aufgaben ohne Zuständigen) in der Datumsspalte.
-* **Start**: „Demnächst“ als 7-Tage-Streifen mit Zahl je Tag (Klick = Tagesdetails); sonntags zusätzlich Briefing der Folgewoche als Fließtext mit Anwesenheit/Abwesenheit (Streifen bleibt sichtbar); überfällige Aufgaben als rote Plakette am Streifen.
+* **Start**: „Demnächst“ als 7-Tage-Streifen mit Zahl je Tag (Klick = Tagesdetails); sonntags Briefing der Folgewoche nach dem Streifen (je Tag eine Zeile, mit Anwesenheit/Abwesenheit); überfällige Aufgaben als rote Plakette am Streifen. Erledigte Aufgaben erscheinen **nicht auf Start** (nur im Aufgabenarchiv).
 * **Ebenen-Schalter** (Knopf neben dem Personenfilter): Geburtstage, Aufgaben und Termine einzeln ein-/ausblenden, damit der Kalender übersichtlich bleibt.
 
 ## Tablets (responsiv)

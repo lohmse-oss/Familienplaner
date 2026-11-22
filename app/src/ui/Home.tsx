@@ -35,8 +35,8 @@ function WhoRow({ d }: { d: DayInfo }) {
   return (
     <div class="who-row">
       {PARENTS.map((p) => (
-        <span key={p} class="who" style={{ borderColor: PERSONS[p].color }}>
-          <Dot p={p} />{PERSONS[p].name} <StatusIc s={d.parents[p].status} size={15} /> {d.parents[p].status === 'free' ? '' : STATUS_LABEL[d.parents[p].status]}
+        <span key={p} class="who" style={{ borderColor: PERSONS[p].color }} title={d.parents[p].status === 'free' ? 'frei' : STATUS_LABEL[d.parents[p].status]}>
+          <Dot p={p} />{PERSONS[p].name} <StatusIc s={d.parents[p].status} size={15} />
         </span>
       ))}
     </div>
@@ -61,7 +61,7 @@ function DayLines({ d, date, items, go }: { d: DayInfo; date: string; items: Ite
           {e.owner ? <PersonTag p={e.owner} /> : needsOwner(e) ? <span class="open">offen</span> : null}
         </div>
       ))}
-      {d.tasks.map((x) => <div key={x.id} class={`line ${x.done ? 'done' : ''}`}><TaskCheck t={x} /><Ic n="tasks" size={16} /> {x.title}</div>)}
+      {d.tasks.filter((x) => !x.done).map((x) => <div key={x.id} class="line"><TaskCheck t={x} /><Ic n="tasks" size={16} /> {x.title}</div>)} // erledigte Aufgaben nur im Archiv
       {d.birthdays.map((b) => <div key={b.id} class="line"><Ic n="cake" size={16} /> {b.title}</div>)}
     </>
   );
@@ -188,30 +188,6 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
         {!tm.holiday && !tm.needs.length && !tm.events.length && !tm.birthdays.length && <div class="line muted">Morgen nichts Besonderes.</div>}
       </section>
 
-      {sunday && (
-        <section class="card">
-          <header class="card-head"><strong><Ic n="week" size={15} /> Briefing: Woche ab {WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</strong></header>
-          {briefDays.length === 0 ? (
-            <div class="line muted">Nächste Woche steht noch nichts an.</div>
-          ) : (
-            <p class="brief-flow">
-              {briefDays.map(({ date, list }, gi) => (
-                <Fragment key={date}>
-                  {gi > 0 && <span class="muted"> · </span>}
-                  <button class="link bf-day" onClick={() => openDay(date)}>{WD[dow(date)]} {fmtShort(date)}:</button>{' '}
-                  {list.map((x, i) => (
-                    <Fragment key={x.key}>
-                      {i > 0 && ', '}
-                      {x.e.kind === 'task' && <TaskCheck t={x.e} />}
-                      {x.text}
-                    </Fragment>
-                  ))}
-                </Fragment>
-              ))}
-            </p>
-          )}
-        </section>
-      )}
       <section class="card">
         <header class="card-head"><strong>Demnächst</strong>{overdue > 0 && <span class="pill pill-gap">{overdue} Aufgabe{overdue === 1 ? '' : 'n'} überfällig</span>}</header>
         {(() => {
@@ -253,6 +229,29 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
           );
         })()}
       </section>
+      {sunday && (
+        <section class="card">
+          <header class="card-head"><strong><Ic n="week" size={15} /> Briefing: Woche ab {WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</strong></header>
+          {briefDays.length === 0 ? (
+            <div class="line muted">Nächste Woche steht noch nichts an.</div>
+          ) : (
+            <div class="brief-days">
+              {briefDays.map(({ date, list }) => (
+                <div key={date} class="brief-day">
+                  <button class="link bf-day" onClick={() => openDay(date)}>{WD[dow(date)]} {fmtShort(date)}:</button>{' '}
+                  {list.map((x, i) => (
+                    <Fragment key={x.key}>
+                      {i > 0 && ', '}
+                      {x.e.kind === 'task' && <TaskCheck t={x.e} />}
+                      {x.text}
+                    </Fragment>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
       </div>
 
       {pop === 'attn' && (
