@@ -144,7 +144,6 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
         <div>
           <h2>Hallo {PERSONS[settings.me].name}</h2>
           <span class="muted">{WD_LONG[dow(t)]}, {fmt(t)}</span>
-          {!readOnly && <small class="hint home-tip">Neuer Eintrag: Startknopf lang drücken</small>}
         </div>
       </div>
 

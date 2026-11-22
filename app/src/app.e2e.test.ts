@@ -222,6 +222,7 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       // erledigte Aufgaben nicht auf Start; keine Kommentar-Texte im UI
       expect(cards[0].textContent).not.toContain('Erledigte Dummy-Aufgabe');
       expect(document.body.textContent).not.toContain('nur im Archiv');
+      expect(document.body.textContent).not.toContain('lang drücken'); // Hint-Text entfernt
       // Tagesblatt (aus Start geöffnet): offene Aufgabe ja, erledigte (Archiv) nein
       click(cards[0]);
       await vi.advanceTimersByTimeAsync(60);
