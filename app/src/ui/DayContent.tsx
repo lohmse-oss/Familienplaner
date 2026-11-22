@@ -13,13 +13,14 @@ interface Props {
   date: string;
   edit: (it: Item) => void;
   add: (k: Kind, date: string) => void;
+  hideDoneTasks?: boolean; // Tagesblatt aus Start: erledigte Aufgaben (Archiv) nicht anzeigen
 }
 
 /** Alle Details eines Tages: Status der Eltern, Betreuung, Einträge – im Tagesblatt und in der Tagesansicht der Woche. */
-export function DayContent({ date, edit, add }: Props) {
+export function DayContent({ date, edit, add, hideDoneTasks }: Props) {
   const { cal, readOnly } = useStore();
   const d = cal.day(date);
-  const items = cal.items.filter((i) => isCalendarKind(i.kind) && i.kind !== 'birthday' && i.start <= date && i.end >= date);
+  const items = cal.items.filter((i) => isCalendarKind(i.kind) && i.kind !== 'birthday' && i.start <= date && i.end >= date && !(hideDoneTasks && i.kind === 'task' && i.done));
 
   return (
     <>

@@ -28,7 +28,7 @@ manuell), krank. Wochenenden und Feiertage erzeugen keinen Bedarf. Ist ein Kind 
 | Einmaltermin | Kinderarzt, Klassenarbeit, Elternabend | Uhrzeit, Betroffene, **„Wer kümmert sich?“** (offen = Warnung), optional mehrtägig oder wiederkehrend, **Übernahme anfragen** |
 | Event | Festival, Konzert, Veranstaltung | zuhause oder auswärts, auch mehrtägig; keine Logik |
 | Aufgabe | Geschenk besorgen, Kita-Beitrag | Fälligkeit, Zuständiger, erledigt; **wiederkehrend** (wöchentlich … jährlich: Abhaken rückt die Fälligkeit weiter), Übernahme anfragen |
-Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (Start, Tagesansicht, Aufgabenliste); im Bearbeiten-Dialog ist „erledigt“ ein **Button** (setzt sofort + schließt den Dialog), die Aktionsleiste liegt im Sheet-Footer und überlagert den Kalender-Picker nicht mehr. Erledigte Aufgaben werden auf **Start nicht mehr angezeigt** (nur im Aufgabenarchiv).
+Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (Start, Tagesansicht, Aufgabenliste); im Bearbeiten-Dialog ist „erledigt“ ein **Button** (setzt sofort + schließt den Dialog), die Aktionsleiste liegt im Sheet-Footer und überlagert den Kalender-Picker nicht mehr. Erledigte Aufgaben werden auf **Start nicht mehr angezeigt** (nur im Aufgabenarchiv; auch das aus Start geöffnete Tagesblatt blendet sie aus).
 
 | Frist (Aufgabe mit Vorlauf) | Personalausweis, Reisepass, Führerschein, TÜV, Vertrag kündigen, Garantie | Fälligkeit = Ablauf-/Stichtag, Vorlauf 2 Wochen … 1 Jahr: bis dahin „vorgemerkt“ (zählt nicht als offen), ab Vorlauf auf Startseite, in „Fristen – jetzt kümmern“ und als Benachrichtigung; Schnellwahl „+6 J.“/„+10 J.“ nach dem Erneuern |
 | Geburtstag | Oma Helga | jährlich |

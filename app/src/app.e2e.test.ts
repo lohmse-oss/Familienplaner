@@ -190,6 +190,7 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       saveItem({ id: 'd3', kind: 'event', title: 'Elternabend', start: t1, end: t1, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
       saveItem({ id: 'd4', kind: 'task', title: 'Dummy-Aufgabe', start: t2, end: t2, persons: [], updated: 0 } as never);
       saveItem({ id: 'd5', kind: 'task', title: 'Erledigte Dummy-Aufgabe', start: t, end: t, persons: [], done: true, updated: 0 } as never);
+      saveItem({ id: 'd6', kind: 'task', title: 'Offene Dummy-Aufgabe', start: t, end: t, persons: [], updated: 0 } as never);
       const root = document.createElement('div');
       document.body.appendChild(root);
       render(h(App, {}), root);
@@ -220,6 +221,14 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       expect(cards[1].querySelector('.who[title*="Homeoffice"]'), 'Status-Tooltip fehlt').toBeTruthy(); // Mo = morgen (relativ zu So)
       // erledigte Aufgaben nicht auf Start
       expect(cards[0].textContent).not.toContain('Erledigte Dummy-Aufgabe');
+      // Tagesblatt (aus Start geöffnet): offene Aufgabe ja, erledigte (Archiv) nein
+      click(cards[0]);
+      await vi.advanceTimersByTimeAsync(60);
+      const daySheet = document.querySelector('.sheet')!;
+      expect(daySheet.textContent).toContain('Offene Dummy-Aufgabe');
+      expect(daySheet.textContent).not.toContain('Erledigte Dummy-Aufgabe');
+      click(daySheet.querySelector('.backdrop') ?? document.querySelector('.backdrop')!);
+      await vi.advanceTimersByTimeAsync(30);
 
       // Neuanlage Geburtstag: manuelles Datumsfeld leer + Plausibilitäts-Maske
       const { EditSheet } = await import('./ui/EditSheet');
