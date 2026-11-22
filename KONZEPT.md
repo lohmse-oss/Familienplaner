@@ -44,7 +44,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 
 ## Menüführung (jede Funktion hat genau einen Platz)
 * **Untere Leiste = Alltag:** **Kalender** · **Mahlzeiten** · **Start** (rund, Mitte; lang drücken = neuer Eintrag) · **Einkauf** · **Mehr** (auf Tablets als Seitenleiste).
-* **Start** ist kompakt und visuell: **Status-Chips** (Achtung / Übernahme-Anfragen / Neu vom Partner – Symbol + Zahl, Klick = Pop-up mit den Details) · **Heute + Morgen** als Karten · **Demnächst** als 7-Tage-Streifen (Zahl je Tag, Tag antippen = Tagesdetails) · **sonntags zusätzlich Briefing für die Folgewoche als Fließtext** (Demnächst-Streifen bleibt; „Betreuung offen“ entfällt – redundant zum Achtung-Chip). Brückentage-Tipps nur im **Verlauf**. Zweispaltig auf breiten Bildschirmen.
+* **Start** ist kompakt und visuell: **Status-Chips** (Achtung / Übernahme-Anfragen / Neu vom Partner – Symbol + Zahl, Klick = Pop-up mit den Details) · **Heute + Morgen** als Karten (gleiche Inhaltskategorien: Wer-Zeile mit Status, dann Linien inkl. Mahlzeit) · **Demnächst** als 7-Tage-Streifen (Zahl je Tag, Tag antippen = Tagesdetails) · **sonntags zusätzlich Briefing für die Folgewoche als Fließtext** (Demnächst-Streifen bleibt; inkl. Anwesenheit/Abwesenheit Homeoffice/Dienstreise/Urlaub und Event-Personen; „Betreuung offen“ entfällt – redundant zum Achtung-Chip). Brückentage-Tipps nur im **Verlauf**. Zweispaltig auf breiten Bildschirmen.
 * **Mehr** enthält nur, was nicht unten steht: *Planen* – Urlaub (Urlaubskonto, Zeiträume, Brückentage), Geburtstage · *Organisieren* – **Aufgaben** (Fristen, wiederkehrend, Übernahme), Checklisten, Infomappe.
 * **Einstellungen** über das **Zahnrad in der Kopfzeile** (von überall): Ich & Zugriff · Synchronisierung · Hinweise · Darstellung & Widget · Feiertage & Ferien · Kalender importieren · Über diese App (Version, Build, Commit).
   „synchron“/„offline“ in der Kopfzeile antippen öffnet direkt den Abschnitt Synchronisierung.
@@ -57,7 +57,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 * **Zurück mit Verlauf:** „Zurück“ (Pfeil, Android-Taste, Wischen vom linken Rand) führt dorthin, wo du herkamst; aktiven Tab nochmal tippen = nach oben. Jede Ansicht **merkt sich ihre Scrollposition**.
 * **Herunterziehen** am Seitenanfang gleicht sofort ab.
 * **Neuer Eintrag = Start-Knopf lang drücken:** immer die volle Auswahl (Urlaub, Termin, Event, Aufgabe, Betreuungsbedarf, Geburtstag, Einkauf, Checkliste, Infomappe) – in jedem Bereich gleich. Die Tagesdetails behalten ihre Symbolreihe (mit Datum vorbelegt).
-* **Datum/Zeitraum wählen** immer direkt in einem Monatskalender (mit Feiertagen, Ferien, Ampel): 1. Tippen = Start, 2. Tippen = Ende, ein Tag = zweimal denselben Tag; Aufgaben und wiederkehrende Termine: ein Tippen. Nur das Geburtsdatum bleibt ein Eingabefeld (Jahr). Freie Datumseingaben (TT.MM.JJJJ) segmentieren laufende Ziffern automatisch: 2 Ziffern Tag, 2 Monat, 4 Jahr („23112026“ → „23.11.2026“).
+* **Datum/Zeitraum wählen** immer direkt in einem Monatskalender (mit Feiertagen, Ferien, Ampel): 1. Tippen = Start, 2. Tippen = Ende, ein Tag = zweimal denselben Tag; Aufgaben und wiederkehrende Termine: ein Tippen. Nur das Geburtsdatum bleibt ein Eingabefeld (Jahr). Freie Datumseingaben (TT.MM.JJJJ) segmentieren laufende Ziffern automatisch: 2 Ziffern Tag, 2 Monat, 4 Jahr („23112026“ → „23.11.2026“), mit Plausibilität (Monat nie >12, Tag nie >31 – 4 wird zu 04; ungültige Daten wie 31.02. rot markiert). Bei Neuanlage ohne Tagesbezug sind die Datumsfelder leer – Speichern erst mit gültigem Datum.
 * **Betreuung durch Dritte** ist keine eigene Auswahl mehr: im Betreuungsbedarf optional „Wer betreut?“ (legt die Betreuung für denselben Zeitraum mit an); für Ferien-Lücken im Jahresplaner (Modus „Betreuung durch Dritte“).
 * **Beim Eintragen** zeigt „Zu der Zeit außerdem“ Kreise je Tag wie im Widget und was im Zeitraum sonst ansteht. Nach dem Speichern/Löschen erscheint die Bestätigungs-Snackbar mit Rückgängig für 7 s (Auto-Dismiss) — zusätzlich per Tippen, X oder seitlichem Wischen schließbar.
 * **Eingaben überstehen den App-Wechsel:** offener Dialog, Entwurf, Auswahl im Jahresplaner u. Ä. werden gesichert, falls Android die App im Hintergrund beendet (max. 2 Std.).
@@ -65,7 +65,7 @@ Aufgaben lassen sich **überall per Haken abhaken**, wo sie angezeigt werden (St
 * **Schnellaktionen am App-Symbol** (lang drücken): Einkauf eintragen, Neuer Termin, Neue Aufgabe, Heute. Technisch Direktlinks `de.familie.planer://shop | tasks | today | day/<Datum> | new/event | new/task | new/shop`.
 
 ## Ansichten
-Die Startseite zeigt Status-Chips mit Zählern (Pop-up bei Klick), die Karten „Heute“ und „Morgen“ (inkl. Mahlzeit des Tages, Klick = Mahlzeiten-Tab), den 7-Tage-Streifen „Demnächst“ (immer) und sonntags zusätzlich ein Briefing für die kommende Woche als Fließtext (ohne „Betreuung offen“, redundant zum Achtung-Chip).
+Die Startseite zeigt Status-Chips mit Zählern (Pop-up bei Klick), die Karten „Heute“ und „Morgen“ (inkl. Mahlzeit des Tages, Klick = Mahlzeiten-Tab), den 7-Tage-Streifen „Demnächst“ (immer) und sonntags zusätzlich ein Briefing für die kommende Woche als Fließtext inkl. Anwesenheit/Abwesenheit (HO/Dienstreise/Urlaub) und Event-Personen (ohne „Betreuung offen“, redundant zum Achtung-Chip).
 * **Woche**: Wochenmatrix (Eltern-Status, Betreuungsbedarf der Kinder und Ampel für alle 7 Tage auf einen Blick) plus kompakte Agenda nur
   für Tage mit Inhalt. Zelle antippen → Status ändern für den Tag, bis Freitag oder die ganze Woche, auch für beide Eltern. Wischen wechselt die Woche.
 * **Tag**: Tagesstreifen mit Ampel und Terminzahl, darunter alle Details des gewählten Tages.
@@ -92,7 +92,7 @@ Neben Anwesenheit und Betreuung zeigen alle Kalenderansichten auch **Geburtstage
 * **Jahr**: Marker oben links im Tag – pinker Punkt = Geburtstag, gelbes Quadrat = Aufgabe fällig (rot = überfällig), blauer Punkt = Termin/Info.
 * **Woche**: eigene Zeile „Termine“ (Torte, Aufgabe, Terminzahl) unter den Personen; Agenda darunter wie bisher. **Tag**: Zähler im Tagesstreifen.
 * **Verlauf**: Termine und Aufgaben in der Spalte der zuständigen Person; was niemandem gehört (Geburtstage, Infos, Familien-Termine, Aufgaben ohne Zuständigen) in der Datumsspalte.
-* **Start**: „Demnächst“ als 7-Tage-Streifen mit Zahl je Tag (Klick = Tagesdetails); sonntags zusätzlich Briefing der Folgewoche als Fließtext (Streifen bleibt sichtbar); überfällige Aufgaben als rote Plakette am Streifen.
+* **Start**: „Demnächst“ als 7-Tage-Streifen mit Zahl je Tag (Klick = Tagesdetails); sonntags zusätzlich Briefing der Folgewoche als Fließtext mit Anwesenheit/Abwesenheit (Streifen bleibt sichtbar); überfällige Aufgaben als rote Plakette am Streifen.
 * **Ebenen-Schalter** (Knopf neben dem Personenfilter): Geburtstage, Aufgaben und Termine einzeln ein-/ausblenden, damit der Kalender übersichtlich bleibt.
 
 ## Tablets (responsiv)

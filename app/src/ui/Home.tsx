@@ -31,6 +31,18 @@ const seenAsks = (): string[] => {
 };
 
 /** Einträge eines Tages (Mahlzeit, Feiertag, Betreuungsbedarf, Termine, Aufgaben, Geburtstage) – für Heute- und Morgen-Karte. */
+function WhoRow({ d }: { d: DayInfo }) {
+  return (
+    <div class="who-row">
+      {PARENTS.map((p) => (
+        <span key={p} class="who" style={{ borderColor: PERSONS[p].color }}>
+          <Dot p={p} />{PERSONS[p].name} <StatusIc s={d.parents[p].status} size={15} /> {d.parents[p].status === 'free' ? '' : STATUS_LABEL[d.parents[p].status]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function DayLines({ d, date, items, go }: { d: DayInfo; date: string; items: Item[]; go: (t: Tab) => void }) {
   const meal = mealOn(items, date);
   return (
@@ -91,18 +103,20 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
     .flatMap((date) => {
       const dd = cal.day(date);
       return [
-        ...(L.events ? dd.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date), e })) : []),
+        ...(L.events ? dd.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date) + (e.persons.length ? ` (${e.persons.map((pp) => PERSONS[pp].name).join(', ')})` : ''), e })) : []),
         ...(L.tasks ? dd.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
         ...(L.birthdays ? dd.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
       ];
     });
-  // Briefing als Fließtext: Einträge nach Tag gruppiert
-  const briefGroups: [string, typeof soonAll][] = [];
-  for (const x of soonAll) {
-    const g = briefGroups.find(([d]) => d === x.date);
-    if (g) g[1].push(x);
-    else briefGroups.push([x.date, [x]]);
-  }
+  // Briefing als Fließtext: alle 7 Tage, dazu Anwesenheit/Abwesenheit (Homeoffice, Dienstreise, Urlaub)
+  const briefDays = [...range(addDays(t, 1), addDays(t, 7))]
+    .map((date) => {
+      const dd = cal.day(date);
+      const sts = PARENTS.filter((p) => ['homeoffice', 'trip', 'vacation'].includes(dd.parents[p].status))
+        .map((p) => ({ date, key: `st:${p}`, icon: 'today' as IconName, text: `${PERSONS[p].name}: ${STATUS_LABEL[dd.parents[p].status]}${dd.parents[p].away ? ' (verreist)' : ''}`, e: (dd.parents[p].item ?? { kind: 'presence' }) as Item }));
+      return { date, list: [...sts, ...soonAll.filter((x) => x.date === date)] };
+    })
+    .filter((g) => g.list.length > 0);
   const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t).length;
   const unowned = [...range(t, addDays(t, 14))].reduce((n, date) => n + cal.day(date).events.filter((e) => needsOwner(e) && !e.owner).length, 0);
 
@@ -162,19 +176,14 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
 
       <section class="card today-card" onClick={() => openDay(t)}>
         <header class="card-head"><strong>Heute</strong><Pill coverage={d.coverage} /></header>
-        <div class="who-row">
-          {PARENTS.map((p) => (
-            <span key={p} class="who" style={{ borderColor: PERSONS[p].color }}>
-              <Dot p={p} />{PERSONS[p].name} <StatusIc s={d.parents[p].status} size={15} /> {d.parents[p].status === 'free' ? '' : STATUS_LABEL[d.parents[p].status]}
-            </span>
-          ))}
-        </div>
+        <WhoRow d={d} />
         <DayLines d={d} date={t} items={items} go={go} />
         {!d.holiday && !d.needs.length && !d.events.length && !d.birthdays.length && <div class="line muted">Heute nichts Besonderes.</div>}
       </section>
 
       <section class="card today-card" onClick={() => openDay(addDays(t, 1))}>
         <header class="card-head"><strong>Morgen</strong><span class="muted small">{WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</span><Pill coverage={tm.coverage} /></header>
+        <WhoRow d={tm} />
         <DayLines d={tm} date={addDays(t, 1)} items={items} go={go} />
         {!tm.holiday && !tm.needs.length && !tm.events.length && !tm.birthdays.length && <div class="line muted">Morgen nichts Besonderes.</div>}
       </section>
@@ -182,11 +191,11 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       {sunday && (
         <section class="card">
           <header class="card-head"><strong><Ic n="week" size={15} /> Briefing: Woche ab {WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</strong></header>
-          {briefGroups.length === 0 ? (
+          {briefDays.length === 0 ? (
             <div class="line muted">Nächste Woche steht noch nichts an.</div>
           ) : (
             <p class="brief-flow">
-              {briefGroups.map(([date, list], gi) => (
+              {briefDays.map(({ date, list }, gi) => (
                 <Fragment key={date}>
                   {gi > 0 && <span class="muted"> · </span>}
                   <button class="link bf-day" onClick={() => openDay(date)}>{WD[dow(date)]} {fmtShort(date)}:</button>{' '}

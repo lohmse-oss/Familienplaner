@@ -13,7 +13,7 @@ import { MonthGrid } from './MonthGrid';
  */
 export function RangePicker({ start, end, onChange, single }: { start: string; end: string; onChange: (start: string, end: string) => void; single?: boolean }) {
   const { cal } = useStore();
-  const [ym, setYm] = useState(start.slice(0, 7));
+  const [ym, setYm] = useState((start || today()).slice(0, 7));
   const [pending, setPending] = useState(false); // Start gewählt, Ende steht noch aus
   const y = Number(ym.slice(0, 4));
   const m = Number(ym.slice(5, 7)) - 1;
@@ -34,7 +34,9 @@ export function RangePicker({ start, end, onChange, single }: { start: string; e
   const days = !single && end > start ? [...range(start, end)] : [start];
   const n = diff(start, end) + 1;
   const label = (s: string) => `${WD[dow(s)]} ${fmtShort(s)}`;
-  const summary = single
+  const summary = !start
+    ? 'Im Kalender antippen = Datum w\u00e4hlen'
+    : single
     ? `${WD[dow(start)]} ${fmt(start)}`
     : pending
       ? `Start ${label(start)} – jetzt Ende antippen (gleicher Tag = nur dieser Tag)`

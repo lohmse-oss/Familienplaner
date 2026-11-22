@@ -86,12 +86,37 @@ export function parseUserDate(s: string): string | null {
   return null;
 }
 
-/** Laufende Ziffern automatisch als TT.MM.JJJJ segmentieren: "23112026" → "23.11.2026" (max. 8 Ziffern). */
+/**
+ * Laufende Ziffern automatisch als TT.MM.JJJJ segmentieren: "23112026" → "23.11.2026".
+ * Plausibilität beim Tippen: Tag/Monat mit erster Ziffer >3 bzw. >1 wird "0x" (4 → 04, also nie 43 als Monat);
+ * ungültige zweite Stelle (Tag 32-39, Monat 13-19) wird nicht übernommen. Max. 8 Ziffern.
+ */
 export function maskDateDigits(raw: string): string {
-  const d = raw.replace(/\D/g, '').slice(0, 8);
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+  const digs = raw.replace(/\D/g, '');
+  let i = 0;
+  let day = '';
+  if (i < digs.length) {
+    const c = digs[i++];
+    if (+c > 3) day = '0' + c;
+    else {
+      day = c;
+      if (i < digs.length && (+c !== 3 || +digs[i] <= 1)) day += digs[i++];
+    }
+  }
+  let mon = '';
+  if (i < digs.length) {
+    const c = digs[i++];
+    if (+c > 1) mon = '0' + c;
+    else {
+      mon = c;
+      if (i < digs.length && (+c !== 1 || +digs[i] <= 2)) mon += digs[i++];
+    }
+  }
+  const year = digs.slice(i, i + 4);
+  let s = day;
+  if (mon) s += '.' + mon;
+  if (year) s += '.' + year;
+  return s;
 }
 
 /**

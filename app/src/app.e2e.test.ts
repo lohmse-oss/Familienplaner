@@ -172,4 +172,82 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       vi.useRealTimers();
     }
   });
+
+  it('Dummy-Daten: Briefing mit Anwesenheit/Events, Morgen wie Heute, Neuanlage leeres Datum + Plausibilitaet', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-22T12:00:00')); // Sonntag
+    try {
+      document.body.innerHTML = '';
+      localStorage.clear();
+      const { App } = await import('./App');
+      const { saveItem, updateSettings } = await import('./store');
+      updateSettings({ me: 'sebastian' });
+      const t = today(); // So 22.11.2026
+      const t1 = addDays(t, 1); // Mo
+      const t2 = addDays(t, 2); // Di
+      saveItem({ id: 'd1', kind: 'presence', start: t1, end: t1, persons: ['sebastian'], mode: 'homeoffice', updated: 0 } as never);
+      saveItem({ id: 'd2', kind: 'presence', title: 'Messe', start: t2, end: addDays(t2, 1), persons: ['betty'], mode: 'trip', updated: 0 } as never);
+      saveItem({ id: 'd3', kind: 'event', title: 'Elternabend', start: t1, end: t1, persons: ['sebastian'], owner: 'sebastian', updated: 0 } as never);
+      saveItem({ id: 'd4', kind: 'task', title: 'Dummy-Aufgabe', start: t2, end: t2, persons: [], updated: 0 } as never);
+      const root = document.createElement('div');
+      document.body.appendChild(root);
+      render(h(App, {}), root);
+      await vi.advanceTimersByTimeAsync(120);
+
+      // Sonntags-Briefing als Fließtext: Anwesenheit + Abwesenheit + Event mit Person + Aufgabe
+      const flow = document.querySelector('.brief-flow');
+      expect(flow, 'Briefing-Fließtext fehlt').toBeTruthy();
+      expect(flow!.textContent).toContain('Sebastian: Homeoffice');
+      expect(flow!.textContent).toContain('Betty: Dienstreise');
+      expect(flow!.textContent).toContain('Elternabend (Sebastian)');
+      expect(flow!.textContent).toContain('Dummy-Aufgabe');
+      expect(document.body.textContent).not.toContain('Betreuung offen'); // redundant zum Achtung-Chip
+
+      // Morgen-Karte: gleiche Inhaltskategorien wie Heute (Wer-Zeile mit Status)
+      const cards = [...document.querySelectorAll('.today-card')];
+      expect(cards.length).toBe(2);
+      expect(cards[0].querySelector('.who-row'), 'Heute-Karte ohne Wer-Zeile').toBeTruthy();
+      const wm = cards[1].querySelector('.who-row');
+      expect(wm, 'Morgen-Karte ohne Wer-Zeile').toBeTruthy();
+      expect(wm!.textContent).toContain('Sebastian');
+      expect(wm!.textContent).toContain('Homeoffice'); // Mo = morgen (relativ zu So)
+
+      // Neuanlage Geburtstag: manuelles Datumsfeld leer + Plausibilitäts-Maske
+      const { EditSheet } = await import('./ui/EditSheet');
+      const r3 = document.createElement('div');
+      document.body.appendChild(r3);
+      render(h(EditSheet, { initial: { kind: 'birthday' }, onClose: () => {} }), r3);
+      await vi.advanceTimersByTimeAsync(60);
+      const bdayDate = r3.querySelector('.date-input input[inputmode="numeric"]') as HTMLInputElement;
+      expect(bdayDate, 'Datumsfeld fehlt').toBeTruthy();
+      expect(bdayDate.value).toBe(''); // leer bei Neuanlage
+      setInput(bdayDate, '2343');
+      await vi.advanceTimersByTimeAsync(30);
+      expect(bdayDate.value).toBe('23.04.3'); // Monat kann nie 43 werden
+      setInput(bdayDate, '31022027');
+      await vi.advanceTimersByTimeAsync(30);
+      expect(bdayDate.value).toBe('31.02.2027');
+      expect(r3.querySelector('.date-input .neg'), 'Plausibilitätsfehler (31.02.) nicht markiert').toBeTruthy();
+      render(null, r3); // unmount -> Entwurf wird geleert
+
+      // Neuanlage Termin: Kalender leer, Speichern erst nach Datumswahl
+      const r2 = document.createElement('div');
+      document.body.appendChild(r2);
+      render(h(EditSheet, { initial: { kind: 'event' }, onClose: () => {} }), r2);
+      await vi.advanceTimersByTimeAsync(60);
+      const sheet = r2.querySelector('.sheet')!;
+      expect(sheet.querySelector('.rpick-sum')!.textContent).toContain('antippen'); // nicht vorbelegt
+      const saveBtn = () => [...sheet.querySelectorAll('button')].find((b) => b.textContent === 'Speichern') as HTMLButtonElement;
+      setInput(sheet.querySelector('input[type="text"]') as HTMLInputElement, 'Dummy-Termin');
+      await vi.advanceTimersByTimeAsync(30);
+      expect(saveBtn()!.disabled, 'Speichern ohne Datum erlaubt').toBe(true);
+      const day15 = [...sheet.querySelectorAll('.rpick-grid button')].find((b) => b.textContent?.trim().startsWith('15'));
+      expect(day15, 'Kalendertag 15 fehlt').toBeTruthy();
+      click(day15!);
+      await vi.advanceTimersByTimeAsync(30);
+      expect(saveBtn()!.disabled, 'Speichern nach Datumswahl noch deaktiviert').toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

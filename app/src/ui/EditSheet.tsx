@@ -72,8 +72,8 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   const [d, setD] = useUiState<Item>('edit', () => ({
     id: initial.id ?? newId(),
     updated: 0,
-    start: initial.start ?? today(),
-    end: initial.end ?? initial.start ?? today(),
+    start: initial.start ?? '',
+    end: initial.end ?? initial.start ?? '',
     persons: initial.persons ?? (k === 'presence' ? [settings.me] : []),
     mode: k === 'presence' ? (initial.mode ?? 'vacation') : initial.mode,
     owner: initial.owner ?? null,
@@ -120,6 +120,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   const what = k === 'presence' && d.mode ? MODE_LABEL[d.mode] : info.short;
 
   const valid = (() => {
+    if (!d.start) return false; // Neuanlage: erst gültiges Datum, dann speicherbar
     if (['event', 'task', 'birthday', 'info'].includes(k) && !d.title?.trim()) return false;
     if (k === 'care' && !d.persons.some((p) => CHILDREN.includes(p))) return false;
     if (k === 'presence' && (!d.persons.length || !d.mode)) return false;

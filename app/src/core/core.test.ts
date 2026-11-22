@@ -365,6 +365,11 @@ describe('Datumseingabe (Text) & Alter', () => {
     expect(maskDateDigits('23.11.2026')).toBe('23.11.2026');
     expect(maskDateDigits('231120269999')).toBe('23.11.2026'); // max. 8 Ziffern
     expect(maskDateDigits('a2b3')).toBe('23');
+    // Plausibilität: keine ungültigen Tag/Monat-Werte beim Tippen
+    expect(maskDateDigits('4')).toBe('04'); // Tag/Monat 4 -> 04
+    expect(maskDateDigits('234')).toBe('23.04'); // Monat 4 -> 04 (nie 43)
+    expect(maskDateDigits('2313')).toBe('23.1.3'); // Monat 13 nicht möglich
+    expect(maskDateDigits('31022027')).toBe('31.02.2027'); // 31.02. als Text ok, parseUserDate lehnt ab
   });
   it('ageOn: Alter am Stichtag; Geburtsjahr nur fürs Alter (Kalender zählt nur MM-TT)', () => {
     expect(ageOn('1955-05-07', '2027-05-06')).toBe(71);

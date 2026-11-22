@@ -135,7 +135,7 @@ export function App() {
       setFocusShop((n) => n + 1);
     } else if (!readOnly) {
       nav(l.what === 'task' ? 'tasks' : 'cal');
-      setSheet({ t: 'edit', item: { kind: l.what, start: today(), end: today() } });
+      setSheet({ t: 'edit', item: { kind: l.what } });
     }
   };
 
@@ -374,7 +374,7 @@ export function App() {
       {sheet?.t === 'pick' && (
         <KindPicker
           onClose={close}
-          onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : tab === 'cal' ? { start: today(), end: today() } : {}) } })}
+          onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : {}) } })}
           onShop={() => { close(); nav('shop'); setFocusShop((n) => n + 1); }}
           onList={() => { close(); nav('lists'); setNewList((n) => n + 1); }}
           onFact={() => setSheet({ t: 'fact' })}
