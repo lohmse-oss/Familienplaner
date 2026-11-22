@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { h, render } from 'preact';
-import { addDays, dow, today, WD } from './core/dates';
+import { addDays, dow, fmt, today, WD } from './core/dates';
 
 const click = (el: Element) => void el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 const setInput = (el: HTMLInputElement, v: string) => {
@@ -36,9 +36,19 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
 
     // Mahlzeit für heute eintragen (Datum ist vorausgefüllt mit heute)
     const form = document.querySelector('.meal-add') as HTMLFormElement;
-    const dateInput = form.querySelector('input[type="date"]') as HTMLInputElement;
-    expect(dateInput.value).toBe(today());
-    setInput(form.querySelector('input[type="text"]') as HTMLInputElement, 'Nudeln');
+    const dateInput = form.querySelector('input[inputmode="numeric"]') as HTMLInputElement;
+    expect(dateInput.value).toBe(fmt(today())); // vorbefüllt mit heute (TT.MM.JJJJ)
+    // manuelle Ziffern-Eingabe wird automatisch segmentiert: 2311 -> 23.11, 23112026 -> 23.11.2026
+    setInput(dateInput, '2311');
+    await tick();
+    expect(dateInput.value).toBe('23.11');
+    setInput(dateInput, '23112026');
+    await tick();
+    expect(dateInput.value).toBe('23.11.2026');
+    setInput(dateInput, fmt(today()).replace(/\D/g, '')); // wieder auf heute
+    await tick();
+    expect(dateInput.value).toBe(fmt(today()));
+    setInput(form.querySelector('input[placeholder*="Mahlzeit"]') as HTMLInputElement, 'Nudeln'); // Textfeld (nicht das Datumsfeld)
     await tick(); // State flushen, bevor das Formular abgeschickt wird
     submit(form);
     await tick();

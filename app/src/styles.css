@@ -303,7 +303,10 @@ h1, h2, h3 { margin: 0; }
 .x-btn { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 6px 4px; }
 .x-btn.on { color: var(--accent); }
 .done-toggle { display: block; margin: 12px 4px 6px; padding: 4px; }
-.meal-add input[type="date"] { flex: 0 0 auto; width: 9.4em; padding: 13px 8px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); font-size: 14.5px; color: var(--ink); }
+.meal-add .date-input { flex: 0 0 auto; width: 9.4em; }
+.meal-add .date-input input[type="text"] { width: 100%; padding: 13px 8px; font-size: 14.5px; }
+.brief-flow { margin: 4px 0 0; line-height: 1.75; }
+.brief-flow .bf-day { padding: 0; font-weight: 600; }
 .meal-date { flex-shrink: 0; min-width: 6.4em; font-size: 13.5px; color: var(--muted); }
 .meal-row.today .meal-date { color: var(--accent); font-weight: 700; }
 .meal-row.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-radius: 10px; }

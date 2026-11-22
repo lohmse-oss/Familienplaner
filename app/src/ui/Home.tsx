@@ -96,6 +96,13 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
         ...(L.birthdays ? dd.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
       ];
     });
+  // Briefing als Fließtext: Einträge nach Tag gruppiert
+  const briefGroups: [string, typeof soonAll][] = [];
+  for (const x of soonAll) {
+    const g = briefGroups.find(([d]) => d === x.date);
+    if (g) g[1].push(x);
+    else briefGroups.push([x.date, [x]]);
+  }
   const overdue = items.filter((i) => i.kind === 'task' && !i.deleted && !i.done && i.start < t).length;
   const unowned = [...range(t, addDays(t, 14))].reduce((n, date) => n + cal.day(date).events.filter((e) => needsOwner(e) && !e.owner).length, 0);
 
@@ -175,21 +182,25 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       {sunday && (
         <section class="card">
           <header class="card-head"><strong><Ic n="week" size={15} /> Briefing: Woche ab {WD[dow(addDays(t, 1))]}, {fmtShort(addDays(t, 1))}</strong></header>
-          {gap && (
-            <div class="line link-row need" onClick={() => go('vacation')}>
-              <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
-            </div>
+          {briefGroups.length === 0 ? (
+            <div class="line muted">Nächste Woche steht noch nichts an.</div>
+          ) : (
+            <p class="brief-flow">
+              {briefGroups.map(([date, list], gi) => (
+                <Fragment key={date}>
+                  {gi > 0 && <span class="muted"> · </span>}
+                  <button class="link bf-day" onClick={() => openDay(date)}>{WD[dow(date)]} {fmtShort(date)}:</button>{' '}
+                  {list.map((x, i) => (
+                    <Fragment key={x.key}>
+                      {i > 0 && ', '}
+                      {x.e.kind === 'task' && <TaskCheck t={x.e} />}
+                      {x.text}
+                    </Fragment>
+                  ))}
+                </Fragment>
+              ))}
+            </p>
           )}
-          {soonAll.length === 0 && !gap && <div class="line muted">Nächste Woche steht noch nichts an.</div>}
-          {soonAll.map(({ date, key, icon, text, e }) => (
-            <div key={key + date} class="line link-row" onClick={() => openDay(date)}>
-              <span class="time wide">{WD[dow(date)]} {fmtShort(date)}</span>
-              {e.kind === 'task' && <TaskCheck t={e} />}
-              <Ic n={icon} size={15} class="muted" />
-              <span class="grow">{text}</span>
-              {e.owner ? <PersonTag p={e.owner} /> : e.kind === 'event' && needsOwner(e) ? <span class="open">offen</span> : null}
-            </div>
-          ))}
         </section>
       )}
       <section class="card">

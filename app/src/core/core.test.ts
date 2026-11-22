@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import hd from '../data/holidays.json';
 import { findBridges } from './bridges';
 import { buildCalendar, dayTag, evText, isMultiDay } from './calendar';
-import { addDays, ageOn, contiguousRuns, dayOfYear, dow, isoWeek, parseUserDate, planningYear, weekStart } from './dates';
+import { addDays, ageOn, contiguousRuns, dayOfYear, dow, isoWeek, maskDateDigits, parseUserDate, planningYear, weekStart } from './dates';
 import { annotateChanges, describeChange } from './describe';
 import { marksOf } from './layers';
 import { relevant } from './filter';
@@ -352,6 +352,19 @@ describe('Datumseingabe (Text) & Alter', () => {
     expect(parseUserDate('13.13.2027')).toBeNull();
     expect(parseUserDate('hallo')).toBeNull();
     expect(parseUserDate('')).toBeNull();
+  });
+
+  it('maskDateDigits: laufende Ziffern automatisch als TT.MM.JJJJ segmentieren', () => {
+    expect(maskDateDigits('')).toBe('');
+    expect(maskDateDigits('2')).toBe('2');
+    expect(maskDateDigits('23')).toBe('23');
+    expect(maskDateDigits('231')).toBe('23.1');
+    expect(maskDateDigits('2311')).toBe('23.11');
+    expect(maskDateDigits('23112')).toBe('23.11.2');
+    expect(maskDateDigits('23112026')).toBe('23.11.2026');
+    expect(maskDateDigits('23.11.2026')).toBe('23.11.2026');
+    expect(maskDateDigits('231120269999')).toBe('23.11.2026'); // max. 8 Ziffern
+    expect(maskDateDigits('a2b3')).toBe('23');
   });
   it('ageOn: Alter am Stichtag; Geburtsjahr nur fürs Alter (Kalender zählt nur MM-TT)', () => {
     expect(ageOn('1955-05-07', '2027-05-06')).toBe(71);

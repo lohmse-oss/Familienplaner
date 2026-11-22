@@ -86,6 +86,14 @@ export function parseUserDate(s: string): string | null {
   return null;
 }
 
+/** Laufende Ziffern automatisch als TT.MM.JJJJ segmentieren: "23112026" → "23.11.2026" (max. 8 Ziffern). */
+export function maskDateDigits(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+}
+
 /**
  * Alter am Tag `on` zum Geburtsdatum `birth`. Das Jahr des Geburtsdatums wird NUR fürs Alter genutzt –
  * im Kalender zählt bei Geburtstagen weiterhin nur Tag/Monat. Ohne sinnvolles Geburtsjahr (< 1900) → -1.

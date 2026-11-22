@@ -4,7 +4,7 @@ import { addDays, fmtDay, fmtShort, range, today } from '../core/dates';
 import { doneMeals, mealOn, nextFreeMealDay, poolMeals } from '../core/meals';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
-import { addMeal, addMealToPool, batch, confirmMeal, deleteMeal, moveMealToPool, saveItem, setMealDate, swapMealEntries, sync, unconfirmMeal, useStore } from '../store';
+import { addMeal, addMealToPool, batch, confirmMeal, deleteMeal, saveItem, setMealDate, swapMealEntries, sync, unconfirmMeal, useStore } from '../store';
 import { DateInput, Sheet } from './common';
 import { Ic } from './icons';
 
@@ -40,12 +40,6 @@ export function Meals() {
     e.preventDefault();
     if (!text.trim()) return;
     addMeal(date, text);
-    haptic();
-    setText('');
-  };
-  const submitPool = () => {
-    if (!text.trim()) return;
-    addMealToPool(text);
     haptic();
     setText('');
   };
@@ -127,10 +121,9 @@ export function Meals() {
       {!readOnly && (
         <>
           <form class="shop-add meal-add" onSubmit={submit}>
-            <input type="date" value={date} onInput={(e) => setDate((e.target as HTMLInputElement).value)} aria-label="Tag" />
+            <DateInput value={date} onChange={setDate} ariaLabel="Tag" picker={false} />
             <input type="text" placeholder="Mahlzeit …" value={text} onInput={(e) => setText((e.target as HTMLInputElement).value)} enterkeyhint="done" autocomplete="off" />
             <button class="btn primary" type="submit" disabled={!text.trim()} aria-label="auf den Tag legen" title="Auf den gewählten Tag legen"><Ic n="plus" size={22} /></button>
-            <button class="btn" type="button" disabled={!text.trim()} onClick={submitPool} aria-label="direkt in den Pool" title="Direkt in den Pool (ohne Tag)"><Ic n="pool" size={20} /></button>
           </form>
           <div class="chips" style={{ marginBottom: 10 }}>
             {[0, 1, 2].map((n) => {
@@ -160,7 +153,7 @@ export function Meals() {
         </form>
       )}
       <section class="card shop-list">
-        {pool.length === 0 && <div class="empty">Der Pool ist leer.<br /><span class="muted">Nicht bestätigte Mahlzeiten wandern nach dem Tag automatisch hierher – neueste zuerst. Oben oder hier direkt eintragen.</span></div>}
+        {pool.length === 0 && <div class="empty">Der Pool ist leer.<br /><span class="muted">Nicht bestätigte Mahlzeiten wandern nach dem Tag automatisch hierher – neueste zuerst – hier direkt per Text + Enter eintragen.</span></div>}
         {pool.map((m) => <Row key={m.id} m={m} inPool />)}
       </section>
 
@@ -180,7 +173,7 @@ export function Meals() {
   );
 }
 
-/** Bearbeiten einer Mahlzeit: Titel/T ag ändern, tauschen, in den Pool schieben oder löschen. */
+/** Bearbeiten einer Mahlzeit: Titel/Tag ändern, tauschen oder löschen. */
 function MealSheet({ item, onClose, onSwap }: { item: Item; onClose: () => void; onSwap: () => void }) {
   const { readOnly, items } = useStore();
   const t0 = today();
@@ -210,9 +203,6 @@ function MealSheet({ item, onClose, onSwap }: { item: Item; onClose: () => void;
           <div class="actions wrap">
             {!item.pool && (
               <button class="btn small" onClick={() => { onSwap(); onClose(); }}><Ic n="swap" size={14} /> Tauschen mit …</button>
-            )}
-            {!item.pool && (
-              <button class="btn small" onClick={() => { moveMealToPool(item.id); onClose(); }}><Ic n="reset" size={14} /> In den Pool</button>
             )}
             <button class="btn small danger" onClick={() => { deleteMeal(item.id); onClose(); }}><Ic n="trash" size={14} /> Löschen</button>
           </div>

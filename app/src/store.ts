@@ -398,12 +398,6 @@ export function setMealDate(id: string, date: string) {
   });
 }
 
-/** Geplante Mahlzeit manuell in den Pool schieben. */
-export function moveMealToPool(id: string) {
-  const m = items.find((i) => i.id === id);
-  if (m && !m.pool && !m.done) saveItem({ ...m, pool: true });
-}
-
 /** Zwei Mahlzeiten tauschen: Tag ↔ Tag (Datum tauschen) oder Tag ↔ Pool (Plätze tauschen). */
 export function swapMealEntries(aId: string, bId: string) {
   const a = items.find((i) => i.id === aId);

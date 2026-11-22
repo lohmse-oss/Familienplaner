@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Coverage, ParentStatus } from '../core/calendar';
-import { parseUserDate } from '../core/dates';
+import { fmt, maskDateDigits, parseUserDate } from '../core/dates';
 import { ALL, PERSONS, type Item, type PersonId } from '../core/types';
 import { haptic } from '../haptics';
 import { toggleTask, updateSettings, useStore } from '../store';
@@ -111,15 +111,17 @@ export function PersonFilterBar() {
 }
 
 /**
- * Datumsauswahl: Kalender-Picker UND freie Texteingabe (TT.MM.JJJJ oder JJJJ-MM-TT).
- * Ungültige Texteingaben werden rot markiert, bis ein gültiges Datum erkannt wird.
+ * Datumsauswahl: optional Kalender-Picker (picker, Default an) PLUS Texteingabe. Laufende Ziffern
+ * werden automatisch als TT.MM.JJJJ segmentiert ("23112026" → "23.11.2026"); ISO (JJJJ-MM-TT) bleibt möglich.
+ * Erst ab 8 Ziffern (oder Buchstaben) wird eine ungültige Eingabe rot markiert.
  */
-export function DateInput({ value, onChange, min, ariaLabel }: { value: string; onChange: (v: string) => void; min?: string; ariaLabel?: string }) {
-  const [text, setText] = useState('');
+export function DateInput({ value, onChange, min, ariaLabel, picker = true }: { value: string; onChange: (v: string) => void; min?: string; ariaLabel?: string; picker?: boolean }) {
+  const [text, setText] = useState(value ? fmt(value) : '');
   const [err, setErr] = useState(false);
+  useEffect(() => { setText(value ? fmt(value) : ''); setErr(false); }, [value]);
   return (
     <span class="date-input">
-      <input type="date" value={value} min={min} aria-label={ariaLabel} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) { onChange(v); setText(''); setErr(false); } }} />
+      {picker && <input type="date" value={value} min={min} aria-label={ariaLabel} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) onChange(v); }} />}
       <input
         type="text"
         inputMode="numeric"
@@ -128,12 +130,13 @@ export function DateInput({ value, onChange, min, ariaLabel }: { value: string; 
         value={text}
         onInput={(e) => {
           const raw = (e.target as HTMLInputElement).value;
-          setText(raw);
-          const v = parseUserDate(raw);
+          const masked = raw.includes('-') ? raw : maskDateDigits(raw); // Ziffern/Punkte → TT.MM.JJJJ; ISO mit '-' unverändert
+          setText(masked);
+          const v = parseUserDate(masked);
           if (v) {
             onChange(v);
             setErr(false);
-          } else setErr(raw.trim().length > 0);
+          } else setErr(!!masked.trim() && (masked.replace(/\D/g, '').length >= 8 || /[a-zA-Z]/.test(masked)));
         }}
       />
       {err && <small class="neg">Format: TT.MM.JJJJ oder JJJJ-MM-TT</small>}
