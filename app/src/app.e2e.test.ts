@@ -4,9 +4,9 @@
  * Tab öffnen → Mahlzeit eintragen → in Übersicht sichtbar → bestätigen → Erledigt →
  * direkt in den Pool → Pool-Eintrag anklicken (Sheet mit nächstem freien Tag, nicht heute) → Start zeigt Mahlzeit.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { h, render } from 'preact';
-import { addDays, dow, fmt, today, WD } from './core/dates';
+import { addDays, dow, fmt, today, WD, weekStart } from './core/dates';
 
 const click = (el: Element) => void el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 const setInput = (el: HTMLInputElement, v: string) => {
@@ -330,5 +330,319 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     expect(poolRow, 'Pool-Zeile fehlt').toBeTruthy();
     expect(poolRow.textContent).not.toContain('war');
     expect(document.querySelector('.page .hint.neg')).toBeNull(); // roter Info-Text über dem Pool entfernt
+  });
+});
+
+/**
+ * E2E für den Menü-Umbau: Urlaubsplanung als Reiter (ohne Dienstreisen, Ampel bleibt), Verlauf
+ * (nur Urlaub, keine Aufgaben), Event-Uhrzeit, Briefing mit Events, Undo – plus seeded Monkeytest.
+ */
+describe('E2E: Urlaubsplanung, Verlauf, Event-Uhrzeit, Briefing, Undo, Monkey', () => {
+  beforeAll(() => {
+    // jsdom: scrollIntoView/IntersectionObserver fehlen
+    (Element.prototype as unknown as { scrollIntoView?: () => void }).scrollIntoView ??= () => {};
+    (globalThis as Record<string, unknown>).IntersectionObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  });
+
+  /** Erster Arbeitstag ab `from` (mit Feiertagen aus dem gebündelten Stand). */
+  const workday = async (from: string) => {
+    const { buildCalendar } = await import('./core/calendar');
+    const hd = (await import('./data/holidays.json')).default as never;
+    const c = buildCalendar([], hd);
+    let d = from;
+    for (let i = 0; i < 10; i++) {
+      if (c.day(d).workday) return d;
+      d = addDays(d, 1);
+    }
+    return d;
+  };
+  const lsItems = () => JSON.parse(localStorage.getItem('fp.items') ?? '[]') as { id: string; kind: string; deleted?: boolean; title?: string; time?: string; endTime?: string }[];
+
+  it('Urlaubsplanung als Reiter: DR im Band/Jahr unsichtbar, in der Woche sichtbar; „Urlaub planen“ springt in den Jahr-Reiter', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { saveItem, updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '' });
+    const d1 = await workday(weekStart(today())); // Arbeitstag in der angezeigten Woche
+    const d2 = addDays(d1, 1);
+    saveItem({ id: 'u1', kind: 'presence', title: 'Messe', start: d1, end: d2, persons: ['sebastian'], mode: 'trip', updated: 0 } as never);
+    saveItem({ id: 'u2', kind: 'presence', title: 'Ostsee', start: d1, end: d2, persons: ['betty'], mode: 'vacation', updated: 0 } as never);
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+
+    // Woche: DR und Urlaub als Status sichtbar (Ampel/Anwesenheit unverändert)
+    click([...document.querySelectorAll('.tabs button')].find((b) => b.textContent?.includes('Kalender'))!);
+    await tick(40);
+    click([...document.querySelectorAll('.seg-ctl button')].find((b) => b.textContent?.trim() === 'Woche')!); // calView evtl. aus Vortest verstellt
+    await tick(40);
+    expect(document.querySelector('.mx-cell.st-trip'), 'Dienstreise fehlt in der Wochenmatrix').toBeTruthy();
+    expect(document.querySelector('.mx-cell.st-vacation'), 'Urlaub fehlt in der Wochenmatrix').toBeTruthy();
+
+    // Urlaubsplanung: Jahresband ohne DR-Streifen, mit Urlaub; Ebenen-Schalter ausgeblendet
+    click([...document.querySelectorAll('.seg-ctl button')].find((b) => b.textContent?.includes('Urlaubsplanung'))!);
+    await tick(60);
+    expect(document.body.textContent).toContain('Urlaubsverwaltung');
+    expect(document.querySelector('.rb-trip')).toBeNull();
+    expect(document.querySelectorAll('.rb-vac').length).toBeGreaterThan(0);
+    expect(document.querySelector('.layer-menu')).toBeNull();
+
+    // Jahr: keine DR-Lanes, Legende ohne „Dienstreise“
+    click([...document.querySelectorAll('.seg-ctl button')].find((b) => b.textContent?.includes('Jahr'))!);
+    await tick(60);
+    expect(document.querySelector('.lane.trip')).toBeNull();
+    expect(document.querySelector('.legend')!.textContent).not.toContain('Dienstreise');
+
+    // „Urlaub für Betty planen“ → Jahr-Reiter
+    click([...document.querySelectorAll('.seg-ctl button')].find((b) => b.textContent?.includes('Urlaubsplanung'))!);
+    await tick(60);
+    click([...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Urlaub für Betty planen'))!);
+    await tick(80);
+    expect(document.querySelector('.seg-ctl button.on')?.textContent).toContain('Jahr');
+  });
+
+  it('Verlauf: Eltern nur Urlaub (kein HO/DR), keine Aufgaben, Ampel bleibt, Event-Uhrzeit je Tag', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { saveItem, updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '' });
+    // +40 Tage: außerhalb der Daten der Vortests, aber innerhalb der ersten 70 Verlaufstage
+    const d = await workday(addDays(today(), 40));
+    const d2 = await workday(addDays(d, 1));
+    saveItem({ id: 'v1', kind: 'presence', start: d, end: d, persons: ['sebastian'], mode: 'homeoffice', updated: 0 } as never);
+    saveItem({ id: 'v2', kind: 'presence', title: 'Messe', start: d, end: d, persons: ['betty'], mode: 'trip', updated: 0 } as never);
+    saveItem({ id: 'v3', kind: 'presence', start: d2, end: d2, persons: ['sebastian'], mode: 'vacation', updated: 0 } as never);
+    saveItem({ id: 'v4', kind: 'care', title: 'Schließtag Schule', start: d, end: d, persons: ['ida'], updated: 0 } as never);
+    saveItem({ id: 'v5', kind: 'task', title: 'Verlaufs-Aufgabe', start: d, end: d, persons: [], owner: 'sebastian', updated: 0 } as never);
+    saveItem({ id: 'v6', kind: 'event', title: 'Elternabend', start: d, end: d, persons: ['sebastian'], owner: 'sebastian', time: '15:00', updated: 0 } as never);
+    saveItem({ id: 'v7', kind: 'info', title: 'Festival', start: d, end: d2, time: '18:00', persons: [], updated: 0 } as never);
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+    click([...document.querySelectorAll('.tabs button')].find((b) => b.textContent?.includes('Kalender'))!);
+    await tick(40);
+    click([...document.querySelectorAll('.seg-ctl button')].find((b) => b.textContent?.includes('Verlauf'))!);
+    await tick(80);
+
+    const row = document.querySelector(`#tl-${d}`)!.closest('.tl-row')!;
+    const cells = [...row.querySelectorAll('.tl-cell')]; // Reihenfolge: Sebastian, Betty, Ida, Irma
+    const top = (c: Element) => c.querySelector('.tl-top')?.textContent ?? '';
+    expect(top(cells[0])).not.toContain('Homeoffice'); // keine Anwesenheit außer Urlaub
+    expect(top(cells[1])).not.toContain('Dienstreise');
+    expect(row.textContent).not.toContain('Verlaufs-Aufgabe'); // Aufgaben raus
+    expect(cells[0].textContent).toContain('15:00'); // Termin mit Uhrzeit in der Personenzelle
+    expect(cells[2].textContent).toContain('Schließtag Schule'); // Betreuungsbedarf bleibt
+    const dateCell = row.querySelector('.tl-date')!;
+    expect(dateCell.textContent).toContain('18:00 Festival'); // Event mit Uhrzeit
+    expect(dateCell.textContent).toContain('Tag 1/2');
+    expect(row.querySelector('.lamp'), 'Ampel fehlt in der Datumsspalte').toBeTruthy(); // bleibt (HO + Schließtag → maybe)
+
+    // nächster Arbeitstag: Urlaub angezeigt, Event-Uhrzeit an jedem Tag des Zeitraums
+    const row2 = document.querySelector(`#tl-${d2}`)!.closest('.tl-row')!;
+    expect(top(row2.querySelectorAll('.tl-cell')[0])).toContain('Urlaub');
+    expect(row2.querySelector('.tl-date')!.textContent).toContain('18:00');
+    expect(row2.querySelector('.tl-date')!.textContent).toContain('Tag 2/2');
+
+    // Ebenen-Menü im Verlauf ohne Aufgaben-Toggle
+    click(document.querySelector('.layer-menu button')!);
+    await tick(30);
+    expect(document.querySelector('.layer-pop')!.textContent).not.toContain('Aufgaben');
+    click(document.querySelector('.layer-backdrop')!);
+    await tick(20);
+  });
+
+  it('Event-Uhrzeit: info über Langdruck-Picker mit Start/bis anlegen, speichern, per Rückgängig entfernen', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '' });
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+
+    // Langdruck → Picker → „Event“ (kind info)
+    document.querySelector('.home-btn')!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await tick(500);
+    click([...document.querySelectorAll('.kinds .kind')].find((k) => (k.textContent ?? '').includes('Event'))!);
+    await tick(60);
+    const sheet = document.querySelector('.sheet')!;
+    expect(sheet.querySelectorAll('input[type="time"]').length).toBe(2); // Start + bis auch für Events
+    setInput(sheet.querySelector('input[placeholder*="Stadtfest"]') as HTMLInputElement, 'Stadtfest');
+    const day15 = [...sheet.querySelectorAll('.rpick-grid button')].find((b) => b.textContent?.trim().startsWith('15'));
+    click(day15!);
+    await tick(30);
+    const times = sheet.querySelectorAll('input[type="time"]') as NodeListOf<HTMLInputElement>;
+    setInput(times[0], '18:00');
+    setInput(times[1], '23:30');
+    await tick(20);
+    click([...sheet.querySelectorAll('button')].find((b) => b.textContent === 'Speichern')!);
+    await tick(50);
+
+    const ev = lsItems().find((i) => i.kind === 'info' && i.title === 'Stadtfest');
+    expect(ev, 'Event nicht gespeichert').toBeTruthy();
+    expect(ev!.time).toBe('18:00');
+    expect(ev!.endTime).toBe('23:30');
+
+    // Undo: Snackbar → „Rückgängig“ → Eintrag als gelöscht markiert, Snackbar weg (kein Redo)
+    const snack = document.querySelector('.snack');
+    expect(snack, 'Undo-Snackbar fehlt').toBeTruthy();
+    click([...snack!.querySelectorAll('button')].find((b) => b.textContent?.includes('Rückgängig'))!);
+    await tick(40);
+    expect(lsItems().find((i) => i.id === ev!.id)?.deleted).toBe(true);
+    expect(document.querySelector('.snack')).toBeNull();
+  });
+
+  it('Undo (Store): Löschen rückgängig stellt her; nach dismissUndo ist Undo weg', async () => {
+    const { saveItem, deleteItem, withUndo, undoLast, dismissUndo } = await import('./store');
+    const t = today();
+    saveItem({ id: 'ux1', kind: 'task', title: 'Undo-Test 1', start: t, end: t, persons: [], updated: 0 } as never);
+    withUndo('gelöscht', () => deleteItem('ux1'));
+    undoLast();
+    expect(lsItems().find((i) => i.id === 'ux1' && !i.deleted), 'Undo hat Löschen nicht zurückgenommen').toBeTruthy();
+    expect(() => undoLast()).not.toThrow(); // kein zweites Undo
+
+    saveItem({ id: 'ux2', kind: 'task', title: 'Undo-Test 2', start: t, end: t, persons: [], updated: 0 } as never);
+    withUndo('gelöscht', () => deleteItem('ux2'));
+    dismissUndo(); // Snackbar geschlossen ohne Undo
+    undoLast();
+    expect(lsItems().find((i) => i.id === 'ux2')?.deleted).toBe(true); // bleibt gelöscht
+  });
+
+  it('Briefing sonntags: Events der Woche, mehrtägige an jedem Tag mit Uhrzeit und „Tag x/y“', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-22T12:00:00')); // Sonntag
+    try {
+      document.body.innerHTML = '';
+      localStorage.clear();
+      const { App } = await import('./App');
+      const { saveItem, updateSettings } = await import('./store');
+      updateSettings({ me: 'sebastian', server: '', code: '' });
+      const t = today(); // So 22.11.2026
+      const t1 = addDays(t, 1); // Mo
+      const t3 = addDays(t, 3); // Mi
+      saveItem({ id: 'b1', kind: 'info', title: 'Festival X', start: t1, end: t3, time: '18:00', persons: ['ida'], updated: 0 } as never);
+      const root = document.createElement('div');
+      document.body.appendChild(root);
+      render(h(App, {}), root);
+      await vi.advanceTimersByTimeAsync(120);
+      const lines = [...document.querySelectorAll('.brief-day')].map((d) => d.textContent ?? '');
+      const fest = lines.filter((l) => l.includes('Festival X'));
+      expect(fest.length).toBe(3); // Mo, Di, Mi – mehrtägiges Event an jedem Tag
+      expect(fest[0]).toContain('18:00');
+      expect(fest[0]).toContain('Tag 1/3');
+      expect(fest[1]).toContain('Tag 2/3');
+      expect(fest[2]).toContain('Tag 3/3');
+      expect(fest[0]).toContain('(Ida)'); // Personenangabe wie bei Terminen
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Monkeytest: 250 seeded Zufalls-Aktionen ohne Ausnahme, Daten bleiben konsistent', async () => {
+    let s = 427205;
+    const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+    const pick = <T,>(arr: T[]): T => arr[Math.floor(rnd() * arr.length)];
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { saveItem, updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '' }); // kein Netzwerk im Test
+    const t = today();
+    const d = await workday(t);
+    saveItem({ id: 'm1', kind: 'event', title: 'Monkey-Termin', start: d, end: d, persons: ['sebastian'], owner: 'sebastian', time: '10:00', updated: 0 } as never);
+    saveItem({ id: 'm2', kind: 'task', title: 'Monkey-Aufgabe', start: d, end: d, persons: [], updated: 0 } as never);
+    saveItem({ id: 'm3', kind: 'presence', start: d, end: addDays(d, 2), persons: ['betty'], mode: 'vacation', updated: 0 } as never);
+    saveItem({ id: 'm4', kind: 'info', title: 'Monkey-Fest', start: d, end: addDays(d, 1), time: '18:00', persons: [], updated: 0 } as never);
+    saveItem({ id: 'm5', kind: 'birthday', title: 'Oma', start: '1955-05-07', end: '1955-05-07', persons: [], updated: 0 } as never);
+    saveItem({ id: 'm6', kind: 'fact', title: 'Kinderarzt', cat: 'gesundheit', start: t, end: t, persons: [], updated: 0 } as never);
+    saveItem({ id: 'm7', kind: 'fact', title: 'Alte Größenkarte', cat: 'groessen' as never, start: t, end: t, persons: [], updated: 0 } as never); // Migration: → Sonstiges
+    saveItem({ id: 'm8', kind: 'meal', title: 'Monkey-Mahlzeit', start: t, end: t, persons: [], updated: 0 } as never);
+    saveItem({ id: 'm9', kind: 'shop', title: 'Milch', start: t, end: t, persons: [], updated: 0 } as never);
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const errors: unknown[] = [];
+    window.addEventListener('error', (e) => errors.push(e.error ?? e.message));
+    render(h(App, {}), root);
+    await tick(80);
+
+    const WORDS = ['Milch', 'Brot', 'Urlaub', 'Fest', 'Test', 'x'];
+    for (let i = 0; i < 250; i++) {
+      try {
+        const kind = Math.floor(rnd() * 25);
+        if (kind === 0) {
+          click(pick([...document.querySelectorAll('.tabs button')]));
+        } else if (kind === 1) {
+          const v = [...document.querySelectorAll('.seg-ctl button')];
+          if (v.length) click(pick(v));
+        } else if (kind === 2) {
+          // selten Langdruck (450 ms)
+          document.querySelector('.home-btn')?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+          await tick(480);
+        } else if (kind === 3) {
+          const bd = document.querySelector('.backdrop');
+          if (bd) click(bd);
+        } else if (kind === 4 || kind === 5) {
+          const btns = [...document.querySelectorAll('main button, .sheet button, .layer-pop button')].filter((b) => !(b as HTMLButtonElement).disabled);
+          if (btns.length) click(pick(btns));
+        } else if (kind === 6) {
+          const inps = [...document.querySelectorAll('main input, .sheet input')] as HTMLInputElement[];
+          const inp = pick(inps);
+          if (inp && (inp.type === 'text' || inp.type === 'search')) setInput(inp, pick(WORDS));
+        } else if (kind === 7) {
+          const fs = [...document.querySelectorAll('form')];
+          if (fs.length) submit(pick(fs));
+        } else if (kind === 8 || kind === 9) {
+          const rows = [...document.querySelectorAll('.shop-row, .line.link-row, .mx-cell, .tl-row, .more-row, .hit')];
+          if (rows.length) click(pick(rows));
+        } else if (kind === 10) {
+          const hb = [...document.querySelectorAll('header button')];
+          if (hb.length) click(pick(hb));
+        } else if (kind === 11) {
+          const chips = [...document.querySelectorAll('.chips .chip, .layer-menu')];
+          if (chips.length) click(pick(chips));
+        } else {
+          window.scrollTo(0, Math.floor(rnd() * 2000));
+        }
+        await tick(4);
+      } catch (e) {
+        errors.push(e);
+      }
+    }
+
+    expect(errors).toEqual([]);
+    expect(document.querySelector('.app'), 'App rendert nicht mehr').toBeTruthy();
+    const items = lsItems();
+    expect(items.length).toBeGreaterThan(0);
+    for (const i of items) {
+      expect(typeof i.id).toBe('string');
+      expect(typeof i.kind).toBe('string');
+    }
+    // Kalender baut aus den Daten fehlerfrei
+    const { buildCalendar } = await import('./core/calendar');
+    const hd = (await import('./data/holidays.json')).default as never;
+    expect(() => buildCalendar(items.filter((i) => !('deleted' in i) || !i.deleted) as never, hd)).not.toThrow();
+  }, 30000);
+
+  it('Migration: alte Infomappen-Kategorie „groessen“ wird beim Laden nach „Sonstiges“ gemappt', async () => {
+    localStorage.clear();
+    localStorage.setItem('fp.items', JSON.stringify([
+      { id: 'g1', kind: 'fact', cat: 'groessen', title: 'Schuhgroesse Ida', start: '2026-01-01', end: '2026-01-01', persons: [], updated: 1 },
+    ]));
+    document.body.innerHTML = '';
+    vi.resetModules(); // frischer Store liest fp.items inkl. Migration
+    const { saveItem } = await import('./store');
+    saveItem({ id: 'g2', kind: 'task', title: 'Persist-Trigger', start: '2026-01-01', end: '2026-01-01', persons: [], updated: 0 } as never); // schreibt alle Items zurück
+    const items = JSON.parse(localStorage.getItem('fp.items') ?? '[]') as { id: string; cat?: string }[];
+    expect(items.find((i) => i.id === 'g1')?.cat).toBe('sonstiges');
   });
 });
