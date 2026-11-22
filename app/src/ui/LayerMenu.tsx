@@ -9,11 +9,12 @@ const ROWS: { k: keyof Layers; label: string; icon: IconName }[] = [
   { k: 'events', label: 'Termine & Events', icon: 'addcal' },
 ];
 
-/** Knopf „Ebenen“: blendet Geburtstage, Aufgaben und Termine im Kalender ein oder aus. */
+/** Knopf „Ebenen“: blendet Geburtstage, Aufgaben und Termine im Kalender ein oder aus. Im Verlauf gibt es keine Aufgaben. */
 export function LayerMenu() {
   const { settings } = useStore();
   const [open, setOpen] = useState(false);
-  const off = ROWS.filter((r) => !settings.layers[r.k]).length;
+  const rows = settings.calView === 'timeline' ? ROWS.filter((r) => r.k !== 'tasks') : ROWS;
+  const off = rows.filter((r) => !settings.layers[r.k]).length;
   return (
     <div class="layer-menu">
       <button class={`icon-btn ${off ? 'has-off' : ''}`} onClick={() => setOpen(!open)} aria-label="Ebenen im Kalender" aria-expanded={open}>
@@ -25,7 +26,7 @@ export function LayerMenu() {
           <div class="layer-backdrop" onClick={() => setOpen(false)} />
           <div class="layer-pop" role="menu">
             <b>Im Kalender anzeigen</b>
-            {ROWS.map((r) => (
+            {rows.map((r) => (
               <label key={r.k} class="layer-row">
                 <input type="checkbox" checked={settings.layers[r.k]} onChange={(e) => updateSettings({ layers: { ...settings.layers, [r.k]: (e.target as HTMLInputElement).checked } })} />
                 <Ic n={r.icon} size={16} class="muted" /> {r.label}

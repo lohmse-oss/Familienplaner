@@ -12,12 +12,11 @@ const FIRST_DAYS = 70; // anfangs angezeigte Tage
 const STEP = 60; // so viele Tage kommen beim Weiterscrollen dazu
 const MAX_AHEAD = 365 * 3;
 
-/** Was steht für eine Person an einem Tag an? Eltern: Status + Termine/Aufgaben. Kinder: Betreuungsbedarf + Termine. Feste Zeilenhöhe – was nicht passt, zählt „+n“. */
+/** Was steht für eine Person an einem Tag an? Eltern: nur Urlaub (keine sonstige Anwesenheit) + Termine. Kinder: Betreuungsbedarf + Termine. Feste Zeilenhöhe – was nicht passt, zählt „+n“. */
 function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
   const adult = PERSONS[p].adult;
   const evs = L.events ? d.events.filter((e) => e.owner === p || e.persons.includes(p)) : [];
-  const tasks = adult && L.tasks ? d.tasks.filter((t) => !t.done && t.owner === p) : [];
-  const lines = [...evs.map((e) => ({ id: e.id, text: evText(e, d.date), task: false })), ...tasks.map((t) => ({ id: t.id, text: t.title ?? '', task: true }))];
+  const lines = evs.map((e) => ({ id: e.id, text: evText(e, d.date) }));
   const shown = lines.length > 2 ? lines.slice(0, 1) : lines;
   const count = lines.length;
 
@@ -26,9 +25,9 @@ function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
   let need = false;
   if (adult) {
     const s = d.parents[p];
-    if (d.workday) {
-      icon = <StatusIc s={s.status} size={16} />;
-      label = s.status === 'office' ? '' : STATUS_LABEL[s.status];
+    if (d.workday && s.status === 'vacation') {
+      icon = <StatusIc s="vacation" size={16} />;
+      label = s.away ? 'Urlaub (verreist)' : STATUS_LABEL.vacation;
     }
   } else if (d.workday) {
     const n = d.needs.find((x) => x.child === p);
@@ -49,24 +48,22 @@ function PersonCell({ p, d, L }: { p: PersonId; d: DayInfo; L: Layers }) {
         {label && <span class="tl-txt">{label}</span>}
         {count > 0 && <i class="tl-count">{count}</i>}
       </div>
-      {shown.map((l) => <div key={l.id} class="tl-ev tl-txt">{l.task && <Ic n="tasks" size={11} />}{l.task ? ' ' : ''}{l.text}</div>)}
+      {shown.map((l) => <div key={l.id} class="tl-ev tl-txt">{l.text}</div>)}
       {lines.length > shown.length && <div class="tl-ev tl-txt muted">+{lines.length - shown.length} weitere</div>}
     </div>
   );
 }
 
 /**
- * Datumsspalte: Tag, KW, Ampel, Feiertag (mit Namen) und alles, was keiner einzelnen Person gehört (Infos, Familien-Termine,
- * Aufgaben ohne Zuständigen). Geburtstage bewusst nicht – der Verlauf dient der Jahresplanung.
+ * Datumsspalte: Tag, KW, Ampel, Feiertag (mit Namen) und alles, was keiner einzelnen Person gehört (Events/Infos,
+ * Familien-Termine) – ohne Aufgaben. Geburtstage bewusst nicht – der Verlauf dient der Jahresplanung.
  */
 function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
   const m = marksOf(d, t, L);
   const famEv = L.events ? d.events.filter((e) => !e.persons.length && !e.owner) : [];
-  const freeTasks = L.tasks ? d.tasks.filter((x) => !x.done && !x.owner) : [];
   const extra = [
-    ...(L.events ? d.info.map((i) => `${i.title}${i.away ? ' (auswärts)' : ''}`) : []),
+    ...(L.events ? d.info.map((i) => `${evText(i, d.date)}${i.away ? ' (auswärts)' : ''}`) : []),
     ...famEv.map((e) => evText(e, d.date)),
-    ...freeTasks.map((x) => `Aufgabe: ${x.title}`),
   ].filter(Boolean) as string[];
   const school = d.school.length && !d.weekend && !d.holiday ? d.school.join(', ') : '';
   return (
@@ -83,10 +80,9 @@ function DateCell({ d, t, L }: { d: DayInfo; t: string; L: Layers }) {
       <div class="tl-sub">
         {!d.holiday && (
           <>
-            {(freeTasks.length > 0 || m.info > 0 || famEv.length > 0) && (
+            {(m.info > 0 || famEv.length > 0) && (
               <span class="tl-mk">
-                {freeTasks.length > 0 && <Ic n="tasks" size={12} class={`mk-ic ${m.overdue ? 'late' : 'tk'}`} />}
-                {(m.info > 0 || famEv.length > 0) && <Ic n="ticket" size={12} class="mk-ic" />}
+                <Ic n="ticket" size={12} class="mk-ic" />
               </span>
             )}
             {extra.length > 0 ? <span class="tl-txt tl-extra">{extra.join(', ')}</span> : school && <span class="tl-txt tl-school">{school}</span>}

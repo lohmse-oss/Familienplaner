@@ -57,6 +57,8 @@ const write = (k: string, v: unknown) => {
 let items: Item[] = read(LS.items, []);
 // ältere Version: Terminkategorie 'elternabend' -> 'schule'
 for (const i of items) if ((i.sub as string) === 'elternabend') i.sub = 'schule';
+// ältere Version: Infomappen-Kategorie 'groessen' entfällt -> 'sonstiges'
+for (const i of items) if (i.kind === 'fact' && (i.cat as string) === 'groessen') i.cat = 'sonstiges';
 let dirty = new Set<string>(read<string[]>(LS.dirty, []));
 let rev = read<number>(LS.rev, 0);
 let hd: HolidayData = read<HolidayData>(LS.hd, bundled as HolidayData);
@@ -502,7 +504,7 @@ export async function sync(): Promise<void> {
       void _verb;
       const local = map.get(clean.id);
       if (!local || clean.updated > local.updated) {
-        map.set(clean.id, clean as Item);
+        map.set(clean.id, clean.kind === 'fact' && (clean.cat as string) === 'groessen' ? { ...clean, cat: 'sonstiges' } as Item : (clean as Item));
         adopted.add(clean.id);
         if (since > 0 && clean.by && clean.by !== settings.me && remote._text) fresh.push(remote);
       }

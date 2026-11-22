@@ -264,7 +264,6 @@ h1, h2, h3 { margin: 0; }
 .rb-school.faint { opacity: .55; }
 .rb-holiday { background: var(--holiday-ink); opacity: .55; }
 .rb-vac { top: 3px !important; bottom: 3px !important; border-radius: 4px; min-width: 3px; }
-.rb-trip { background: var(--ink); top: 8px !important; bottom: 8px !important; }
 .ribbon .bar-legend { margin-top: 8px; }
 
 /* ---------- Mehrfach-Planer ---------- */
@@ -299,6 +298,7 @@ h1, h2, h3 { margin: 0; }
 .meal-date { flex-shrink: 0; min-width: 6.4em; font-size: 13.5px; color: var(--muted); }
 .meal-row.today .meal-date { color: var(--accent); font-weight: 700; }
 .meal-row.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-radius: 10px; }
+.meal-row .grow { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .days-badge { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--bg); white-space: nowrap; }
 
@@ -324,7 +324,6 @@ h1, h2, h3 { margin: 0; }
 .cell .lane-1 { bottom: 6px; }
 .cell .lane.cl { left: 4px; border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
 .cell .lane.cr { right: 4px; border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
-.cell .lane.trip { opacity: .4; }
 .cell .cl-dot { position: absolute; top: 3px; right: 6px; width: 6px; height: 6px; z-index: 3; }
 .plan-hint { display: flex; flex-direction: column; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
 .quick-pick { margin-bottom: 10px; }

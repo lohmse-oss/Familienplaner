@@ -13,7 +13,7 @@ interface Props {
   bridges?: Set<string>;
   selected?: Set<string>; // markierte Tage → durchgehendes Band
   edges?: Set<string>; // Start-/Endtage → gefüllter Kreis
-  bands?: Record<string, Map<string, Mode>>; // Urlaub/Dienstreise je Elternteil → Streifen
+  bands?: Record<string, Map<string, Mode>>; // Urlaub je Elternteil → Streifen
   layers?: Layers; // Marker für Geburtstage, Aufgaben (Fälligkeit) und Termine
   anchor?: boolean; // Sprungmarke m-YYYY-MM setzen (Jahresplaner); im Datums-Wähler aus
   title?: boolean; // Monatsname über dem Raster
@@ -98,7 +98,7 @@ export function MonthGrid({ year, month, cal, onDay, onLong, bridges, selected, 
                 if (!m) return null;
                 const capL = !(pl && bands![p].has(pl));
                 const capR = !(nl && bands![p].has(nl));
-                return <i key={p} class={`lane lane-${lane} ${m === 'trip' ? 'trip' : ''} ${capL ? 'cl' : ''} ${capR ? 'cr' : ''}`} style={{ background: PERSONS[p].color }} />;
+                return <i key={p} class={`lane lane-${lane} ${capL ? 'cl' : ''} ${capR ? 'cr' : ''}`} style={{ background: PERSONS[p].color }} />;
               })}
               {day.coverage !== 'none' && <i class={`lamp lamp-${day.coverage} cl-dot`} />}
             </button>

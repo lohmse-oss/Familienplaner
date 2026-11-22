@@ -37,7 +37,7 @@ const CARE_PRESETS: { label: string; child?: PersonId }[] = [
   { label: 'Sonstiges' },
 ];
 
-export function KindPicker({ onPick, onClose, onShop, onList, onFact }: { onPick: (k: Kind) => void; onClose: () => void; onShop: () => void; onList: () => void; onFact: () => void }) {
+export function KindPicker({ onPick, onClose, onShop }: { onPick: (k: Kind) => void; onClose: () => void; onShop: () => void }) {
   return (
     <Sheet title="Neuer Eintrag" onClose={onClose}>
       <div class="kinds">
@@ -45,20 +45,12 @@ export function KindPicker({ onPick, onClose, onShop, onList, onFact }: { onPick
           <span class="ic"><Ic n="cart" size={24} /></span>
           <span><b>Artikel zur Einkaufsliste</b><small>direkt eintippen</small></span>
         </button>
-        {KINDS.filter((k) => k.kind !== 'cover').map((k) => ( // Betreuung durch Dritte: im Betreuungsbedarf bzw. Jahresplaner
+        {KINDS.filter((k) => k.kind !== 'cover' && k.kind !== 'birthday').map((k) => ( // Betreuung durch Dritte: im Betreuungsbedarf bzw. Jahresplaner; Geburtstag nur unter Mehr
           <button key={k.kind} class="kind" onClick={() => onPick(k.kind)}>
             <span class="ic"><Ic n={k.icon} size={24} /></span>
             <span><b>{k.label}</b><small>{k.hint}</small></span>
           </button>
         ))}
-        <button class="kind" onClick={onList}>
-          <span class="ic"><Ic n="listcheck" size={24} /></span>
-          <span><b>Checkliste</b><small>neu oder aus Vorlage, z. B. Packliste</small></span>
-        </button>
-        <button class="kind" onClick={onFact}>
-          <span class="ic"><Ic n="folder" size={24} /></span>
-          <span><b>Karte für die Infomappe</b><small>Kinderarzt, Kita-Telefon, Größen …</small></span>
-        </button>
       </div>
     </Sheet>
   );
@@ -113,7 +105,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
     </div>
   ) : null;
   // Termine: eintägig, mehrtägig (Festival, Ausflug) oder wiederkehrend (dann ist end das Serienende)
-  const multi = k === 'event' && !d.recur && d.end > d.start;
+  const multi = (k === 'event' || k === 'info') && !d.recur && d.end > d.start;
   const single = (k === 'event' && !multi) || k === 'task' || k === 'birthday';
   const pickOne = k === 'task' || (k === 'event' && !!d.recur); // nur ein Datum (Fälligkeit bzw. erstes Vorkommen)
   const info = KINDS.find((x) => x.kind === k)!;
@@ -130,7 +122,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
   const save = (forceDone?: boolean) => {
     const clean = (v?: string) => v?.trim() || undefined;
     const out: Item = { ...d, done: forceDone ?? d.done, title: clean(d.title), place: clean(d.place), contact: clean(d.contact), link: clean(d.link), end: single ? d.start : d.end };
-    if (k !== 'event') delete out.endTime;
+    if (k !== 'event' && k !== 'info') delete out.endTime;
     if (k !== 'event' && k !== 'info') {
       delete out.place;
       delete out.contact;
@@ -344,7 +336,7 @@ export function EditSheet({ initial, onClose }: { initial: Partial<Item> & { kin
           </>
         )}
 
-        {k === 'event' && <div class="row">
+        {(k === 'event' || k === 'info') && <div class="row">
           {(
             <div>
               <label>{multi ? 'Beginn (Uhr)' : 'Uhrzeit'}</label>

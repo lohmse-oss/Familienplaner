@@ -270,4 +270,65 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
       vi.useRealTimers();
     }
   });
+
+  it('Kalender-Reiter „Urlaubsplanung“, Mehr ohne Urlaub, Langdruck ohne Geburtstag/Checkliste/Infomappe', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+
+    // Kalender-Tab → Reiter „Urlaubsplanung" vorhanden und zeigt die Urlaubsverwaltung
+    const tabs = () => [...document.querySelectorAll('.tabs button')];
+    click(tabs().find((b) => b.textContent?.includes('Kalender'))!);
+    await tick();
+    const viewBtns = () => [...document.querySelectorAll('.seg-ctl button')];
+    expect(viewBtns().some((b) => b.textContent?.includes('Urlaubsplanung')), 'Reiter „Urlaubsplanung" fehlt').toBe(true);
+    click(viewBtns().find((b) => b.textContent?.includes('Urlaubsplanung'))!);
+    await tick(60);
+    expect(document.body.textContent).toContain('Urlaubsverwaltung');
+    expect(document.querySelector('.layer-menu')).toBeNull(); // Ebenen-Schalter in der Urlaubsplanung ausgeblendet
+
+    // Mehr enthält keinen Urlaub-Eintrag mehr
+    click(tabs().find((b) => b.textContent?.trim() === 'Mehr')!);
+    await tick();
+    const moreRows = [...document.querySelectorAll('.more-row')].map((r) => r.textContent ?? '');
+    expect(moreRows.some((r) => r.includes('Urlaub'))).toBe(false);
+    expect(moreRows.some((r) => r.includes('Geburtstage'))).toBe(true);
+
+    // Langdruck auf den Startknopf → Picker ohne Geburtstag / Checkliste / Infomappe
+    const homeBtn = document.querySelector('.home-btn')!;
+    homeBtn.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await tick(500); // Langdruck-Schwelle: 450 ms
+    const kinds = [...document.querySelectorAll('.kinds .kind')].map((k) => k.textContent ?? '');
+    expect(kinds.some((k) => k.includes('Geburtstag'))).toBe(false);
+    expect(kinds.some((k) => k.includes('Checkliste'))).toBe(false);
+    expect(kinds.some((k) => k.includes('Infomappe'))).toBe(false);
+    expect(kinds.some((k) => k.includes('Termin'))).toBe(true);
+    expect(kinds.some((k) => k.includes('Einkaufsliste'))).toBe(true);
+    click(document.querySelector('.backdrop')!);
+    await tick();
+  });
+
+  it('Pool-Zeilen ohne „war“-Datum und ohne roten Hinweis', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { saveItem } = await import('./store');
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+    saveItem({ id: 'pool1', kind: 'meal', title: 'Alte Suppe', start: addDays(today(), -2), end: addDays(today(), -2), persons: [], pool: true, updated: 0 } as never);
+    await tick(60);
+    const tabs = [...document.querySelectorAll('.tabs button')];
+    click(tabs.find((b) => b.textContent?.includes('Mahlzeit'))!);
+    await tick();
+    const poolRow = [...document.querySelectorAll('.meal-row')].find((r) => r.textContent?.includes('Alte Suppe'))!;
+    expect(poolRow, 'Pool-Zeile fehlt').toBeTruthy();
+    expect(poolRow.textContent).not.toContain('war');
+    expect(document.querySelector('.page .hint.neg')).toBeNull(); // roter Info-Text über dem Pool entfernt
+  });
 });

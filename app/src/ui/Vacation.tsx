@@ -157,7 +157,6 @@ function Ribbon({ year }: { year: number }) {
   const school = hd.school.filter((s) => s.end >= `${year}-01-01` && s.start <= `${year}-12-31`);
   const holidays = hd.holidays.filter((h) => h.start.startsWith(String(year)));
   const rows = PARENTS.map((p) => ({ p, periods: vacationReport(cal, p, year).periods }));
-  const trips = PARENTS.map((p) => ({ p, days: [...range(`${year}-01-01`, `${year}-12-31`)].filter((d) => cal.day(d).parents[p].status === 'trip') }));
 
   return (
     <section class="card ribbon">
@@ -178,11 +177,10 @@ function Ribbon({ year }: { year: number }) {
           <div class="rb-track">
             {school.map((s) => <i key={s.start} class="rb-school faint" style={pos(s.start, s.end)} />)}
             {periods.map((x) => <i key={x.start} class="rb-vac" style={{ ...pos(x.start, x.end), background: PERSONS[p].color }} title={`${fmtRange(x.start, x.end)} · ${x.workdays} Tage`} />)}
-            {trips.find((x) => x.p === p)!.days.map((d) => <i key={d} class="rb-trip" style={pos(d, d)} title="Dienstreise" />)}
           </div>
         </div>
       ))}
-      <div class="bar-legend"><span><i class="sw sw-school" /> Schulferien</span><span><i class="sw sw-holiday" /> Feiertag</span><span><i class="sw" style={{ background: 'var(--ink)' }} /> Dienstreise</span></div>
+      <div class="bar-legend"><span><i class="sw sw-school" /> Schulferien</span><span><i class="sw sw-holiday" /> Feiertag</span></div>
     </section>
   );
 }

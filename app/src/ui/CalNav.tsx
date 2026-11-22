@@ -8,9 +8,10 @@ const VIEWS: { v: CalView; label: string; icon: IconName }[] = [
   { v: 'week', label: 'Woche', icon: 'week' },
   { v: 'year', label: 'Jahr', icon: 'year' },
   { v: 'timeline', label: 'Verlauf', icon: 'rows' },
+  { v: 'vacation', label: 'Urlaubsplanung', icon: 'palm' },
 ];
 
-/** Kopf aller Kalenderansichten: Ansicht wählen (Woche · Jahr · Verlauf; Tag-Details über das Tagesblatt) und Personenfilter. */
+/** Kopf aller Kalenderansichten: Ansicht wählen (Woche · Jahr · Verlauf · Urlaubsplanung; Tag-Details über das Tagesblatt) und Personenfilter. */
 export function CalNav() {
   const { settings } = useStore();
   return (
@@ -24,7 +25,7 @@ export function CalNav() {
       </div>
       <div class="filter-row">
         <PersonFilterBar />
-        <LayerMenu />
+        {settings.calView !== 'vacation' && <LayerMenu />}
       </div>
     </div>
   );

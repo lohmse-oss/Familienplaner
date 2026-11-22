@@ -6,7 +6,7 @@ import { isDueSoon } from '../core/recur';
 import { mealOn } from '../core/meals';
 import { Fragment } from 'preact';
 import { useRef, useState } from 'preact/hooks';
-import type { Tab } from '../nav';
+import type { CalView, Tab } from '../nav';
 import { answerAsk, useStore } from '../store';
 import { describeChange, verbOf } from '../core/describe';
 import { Dot, PersonTag, Pill, Sheet, STATUS_LABEL, TaskCheck } from './common';
@@ -67,7 +67,7 @@ function DayLines({ d, date, items, go }: { d: DayInfo; date: string; items: Ite
   );
 }
 
-export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d: string) => void; edit: (it: Item) => void }) {
+export function Home({ go, goView, openDay, edit }: { go: (t: Tab) => void; goView: (v: CalView) => void; openDay: (d: string) => void; edit: (it: Item) => void }) {
   const [seen, setSeen] = useState(seenAsks);
   const markSeen = (key: string) => {
     const next = [...seen, key].slice(-50);
@@ -104,6 +104,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       const dd = cal.day(date);
       return [
         ...(L.events ? dd.events.filter((e) => !isMultiDay(e) || date === e.start || date === addDays(t, 1)).map((e) => ({ date, key: e.id, icon: 'addcal' as IconName, text: evText(e, date) + (e.persons.length ? ` (${e.persons.map((pp) => PERSONS[pp].name).join(', ')})` : ''), e })) : []),
+        ...(L.events ? dd.info.map((i) => ({ date, key: i.id, icon: 'ticket' as IconName, text: evText(i, date) + (i.persons.length ? ` (${i.persons.map((pp) => PERSONS[pp].name).join(', ')})` : ''), e: i })) : []),
         ...(L.tasks ? dd.tasks.filter((x) => !x.done).map((x) => ({ date, key: x.id, icon: 'tasks' as IconName, text: `Aufgabe fällig: ${x.title}`, e: x })) : []),
         ...(L.birthdays ? dd.birthdays.map((b) => ({ date, key: b.id, icon: 'cake' as IconName, text: `Geburtstag: ${b.title}`, e: b })) : []),
       ];
@@ -256,7 +257,7 @@ export function Home({ go, openDay, edit }: { go: (t: Tab) => void; openDay: (d:
       {pop === 'attn' && (
         <Sheet title="Achtung" onClose={() => setPop(null)}>
           {gap && (
-            <div class="line link-row need" onClick={() => { setPop(null); go('vacation'); }}>
+            <div class="line link-row need" onClick={() => { setPop(null); goView('vacation'); }}>
               <span class="grow"><i class="lamp lamp-gap" /> Betreuung offen {fmtShort(gap.start)}–{fmtShort(gap.end)}: {gap.who} ({gap.why})</span><Ic n="right" size={16} />
             </div>
           )}

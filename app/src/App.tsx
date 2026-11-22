@@ -31,7 +31,6 @@ import { Year, type PlanPreset } from './ui/Year';
 const TITLES: Record<Tab, string> = {
   home: 'Familienplaner',
   cal: 'Kalender',
-  vacation: 'Urlaubsverwaltung',
   shop: 'Einkaufsliste',
   more: 'Mehr',
   tasks: 'Aufgaben',
@@ -42,7 +41,7 @@ const TITLES: Record<Tab, string> = {
   meals: 'Mahlzeiten',
 };
 /** Wohin führt „zurück“, wenn es keinen Verlauf gibt? */
-const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', vacation: 'more', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'home', lists: 'more', facts: 'more', meals: 'home' };
+const PARENT: Record<Tab, Tab | null> = { home: null, cal: 'home', shop: 'home', more: 'home', tasks: 'more', birthdays: 'more', settings: 'home', lists: 'more', facts: 'more', meals: 'home' };
 
 type Sheet =
   | null
@@ -61,7 +60,6 @@ export function App() {
   const [sheet, setSheet] = useUiState<Sheet>('sheet', null); // offenes Fenster inkl. Entwurf (s. EditSheet)
   const [preset, setPreset] = useState<PlanPreset | undefined>();
   const [focusShop, setFocusShop] = useState(0);
-  const [newList, setNewList] = useState(0); // Signal: in Checklisten „Neue Liste“ öffnen
   const [pull, setPull] = useState(0);
   const snackDrag = useRef(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +87,11 @@ export function App() {
     } else if (PARENT[tab]) setTab(PARENT[tab]!);
   };
   const setView = (v: CalView) => updateSettings({ calView: v });
+  // Sprung in eine Kalender-Ansicht (z. B. Urlaubsplanung aus der Suche oder dem Achtung-Pop-up)
+  const goView = (v: CalView) => {
+    setView(v);
+    nav('cal');
+  };
   // Einstellungen: Zahnrad in der Kopfzeile; „synchron“ antippen öffnet direkt den Abschnitt Synchronisierung
   const [settingsFocus, setSettingsFocus] = useState<{ n: number; group?: string }>({ n: 0 });
   const openSettings = (group?: string) => {
@@ -235,7 +238,7 @@ export function App() {
   const overdue = overdueCount(items, t0);
   const poolN = items.filter((i) => i.kind === 'meal' && !i.deleted && i.pool).length;
   const gapToday = cal.day(t0).coverage === 'gap' || cal.day(addDays(t0, 1)).coverage === 'gap';
-  const navActive: Tab = tab === 'vacation' || tab === 'birthdays' || tab === 'lists' || tab === 'facts' || tab === 'tasks' ? 'more' : tab;
+  const navActive: Tab = tab === 'birthdays' || tab === 'lists' || tab === 'facts' || tab === 'tasks' ? 'more' : tab;
   const parent = stack.length ? stack[stack.length - 1] : PARENT[tab];
 
   return (
@@ -288,27 +291,27 @@ export function App() {
       </div>
 
       <main key={tab}>
-        {tab === 'home' && <Home go={go} openDay={openDay} edit={edit} />}
+        {tab === 'home' && <Home go={go} goView={goView} openDay={openDay} edit={edit} />}
         {tab === 'cal' && (
           <>
             <CalNav />
             {(calView === 'week' || calView === 'day') && <Week weekOf={weekOf} setWeekOf={setWeekOf} openDay={openDay} edit={edit} plan={plan} add={addAt} />}
             {calView === 'timeline' && <Timeline openDay={openDay} plan={plan} />}
             {calView === 'year' && <Year year={year} setYear={setYear} openDay={openDay} preset={preset} />}
+            {calView === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
           </>
         )}
-        {tab === 'vacation' && <Vacation year={year} setYear={setYear} goWeek={goWeek} plan={plan} />}
         {tab === 'shop' && <Shop focusSignal={focusShop} />}
         {tab === 'meals' && <Meals />}
         {tab === 'more' && <More go={go} />}
         {tab === 'tasks' && <Tasks edit={edit} />}
-        {tab === 'birthdays' && <Birthdays edit={edit} />}
+        {tab === 'birthdays' && <Birthdays edit={edit} add={() => !readOnly && setSheet({ t: 'edit', item: { kind: 'birthday' } })} />}
         {tab === 'settings' && <Settings key={settingsFocus.n} focus={settingsFocus.group} />}
-        {tab === 'lists' && <Lists newSignal={newList} />}
+        {tab === 'lists' && <Lists />}
         {tab === 'facts' && <Facts open={(item) => setSheet({ t: 'fact', item })} />}
       </main>
 
-      {(tab === 'cal' || tab === 'vacation') && <ScrollTop key={tab} />}
+      {tab === 'cal' && <ScrollTop key={tab} />}
 
 
       {notice && (
@@ -376,8 +379,6 @@ export function App() {
           onClose={close}
           onPick={(kind) => setSheet({ t: 'edit', item: { kind, ...(sheet.date ? { start: sheet.date, end: sheet.date } : {}) } })}
           onShop={() => { close(); nav('shop'); setFocusShop((n) => n + 1); }}
-          onList={() => { close(); nav('lists'); setNewList((n) => n + 1); }}
-          onFact={() => setSheet({ t: 'fact' })}
         />
       )}
       {sheet?.t === 'fact' && <FactSheet key={sheet.item?.id ?? 'new'} initial={sheet.item} onClose={close} />}

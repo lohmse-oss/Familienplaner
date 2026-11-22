@@ -22,6 +22,9 @@ export function Facts({ open }: { open: (it?: Item) => void }) {
 
   return (
     <div class="page narrow">
+      {!readOnly && (
+        <button class="btn wide" onClick={() => open()}><Ic n="plus" size={16} /> Neue Karte</button>
+      )}
       {used.length > 1 && (
         <div class="chips scroll">
           <button class={`chip ${cat === 'all' ? 'on' : ''}`} onClick={() => setCat('all')}>Alle</button>
@@ -32,8 +35,7 @@ export function Facts({ open }: { open: (it?: Item) => void }) {
         <section class="card">
           <div class="empty">
             <Ic n="folder" size={26} /><br />Die Infomappe ist leer.
-            <br /><span class="muted">Kinderarzt, Kita- und Hort-Telefon, Größen, Impftermine, Versicherungen – alles an einem Ort, auf beiden Handys.</span>
-            {!readOnly && <div><button class="btn small" onClick={() => open()}><Ic n="plus" size={14} /> Erste Karte anlegen</button></div>}
+            <br /><span class="muted">Kinderarzt, Kita- und Hort-Telefon, Impftermine, Versicherungen – alles an einem Ort, auf beiden Handys.</span>
           </div>
         </section>
       )}
@@ -51,7 +53,7 @@ export function Facts({ open }: { open: (it?: Item) => void }) {
           ))}
         </section>
       ))}
-      {!readOnly && facts.length > 0 && <p class="hint">Neue Karte: Startknopf lang drücken. <Ic n="lock" size={12} /> = nur für Eltern sichtbar.</p>}
+      {facts.length > 0 && <p class="hint"><Ic n="lock" size={12} /> = nur für Eltern sichtbar (im Lesezugriff ausgeblendet).</p>}
     </div>
   );
 }

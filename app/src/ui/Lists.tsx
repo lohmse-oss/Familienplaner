@@ -21,22 +21,14 @@ const STARTER: { title: string; entries: string[] }[] = [
   },
 ];
 
-let handledSignal = 0;
 const byTs = (a: Item, b: Item) => (a.ts ?? 0) - (b.ts ?? 0);
 
 /** Checklisten: aktive Listen (abhaken) und Vorlagen (wiederverwendbar, daraus eine aktive Liste starten). */
-export function Lists({ newSignal = 0 }: { newSignal?: number }) {
+export function Lists() {
   const { items, readOnly } = useStore();
   const [openId, setOpenId] = useUiState<string | null>('lists.open', null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useUiState('lists.name', '');
-  useEffect(() => {
-    if (newSignal && newSignal !== handledSignal && !readOnly) {
-      handledSignal = newSignal; // beim späteren Zurückkehren nicht erneut öffnen
-      setOpenId(null);
-      setCreating(true);
-    }
-  }, [newSignal]);
 
   const lists = items.filter((i) => i.kind === 'list' && !i.deleted).sort(byTs);
   const checks = items.filter((i) => i.kind === 'check' && !i.deleted);
