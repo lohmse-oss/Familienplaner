@@ -292,7 +292,7 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     expect(document.querySelector('.layer-menu')).toBeNull(); // Ebenen-Schalter in der Urlaubsplanung ausgeblendet
 
     // Mehr enthält keinen Urlaub-Eintrag mehr
-    click(tabs().find((b) => b.textContent?.trim() === 'Mehr')!);
+    click(tabs().find((b) => b.textContent?.includes('Mehr'))!); // Badge (überfällige Aufgaben) nicht mitmatchen
     await tick();
     const moreRows = [...document.querySelectorAll('.more-row')].map((r) => r.textContent ?? '');
     expect(moreRows.some((r) => r.includes('Urlaub'))).toBe(false);
