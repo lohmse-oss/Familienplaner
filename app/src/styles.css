@@ -298,6 +298,7 @@ h1, h2, h3 { margin: 0; }
 .meal-date { flex-shrink: 0; min-width: 6.4em; font-size: 13.5px; color: var(--muted); }
 .meal-row.today .meal-date { color: var(--accent); font-weight: 700; }
 .meal-row.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-radius: 10px; }
+.meal-row.target { outline: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -2px; border-radius: 10px; }
 .meal-row .grow { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .days-badge { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--bg); white-space: nowrap; }
