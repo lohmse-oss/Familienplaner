@@ -10,7 +10,8 @@ import { Ic } from './icons';
 
 /**
  * Mahlzeiten: fortlaufende Liste je Tag. Nicht bestätigte Mahlzeiten vergangener Tage wandern
- * automatisch in den Pool (zeitlich absteigend – neueste zuerst). Tauschen: Tag ↔ Tag und Tag ↔ Pool.
+ * automatisch in den Pool (zeitlich absteigend – neueste zuerst). Tauschen per Antippen: Mahlzeit → „Tauschen mit …“
+ * → Ziel antippen (Tageszeile in der Übersicht, Pool oder Erledigt) – Tag ↔ Tag und Tag ↔ Pool.
  */
 export function Meals() {
   const { items, settings, readOnly } = useStore();
@@ -59,7 +60,7 @@ export function Meals() {
 
   const Row = ({ m, inPool = false }: { m: Item; inPool?: boolean }) => (
     <div
-      class={`shop-row meal-row ${m.done ? 'done' : ''} ${swapId === m.id ? 'on' : ''} ${!inPool && m.start === t0 ? 'today' : ''}`}
+      class={`shop-row meal-row ${m.done ? 'done' : ''} ${swapId === m.id ? 'on' : ''} ${swapId && swapId !== m.id ? 'target' : ''} ${!inPool && m.start === t0 ? 'today' : ''}`}
       onClick={() => (swapId ? pickSwap(m) : setEdit(m))}
     >
       {!inPool && m.start <= t0 && (
@@ -100,7 +101,18 @@ export function Meals() {
           {ovDays.map((d) => {
             const m = mealOn(items, d);
             return (
-              <div key={d} class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''}`} onClick={() => (m ? setEdit(m) : !readOnly && setDate(d))}>
+              <div
+                key={d}
+                class={`shop-row meal-row ${m?.done ? 'done' : ''} ${d === t0 ? 'today' : ''} ${swapId === m?.id ? 'on' : ''} ${swapId && m && swapId !== m.id ? 'target' : ''}`}
+                onClick={() => {
+                  if (swapId) {
+                    if (m) pickSwap(m);
+                    return;
+                  }
+                  if (m) setEdit(m);
+                  else if (!readOnly) setDate(d);
+                }}
+              >
                 {m && !m.done && m.start <= t0 && !readOnly && (
                   <button class="check-btn" onClick={(e) => { e.stopPropagation(); haptic('success'); confirmMeal(m.id); }} aria-label="als gegessen bestätigen" />
                 )}
@@ -139,7 +151,7 @@ export function Meals() {
 
       {swapId && (
         <div class="quick">
-          <Ic n="swap" size={16} /> Tauschen: Ziel antippen (Tag oder Pool). <button class="link" onClick={() => setSwapId(null)}>Abbrechen</button>
+          <Ic n="swap" size={16} /> Tauschen: andere Mahlzeit antippen (Tag oder Pool). <button class="link" onClick={() => setSwapId(null)}>Abbrechen</button>
         </div>
       )}
 
@@ -199,9 +211,7 @@ function MealSheet({ item, onClose, onSwap }: { item: Item; onClose: () => void;
         <DateInput value={date} onChange={setDate} ariaLabel="Tag" />
         {!readOnly && !item.done && (
           <div class="actions wrap">
-            {!item.pool && (
-              <button class="btn small" onClick={() => { onSwap(); onClose(); }}><Ic n="swap" size={14} /> Tauschen mit …</button>
-            )}
+            <button class="btn small" onClick={() => { onSwap(); onClose(); }}><Ic n="swap" size={14} /> Tauschen mit …</button>
             <button class="btn small danger" onClick={() => { deleteMeal(item.id); onClose(); }}><Ic n="trash" size={14} /> Löschen</button>
           </div>
         )}

@@ -6,7 +6,7 @@
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { h, render } from 'preact';
-import { addDays, dow, fmt, today, WD, weekStart } from './core/dates';
+import { addDays, dow, fmt, fmtDay, today, WD, weekStart } from './core/dates';
 
 const click = (el: Element) => void el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 const setInput = (el: HTMLInputElement, v: string) => {
@@ -292,7 +292,7 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     expect(document.querySelector('.layer-menu')).toBeNull(); // Ebenen-Schalter in der Urlaubsplanung ausgeblendet
 
     // Mehr enthält keinen Urlaub-Eintrag mehr
-    click(tabs().find((b) => b.textContent?.trim() === 'Mehr')!);
+    click(tabs().find((b) => b.textContent?.includes('Mehr'))!); // Badge (überfällige Aufgaben) nicht mitmatchen
     await tick();
     const moreRows = [...document.querySelectorAll('.more-row')].map((r) => r.textContent ?? '');
     expect(moreRows.some((r) => r.includes('Urlaub'))).toBe(false);
@@ -330,6 +330,72 @@ describe('E2E: App + Mahlzeiten-Flow', () => {
     expect(poolRow, 'Pool-Zeile fehlt').toBeTruthy();
     expect(poolRow.textContent).not.toContain('war');
     expect(document.querySelector('.page .hint.neg')).toBeNull(); // roter Info-Text über dem Pool entfernt
+  });
+
+  it('Tauschen per Antippen: Mahlzeit → „Tauschen mit …“ → Ziel (Tag↔Tag, Tag↔Pool)', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    const { App } = await import('./App');
+    const { saveItem } = await import('./store');
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+    const t0 = today();
+    const d1 = addDays(t0, 1);
+    const d2 = addDays(t0, 2);
+    saveItem({ id: 'ta', kind: 'meal', title: 'Tausch-A', start: d1, end: d1, persons: [], updated: 0 } as never);
+    saveItem({ id: 'tb', kind: 'meal', title: 'Tausch-B', start: d2, end: d2, persons: [], updated: 0 } as never);
+    saveItem({ id: 'tp', kind: 'meal', title: 'Tausch-Pool', start: addDays(t0, -1), end: addDays(t0, -1), persons: [], pool: true, updated: 0 } as never);
+    await tick(60);
+    const tabs = [...document.querySelectorAll('.tabs button')];
+    click(tabs.find((b) => b.textContent?.includes('Mahlzeit'))!);
+    await tick();
+    const rowByTitle = (t: string) => [...document.querySelectorAll('.meal-row')].find((r) => r.textContent?.includes(t)) as HTMLElement;
+    const rowByDate = (d: string) => [...document.querySelectorAll('.meal-row')].find((r) => r.querySelector('.meal-date')?.textContent?.trim() === fmtDay(d)) as HTMLElement;
+    const sheetBtn = (label: string) => [...document.querySelectorAll('.sheet button')].find((b) => b.textContent?.includes(label)) as HTMLButtonElement;
+    expect(rowByTitle('Tausch-A'), 'Tausch-A fehlt in der Übersicht').toBeTruthy();
+    expect(rowByTitle('Tausch-B'), 'Tausch-B fehlt in der Übersicht').toBeTruthy();
+
+    // Tag↔Tag: Tausch-A antippen → Sheet → „Tauschen mit …“ → Quelle erneut antippen = abbrechen
+    click(rowByTitle('Tausch-A'));
+    await tick();
+    expect(document.querySelector('.sheet'), 'Sheet fehlt').toBeTruthy();
+    click(sheetBtn('Tauschen mit'));
+    await tick();
+    expect(document.querySelector('.quick')?.textContent).toContain('Tauschen:'); // Hinweisleiste
+    expect(document.querySelector('.meal-row.on')?.textContent).toContain('Tausch-A'); // Quelle markiert
+    click(rowByTitle('Tausch-A'));
+    await tick();
+    expect(document.querySelector('.quick')).toBeNull(); // abgebrochen
+
+    // erneut starten, diesmal Ziel in der Übersicht antippen (Tausch-B auf d2)
+    click(rowByTitle('Tausch-A'));
+    await tick();
+    click(sheetBtn('Tauschen mit'));
+    await tick();
+    click(rowByTitle('Tausch-B'));
+    await tick();
+    expect(document.querySelector('.quick')).toBeNull(); // Tausch-Modus beendet
+    expect(rowByDate(d1)?.textContent).toContain('Tausch-B'); // B jetzt auf d1
+    expect(rowByDate(d2)?.textContent).toContain('Tausch-A'); // A jetzt auf d2
+
+    // Tag↔Pool: Tausch-B (auf d1) → „Tauschen mit …“ → Pool-Eintrag antippen
+    click(rowByTitle('Tausch-B'));
+    await tick();
+    click(sheetBtn('Tauschen mit'));
+    await tick();
+    click(rowByTitle('Tausch-Pool'));
+    await tick();
+    expect(rowByDate(d1)?.textContent).toContain('Tausch-Pool'); // Pool-Eintrag auf d1
+    expect(rowByTitle('Tausch-B').querySelector('.meal-date')?.textContent?.trim()).toBe(''); // B in der Pool-Liste (kein Datum)
+
+    // „Tauschen mit …“ auch im Sheet eines Pool-Eintrags
+    click(rowByTitle('Tausch-B'));
+    await tick();
+    expect(sheetBtn('Tauschen mit'), 'Tauschen-Button fehlt im Pool-Sheet').toBeTruthy();
+    click(document.querySelector('.backdrop')!);
+    await tick();
   });
 });
 
