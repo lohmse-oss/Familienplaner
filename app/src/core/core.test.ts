@@ -569,6 +569,8 @@ describe('Suche', () => {
     item({ kind: 'birthday', title: 'Oma Helga', start: '1957-07-18' }),
     item({ kind: 'task', title: 'Geschenk für Oma', start: '2027-07-10', owner: 'betty' }),
     item({ kind: 'shop', title: 'Milch', start: '2027-07-10', ts: 1 }),
+    item({ id: 'list-drogerie', kind: 'list', shopList: true, title: 'Drogerie', start: '2027-07-10' }),
+    item({ kind: 'shop', title: 'Shampoo', parent: 'list-drogerie', start: '2027-07-10', ts: 2 }),
     { ...item({ kind: 'event', title: 'Gelöscht', start: '2027-07-20' }), deleted: true },
     item({ kind: 'config', start: '2027-01-01', entitlement: 30 }),
   ];
@@ -589,6 +591,14 @@ describe('Suche', () => {
     const all = search(items, 'e', today); // „e“ kommt fast überall vor
     expect(all[all.length - 1].kind).toBe('shop');
     expect(search(items, 'oma', '2027-09-01')[0].date).toBe('2028-07-18'); // Geburtstag schon vorbei → nächstes Jahr
+  });
+  it('Einkaufslisten: als „Einkaufsliste“ gelistet und über „einkauf“ findbar, Artikel mit parent', () => {
+    const l = search(items, 'drogerie', today);
+    expect(l).toHaveLength(1);
+    expect(l[0].text).toBe('Einkaufsliste: Drogerie');
+    expect(l[0].date).toBe('');
+    expect(search(items, 'einkauf drogerie', today)).toHaveLength(1); // shopList-Suchwörter enthalten „einkauf“
+    expect(search(items, 'shampoo', today)[0].text).toBe('Shampoo');
   });
   it('erkennt Datumseingaben', () => {
     expect(parseDateQuery('14.7.', today)).toBe('2027-07-14');
