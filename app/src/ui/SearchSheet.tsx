@@ -65,7 +65,7 @@ export function SearchSheet({ onClose, onDay, onGo }: { onClose: () => void; onD
 
       {q.trim() && !hits.length && !jump && <div class="empty"><Ic n="search" size={24} /><br />Nichts gefunden für „{q.trim()}“.</div>}
       {hits.map((h) => (
-        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' ? onGo('shop') : h.kind === 'meal' ? onGo('meals') : h.kind === 'list' || h.kind === 'check' ? onGo('lists') : h.kind === 'fact' ? onGo('facts') : onDay(h.date)))}>
+        <div key={h.item.id} class="line link-row hit" onClick={() => pick(() => (h.kind === 'shop' || (h.kind === 'list' && h.item.shopList) ? onGo('shop') : h.kind === 'meal' ? onGo('meals') : h.kind === 'list' || h.kind === 'check' ? onGo('lists') : h.kind === 'fact' ? onGo('facts') : onDay(h.date)))}>
           <Ic n={KIND_ICON[h.kind] ?? 'info'} class="muted" />
           <span class="grow">{h.text}</span>
           <span class="muted small">{hitDateLabel(h)}</span>

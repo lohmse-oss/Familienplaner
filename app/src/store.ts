@@ -271,11 +271,11 @@ export function createList(title: string, template: boolean, from?: string): str
   return id;
 }
 
-/** Liste samt Punkten löschen (mit „Rückgängig“). */
+/** Liste samt Punkten/Artikeln löschen (mit „Rückgängig“). */
 export function deleteList(listId: string) {
   const l = items.find((i) => i.id === listId);
-  withUndo(`${l?.template ? 'Vorlage' : 'Checkliste'} gelöscht`, () => {
-    for (const c of listEntries(listId)) saveItem({ ...c, deleted: true });
+  withUndo(`${l?.shopList ? 'Einkaufsliste' : l?.template ? 'Vorlage' : 'Checkliste'} gelöscht`, () => {
+    for (const c of items.filter((i) => !i.deleted && (i.kind === 'check' || i.kind === 'shop') && i.parent === listId)) saveItem({ ...c, deleted: true });
     if (l) saveItem({ ...l, deleted: true });
   }, l?.title);
 }
@@ -335,11 +335,18 @@ export function applyToDays(
 /* ---------- Einkaufsliste ---------- */
 const nowIso = () => new Date().toISOString().slice(0, 10);
 
-export function addShop(title: string): boolean {
+/** Neue Einkaufsliste (z. B. „Drogerie“); Artikel ohne parent liegen in der Standardliste „Allgemeines“. */
+export function createShopList(title: string): string {
+  const id = newId();
+  saveItem({ id, kind: 'list', shopList: true, title: title.trim() || 'Neue Liste', persons: [], start: nowIso(), end: nowIso(), ts: Date.now() });
+  return id;
+}
+
+export function addShop(title: string, parent?: string): boolean {
   const t = title.trim();
   if (!t) return false;
-  if (items.some((i) => i.kind === 'shop' && !i.deleted && !i.done && i.title?.toLowerCase() === t.toLowerCase())) return false;
-  saveItem({ id: newId(), kind: 'shop', title: t, persons: [], start: nowIso(), end: nowIso(), ts: Date.now() });
+  if (items.some((i) => i.kind === 'shop' && !i.deleted && !i.done && i.parent === parent && i.title?.toLowerCase() === t.toLowerCase())) return false;
+  saveItem({ id: newId(), kind: 'shop', title: t, parent, persons: [], start: nowIso(), end: nowIso(), ts: Date.now() });
   return true;
 }
 export function toggleShop(id: string) {

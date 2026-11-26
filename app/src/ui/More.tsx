@@ -24,7 +24,7 @@ export function More({ go }: { go: (t: Tab) => void }) {
   const py = Number(t0.slice(0, 4));
   const bdays = items.filter((i) => i.kind === 'birthday' && !i.deleted);
   const nb = nextBirthday(bdays, t0);
-  const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template).length;
+  const activeLists = items.filter((i) => i.kind === 'list' && !i.deleted && !i.template && !i.shopList).length; // Einkaufslisten zählen nicht
   const facts = items.filter((i) => i.kind === 'fact' && !i.deleted && !(readOnly && i.private)).length;
   const overdue = overdueCount(items, t0);
 

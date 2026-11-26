@@ -277,6 +277,12 @@ h1, h2, h3 { margin: 0; }
 .nav.small .icon-btn { width: 34px; height: 34px; font-size: 20px; }
 
 /* ---------- Einkaufsliste ---------- */
+.shop-tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.shop-tabs .chips { flex: 1; min-width: 0; margin-bottom: 0; }
+.shop-tabs .chips.scroll { padding-bottom: 2px; }
+.shop-tabs .icon-btn { width: 36px; height: 36px; font-size: 17px; flex-shrink: 0; }
+.list-form { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.list-form label { font-size: 13px; color: var(--muted); }
 .shop-add { display: flex; gap: 8px; margin-bottom: 10px; }
 .shop-add input { flex: 1; min-width: 0; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); font-size: 16px; }
 .shop-add .btn { width: 52px; font-size: 22px; padding: 0; }

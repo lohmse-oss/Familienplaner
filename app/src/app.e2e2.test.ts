@@ -137,4 +137,91 @@ describe('E2E: Robustheit, a11y, Offline, Resume, Lesezugriff', () => {
     expect(txt).not.toContain('Geheimkarte');
     expect([...document.querySelectorAll('button')].some((b) => b.textContent?.includes('Neue Karte'))).toBe(false);
   });
+
+  it('Einkaufslisten: mehrere Listen über Registerkarten anlegen, befüllen, wechseln, umbenennen, löschen (Undo)', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    vi.resetModules(); // frischer Store (vorherige Tests setzen z. B. role=read)
+    const { App } = await import('./App');
+    const { updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '', role: 'write' }); // kein Netzwerk im Test
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+
+    const submitForm = (f: Element) => void f.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    const listTabs = () => [...document.querySelectorAll('.shop-tabs [role="tab"]')] as HTMLElement[];
+    const ls = () => JSON.parse(localStorage.getItem('fp.items') ?? '[]') as { id: string; title?: string; kind: string; parent?: string; shopList?: boolean; deleted?: boolean }[];
+    const add = async (v: string) => {
+      const f = document.querySelector('.shop-add') as HTMLFormElement;
+      setInput(f.querySelector('input') as HTMLInputElement, v);
+      await tick();
+      submitForm(f);
+      await tick();
+    };
+
+    click(tabBtn('Einkauf'));
+    await tick(50);
+    expect(listTabs().map((t) => t.textContent?.trim())).toEqual(['Allgemeines']); // nur Standardliste
+
+    // Artikel in „Allgemeines“ (ohne parent)
+    await add('Milch');
+    expect(document.querySelectorAll('.shop-row').length).toBe(1);
+    expect(document.querySelector('.shop-row')?.textContent).toContain('Milch');
+
+    // Neue Liste „Drogerie“ anlegen → wird direkt aktiv
+    click(document.querySelector('.shop-tabs .chip[aria-label="Neue Einkaufsliste anlegen"]')!);
+    await tick();
+    const lf = document.querySelector('.list-form') as HTMLFormElement;
+    expect(lf, 'Anlage-Formular fehlt').toBeTruthy();
+    setInput(lf.querySelector('input') as HTMLInputElement, 'Drogerie');
+    await tick();
+    submitForm(lf);
+    await tick();
+    expect(listTabs().map((t) => t.textContent?.trim())).toEqual(['Allgemeines (1)', 'Drogerie']);
+    expect(document.querySelector('.shop-tabs [role="tab"].on')?.textContent).toContain('Drogerie');
+
+    // Artikel landet in der aktiven Liste
+    await add('Shampoo');
+    expect(document.querySelectorAll('.shop-row').length).toBe(1);
+    expect(document.querySelector('.shop-row')?.textContent).toContain('Shampoo');
+    const drogerie = ls().find((i) => i.shopList);
+    expect(drogerie?.title).toBe('Drogerie');
+    expect(ls().find((i) => i.title === 'Shampoo')?.parent).toBe(drogerie?.id);
+    expect(ls().find((i) => i.title === 'Milch')?.parent).toBeUndefined();
+
+    // Wechsel zu „Allgemeines“: Milch sichtbar, Shampoo nicht
+    click(listTabs().find((t) => t.textContent?.includes('Allgemeines'))!);
+    await tick();
+    expect(document.querySelector('.shop-row')?.textContent).toContain('Milch');
+    expect(document.body.textContent).not.toContain('Shampoo');
+
+    // Zurück zur eigenen Liste und umbenennen
+    click(listTabs().find((t) => t.textContent?.includes('Drogerie'))!);
+    await tick();
+    click(document.querySelector('.shop-tabs [aria-label="Liste bearbeiten"]')!);
+    await tick();
+    const lf2 = document.querySelector('.list-form') as HTMLFormElement;
+    expect((lf2.querySelector('input') as HTMLInputElement).value).toBe('Drogerie');
+    setInput(lf2.querySelector('input') as HTMLInputElement, 'Drogerie & Co');
+    await tick();
+    submitForm(lf2);
+    await tick();
+    expect(listTabs().some((t) => t.textContent?.includes('Drogerie & Co'))).toBe(true);
+
+    // Löschen: Liste + Artikel als gelöscht markiert, aktive Tab fällt auf „Allgemeines“, Undo stellt her
+    click(document.querySelector('.shop-tabs [aria-label="Liste bearbeiten"]')!);
+    await tick();
+    click([...document.querySelectorAll('.list-form button')].find((b) => b.textContent?.includes('Löschen'))!);
+    await tick();
+    expect(listTabs()).toHaveLength(1);
+    expect(document.querySelector('.shop-tabs [role="tab"].on')?.textContent).toContain('Allgemeines');
+    expect(ls().find((i) => i.shopList)?.deleted).toBe(true);
+    expect(ls().find((i) => i.title === 'Shampoo')?.deleted).toBe(true);
+    click([...document.querySelectorAll('.snack button')].find((b) => b.textContent?.includes('Rückgängig'))!);
+    await tick();
+    expect(ls().find((i) => i.shopList)?.deleted).toBeFalsy();
+    expect(ls().find((i) => i.title === 'Shampoo')?.deleted).toBeFalsy();
+  });
 });

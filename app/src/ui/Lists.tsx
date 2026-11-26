@@ -30,7 +30,7 @@ export function Lists() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useUiState('lists.name', '');
 
-  const lists = items.filter((i) => i.kind === 'list' && !i.deleted).sort(byTs);
+  const lists = items.filter((i) => i.kind === 'list' && !i.shopList && !i.deleted).sort(byTs); // Einkaufslisten (shopList) leben im Einkauf-Tab
   const checks = items.filter((i) => i.kind === 'check' && !i.deleted);
   const entriesOf = (id: string) => checks.filter((c) => c.parent === id).sort(byTs);
   const cur = openId ? lists.find((l) => l.id === openId) : undefined;

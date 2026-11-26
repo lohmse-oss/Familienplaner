@@ -32,7 +32,7 @@ const NO_DATE: Kind[] = ['shop', 'list', 'check', 'fact'];
 function listText(it: Item, all: Item[]): string | undefined {
   const t = it.title ?? '';
   if (it.kind === 'shop') return `${t}${it.done ? ' (erledigt)' : ''}`;
-  if (it.kind === 'list') return `${it.template ? 'Vorlage' : 'Checkliste'}: ${t}`;
+  if (it.kind === 'list') return `${it.shopList ? 'Einkaufsliste' : it.template ? 'Vorlage' : 'Checkliste'}: ${t}`;
   if (it.kind === 'check') return `${t} – ${all.find((l) => l.id === it.parent)?.title ?? 'Checkliste'}${it.done ? ' ✓' : ''}`;
   if (it.kind === 'fact') return `Infomappe: ${t}`;
   return undefined;
@@ -62,7 +62,7 @@ export function search(items: Item[], query: string, today: string, limit = 40, 
       it.owner ? PERSONS[it.owner].name : '',
       it.mode ? MODE_WORDS[it.mode] : '',
       it.sub ? SUB_LABEL[it.sub] : '',
-      KIND_WORDS[it.kind],
+      it.kind === 'list' && it.shopList ? 'einkauf einkaufsliste' : KIND_WORDS[it.kind],
     ].join(' ').toLowerCase();
     if (!terms.every((t) => hay.includes(t))) continue;
     const date = NO_DATE.includes(it.kind) ? '' : it.kind === 'birthday' ? nextBirthday(it.start, today) : it.start;

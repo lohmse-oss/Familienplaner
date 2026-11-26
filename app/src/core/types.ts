@@ -21,8 +21,8 @@ export const ALL: PersonId[] = ['sebastian', 'betty', 'ida', 'irma'];
  *  task     – Aufgabe mit Fälligkeit
  *  birthday – Geburtstag (jährlich)
  *  config   – Einstellungen pro Person und Jahr (Urlaubstage)
- *  shop     – Eintrag der Einkaufsliste (title, done)
- *  list     – Checkliste (title) oder Vorlage (template = true)
+ *  shop     – Eintrag der Einkaufsliste (title, done, parent = Id der Einkaufsliste; ohne parent = „Allgemeines“)
+ *  list     – Checkliste (title), Vorlage (template = true) oder Einkaufsliste (shopList = true)
  *  check    – Punkt einer Checkliste/Vorlage (parent = Id der Liste, title, done) – eigene Einträge, damit beide parallel abhaken können
  *  fact     – Karte der Familien-Infomappe (title, cat, note, contact, link, place; private = nur Eltern)
  *  meal     – Mahlzeit an einem Tag (start = Tag; done = als gegessen bestätigt; pool = in den Pool gewandert, weil nicht bestätigt)
@@ -89,8 +89,9 @@ export interface Item {
   every?: Every; // task: wiederkehrend – Abhaken setzt die nächste Fälligkeit
   lead?: Lead; // task: Frist mit Vorlauf (start = Ablauf-/Stichtag); bis zum Vorlauf „vorgemerkt“
   ask?: Ask; // event/task: Übernahme-Anfrage an den Partner
-  parent?: string; // check: Id der Checkliste
+  parent?: string; // check: Id der Checkliste · shop: Id der Einkaufsliste
   template?: boolean; // list: Vorlage statt aktiver Checkliste
+  shopList?: boolean; // list: Einkaufsliste (erscheint im Einkauf-Tab statt unter Checklisten)
   cat?: FactCat; // fact: Kategorie der Infomappe
   private?: boolean; // fact: nur für Eltern sichtbar (nicht im Lesezugriff)
   pool?: boolean; // meal: liegt im Pool (Tag abgelaufen ohne Bestätigung) statt auf einem Tag
