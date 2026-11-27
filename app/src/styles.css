@@ -302,6 +302,7 @@ h1, h2, h3 { margin: 0; }
 .brief-day { line-height: 1.7; }
 .brief-day .bf-day { padding: 0; font-weight: 600; }
 .meal-date { flex-shrink: 0; min-width: 6.4em; font-size: 13.5px; color: var(--muted); }
+.meal-date:empty { display: none; }
 .meal-row.today .meal-date { color: var(--accent); font-weight: 700; }
 .meal-row.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-radius: 10px; }
 .meal-row.target { outline: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -2px; border-radius: 10px; }
