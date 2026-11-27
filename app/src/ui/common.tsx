@@ -118,7 +118,13 @@ export function PersonFilterBar() {
 export function DateInput({ value, onChange, min, ariaLabel, picker = true }: { value: string; onChange: (v: string) => void; min?: string; ariaLabel?: string; picker?: boolean }) {
   const [text, setText] = useState(value ? fmt(value) : '');
   const [err, setErr] = useState(false);
-  useEffect(() => { setText(value ? fmt(value) : ''); setErr(false); }, [value]);
+  const lastValue = useRef(value);
+  useEffect(() => {
+    if (value === lastValue.current) return;
+    lastValue.current = value;
+    setText(value ? fmt(value) : '');
+    setErr(false);
+  }, [value]);
   return (
     <span class="date-input">
       {picker && <input type="date" value={value} min={min} aria-label={ariaLabel} onInput={(e) => { const v = (e.target as HTMLInputElement).value; if (v) onChange(v); }} />}
