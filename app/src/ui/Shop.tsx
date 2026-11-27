@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useUiState } from '../resume';
 import { PERSONS, type Item } from '../core/types';
 import { haptic } from '../haptics';
-import { addShop, createShopList, deleteList, removeShop, saveItem, sync, toggleShop, useStore } from '../store';
+import { addShop, createShopList, deleteList, moveShop, removeShop, saveItem, sync, toggleShop, useStore } from '../store';
 import { Ic } from './icons';
 
 const rel = (a: Item, b: Item) => (b.ts ?? 0) - (a.ts ?? 0);
@@ -14,6 +14,7 @@ export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
   const [showDone, setShowDone] = useState(false);
   const [note, setNote] = useState('');
   const [listId, setListId] = useUiState('shop.list', ''); // '' = Standardliste „Allgemeines“
+  const [moveId, setMoveId] = useState<string | null>(null); // Artikel zum Verschieben ausgewählt
   const [editing, setEditing] = useState<string | null>(null); // null = zu, '' = neu anlegen, sonst Id der Liste
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +59,17 @@ export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
     setNote(m);
     setTimeout(() => setNote(''), 2000);
   };
+  // Verschieben-Modus: Zielliste oben antippen → Artikel landet dort, Ansicht wechselt mit
+  const pickTarget = (targetId: string) => {
+    const it = allShop.find((i) => i.id === moveId);
+    setMoveId(null);
+    if (!it) return;
+    haptic();
+    const name = targetId === '' ? 'Allgemeines' : shopLists.find((l) => l.id === targetId)?.title ?? '';
+    moveShop(it.id, targetId || undefined);
+    setListId(targetId);
+    flash(`„${it.title}“ nach „${name}“ verschoben`);
+  };
   const submit = (e: Event) => {
     e.preventDefault();
     const parts = text.split(',').map((s) => s.trim()).filter(Boolean); // „Milch, Brot, Eier“ → drei Einträge
@@ -69,10 +81,11 @@ export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
   };
 
   const Row = ({ i }: { i: Item }) => (
-    <div class={`shop-row ${i.done ? 'done' : ''}`}>
+    <div class={`shop-row ${i.done ? 'done' : ''} ${moveId === i.id ? 'on' : ''}`}>
       <button class="check-btn" disabled={readOnly} onClick={() => { haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }} aria-label={i.done ? 'wieder offen' : 'abhaken'}>{i.done && <Ic n="check" size={16} sw={3} />}</button>
       <span class="grow" onClick={() => { if (readOnly) return; haptic(i.done ? 'light' : 'success'); toggleShop(i.id); }}>{i.title}</span>
       {i.by && i.by !== settings.me && <i class="dot" style={{ background: PERSONS[i.by].color }} title={`von ${PERSONS[i.by].name}`} />}
+      {!readOnly && <button class={`x-btn ${moveId === i.id ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); haptic(); setMoveId(moveId === i.id ? null : i.id); }} aria-label="in andere Liste verschieben" title="In andere Liste verschieben"><Ic n="move" size={16} /></button>}
       {!readOnly && <button class="x-btn" onClick={() => removeShop([i.id])} aria-label="entfernen"><Ic n="x" size={16} /></button>}
     </div>
   );
@@ -91,11 +104,11 @@ export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
     <div class="page">
       <div class="shop-tabs">
         <div class="chips scroll" role="tablist" aria-label="Einkaufslisten">
-          <button class={`chip ${activeId === '' ? 'on' : ''}`} role="tab" aria-selected={activeId === ''} onClick={() => setListId('')}>
+          <button class={`chip ${activeId === '' ? 'on' : ''}`} role="tab" aria-selected={activeId === ''} onClick={() => (moveId ? pickTarget('') : setListId(''))}>
             Allgemeines{openCountOf(undefined) > 0 ? ` (${openCountOf(undefined)})` : ''}
           </button>
           {shopLists.map((l) => (
-            <button key={l.id} class={`chip ${activeId === l.id ? 'on' : ''}`} role="tab" aria-selected={activeId === l.id} onClick={() => setListId(l.id)}>
+            <button key={l.id} class={`chip ${activeId === l.id ? 'on' : ''}`} role="tab" aria-selected={activeId === l.id} onClick={() => (moveId ? pickTarget(l.id) : setListId(l.id))}>
               {l.title}{openCountOf(l.id) > 0 ? ` (${openCountOf(l.id)})` : ''}
             </button>
           ))}
@@ -105,6 +118,12 @@ export function Shop({ focusSignal = 0 }: { focusSignal?: number }) {
           <button class="icon-btn" onClick={() => { setEditing(activeId); setName(activeList.title ?? ''); }} aria-label="Liste bearbeiten" title="Liste umbenennen oder löschen"><Ic n="edit" size={16} /></button>
         )}
       </div>
+
+      {moveId && (
+        <div class="quick">
+          <Ic n="move" size={16} /> Verschieben: andere Liste oben antippen. <button class="link" onClick={() => setMoveId(null)}>Abbrechen</button>
+        </div>
+      )}
 
       {!readOnly && editing !== null && (
         <form class="card list-form" onSubmit={saveList}>

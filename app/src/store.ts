@@ -359,6 +359,13 @@ export function removeShop(ids: string[]) {
   });
 }
 
+/** Artikel in eine andere Einkaufsliste verschieben (ohne listId = Standardliste „Allgemeines“; mit „Rückgängig“). */
+export function moveShop(id: string, listId?: string) {
+  const cur = items.find((i) => i.id === id);
+  if (!cur || cur.kind !== 'shop' || (cur.parent ?? undefined) === (listId || undefined)) return;
+  withUndo('Artikel verschoben', () => saveItem({ ...cur, parent: listId || undefined }), cur.title);
+}
+
 /* ---------- Mahlzeiten (fortlaufende Liste je Tag + Pool) ---------- */
 
 /** Mahlzeit für einen Tag eintragen; belegter Tag: die bisherige Mahlzeit wandert in den Pool. Leerer Tag → heute. */

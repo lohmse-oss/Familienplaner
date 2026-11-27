@@ -295,6 +295,7 @@ h1, h2, h3 { margin: 0; }
 .shop-row.done .grow { text-decoration: line-through; color: var(--muted); }
 .x-btn { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 6px 4px; }
 .x-btn.on { color: var(--accent); }
+.shop-row.on { background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-radius: 10px; }
 .done-toggle { display: block; margin: 12px 4px 6px; padding: 4px; }
 .meal-add .date-input { flex: 0 0 auto; width: 9.4em; }
 .meal-add .date-input input[type="text"] { width: 100%; padding: 13px 8px; font-size: 14.5px; }

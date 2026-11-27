@@ -224,4 +224,81 @@ describe('E2E: Robustheit, a11y, Offline, Resume, Lesezugriff', () => {
     expect(ls().find((i) => i.shopList)?.deleted).toBeFalsy();
     expect(ls().find((i) => i.title === 'Shampoo')?.deleted).toBeFalsy();
   });
+
+  it('Einkaufslisten: Artikel per Verschieben-Knopf in eine andere Liste verschieben (mit Rückgängig)', async () => {
+    localStorage.clear();
+    document.body.innerHTML = '';
+    vi.resetModules();
+    const { App } = await import('./App');
+    const { updateSettings } = await import('./store');
+    updateSettings({ me: 'sebastian', server: '', code: '', role: 'write' });
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(h(App, {}), root);
+    await tick(60);
+
+    const submitForm = (f: Element) => void f.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    const listTabs = () => [...document.querySelectorAll('.shop-tabs [role="tab"]')] as HTMLElement[];
+    const ls = () => JSON.parse(localStorage.getItem('fp.items') ?? '[]') as { id: string; title?: string; kind: string; parent?: string; shopList?: boolean; deleted?: boolean }[];
+    const rowByTitle = (t: string) => [...document.querySelectorAll('.shop-row')].find((r) => r.textContent?.includes(t)) as HTMLElement;
+    const add = async (v: string) => {
+      const f = document.querySelector('.shop-add') as HTMLFormElement;
+      setInput(f.querySelector('input') as HTMLInputElement, v);
+      await tick();
+      submitForm(f);
+      await tick();
+    };
+
+    click(tabBtn('Einkauf'));
+    await tick(50);
+    await add('Milch');
+
+    // Liste „Drogerie“ anlegen
+    click(document.querySelector('.shop-tabs .chip[aria-label="Neue Einkaufsliste anlegen"]')!);
+    await tick();
+    const lf = document.querySelector('.list-form') as HTMLFormElement;
+    setInput(lf.querySelector('input') as HTMLInputElement, 'Drogerie');
+    await tick();
+    submitForm(lf);
+    await tick();
+    const drogerie = ls().find((i) => i.shopList)!;
+    expect(drogerie?.title).toBe('Drogerie');
+
+    // Zurück zu „Allgemeines“, Verschieben-Modus am Milch-Eintrag starten
+    click(listTabs().find((t) => t.textContent?.includes('Allgemeines'))!);
+    await tick();
+    click(rowByTitle('Milch').querySelector('.x-btn[aria-label="in andere Liste verschieben"]')!);
+    await tick();
+    expect(document.querySelector('.quick'), 'Hinweis „andere Liste antippen“ fehlt').toBeTruthy();
+    expect(rowByTitle('Milch').className).toContain('on');
+
+    // Zielliste antippen → Artikel landet dort, Ansicht wechselt mit, Modus endet
+    click(listTabs().find((t) => t.textContent?.includes('Drogerie'))!);
+    await tick();
+    expect(ls().find((i) => i.title === 'Milch')?.parent).toBe(drogerie.id);
+    expect(document.querySelector('.shop-tabs [role="tab"].on')?.textContent).toContain('Drogerie');
+    expect(rowByTitle('Milch')).toBeTruthy();
+    expect(document.querySelector('.quick')).toBeNull();
+
+    // „Allgemeines“ ist jetzt leer
+    click(listTabs().find((t) => t.textContent?.includes('Allgemeines'))!);
+    await tick();
+    expect(document.querySelector('.shop-row')).toBeNull();
+
+    // Zurück nach „Allgemeines“ verschieben (parent wird entfernt)
+    click(listTabs().find((t) => t.textContent?.includes('Drogerie'))!);
+    await tick();
+    click(rowByTitle('Milch').querySelector('.x-btn[aria-label="in andere Liste verschieben"]')!);
+    await tick();
+    click(listTabs().find((t) => t.textContent?.includes('Allgemeines'))!);
+    await tick();
+    expect(ls().find((i) => i.title === 'Milch')?.parent).toBeUndefined();
+    expect(document.querySelector('.shop-tabs [role="tab"].on')?.textContent).toContain('Allgemeines');
+    expect(rowByTitle('Milch')).toBeTruthy();
+
+    // Rückgängig stellt die vorherige Liste wieder her
+    click([...document.querySelectorAll('.snack button')].find((b) => b.textContent?.includes('Rückgängig'))!);
+    await tick();
+    expect(ls().find((i) => i.title === 'Milch')?.parent).toBe(drogerie.id);
+  });
 });
